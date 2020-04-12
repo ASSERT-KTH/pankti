@@ -7,21 +7,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FirstMethodProcessor extends AbstractProcessor<CtMethod<?>> {
-    List<String> publicMethods = new ArrayList<>();
-    List<String> privateMethods = new ArrayList<>();
+    List<CtMethod> publicMethods = new ArrayList<>();
+    List<CtMethod> privateMethods = new ArrayList<>();
 
     @Override
     public void process(CtMethod<?> ctMethod) {
         if (ctMethod.isPublic()) {
-            publicMethods.add(ctMethod.getSimpleName());
+            publicMethods.add(ctMethod);
         }
         else if (ctMethod.isPrivate()) {
-            privateMethods.add(ctMethod.getSimpleName());
+            privateMethods.add(ctMethod);
         }
     }
 
     public void getMethodLists() {
-        System.out.println("Public methods: " + publicMethods);
-        System.out.println("Private methods: " + privateMethods);
+        System.out.println("Public methods: ");
+        publicMethods.forEach(ctMethod -> System.out.println(ctMethod.getSimpleName()));
+        System.out.println("Private methods: " );
+        privateMethods.forEach(ctMethod -> System.out.println(ctMethod.getSimpleName()));
     }
 }
