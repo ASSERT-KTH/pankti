@@ -12,7 +12,7 @@ import spoon.reflect.declaration.CtType;
 import java.util.Arrays;
 import java.util.List;
 
-@CommandLine.Command(name = "java -jar target/pankti", description = "pankti converts application traces to tests", separator = " ")
+@CommandLine.Command(name = "java -jar target/<pankti-version-jar-with-dependencies.jar> <PATH1 PATH2 ...>", description = "pankti converts application traces to tests", separator = " ")
 public class PanktiLauncher {
     // Accept file paths from CLI
     @CommandLine.Parameters(arity = "0..*", paramLabel = "FILE PATHS", description = "Space-separated project paths")
