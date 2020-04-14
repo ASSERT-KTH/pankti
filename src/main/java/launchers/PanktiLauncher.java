@@ -4,6 +4,7 @@ import picocli.CommandLine;
 import processors.FirstMethodProcessor;
 import processors.MethodProcessor;
 import spoon.Launcher;
+import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.CtPackage;
@@ -39,12 +40,11 @@ public class PanktiLauncher {
         }
         panktiLauncher.setProjectPaths(args);
 
-        Launcher launcher = new Launcher();
+        // TODO: Refactor to include all projects
+        MavenLauncher launcher = new MavenLauncher(panktiLauncher.getProjectPaths().get(0), MavenLauncher.SOURCE_TYPE.APP_SOURCE);
+        System.out.println("POM found at " + launcher.getPomFile().getPath());
         launcher.getEnvironment().setAutoImports(true);
         launcher.getEnvironment().setCommentEnabled(true);
-
-        // TODO: Refactor to include all projects
-        launcher.addInputResource(panktiLauncher.getProjectPaths().get(0));
 
         // Build Spoon model
         launcher.buildModel();
