@@ -16,7 +16,7 @@ import java.util.List;
 @CommandLine.Command(name = "java -jar target/<pankti-version-jar-with-dependencies.jar> <PATH1 PATH2 ...>", description = "pankti converts application traces to tests", separator = " ")
 public class PanktiLauncher {
     // Accept file paths from CLI
-    @CommandLine.Parameters(arity = "0..*", paramLabel = "FILE PATHS", description = "Space-separated project paths")
+    @CommandLine.Parameters(arity = "0..*", paramLabel = "PROJECT PATHS", description = "Space-separated project paths")
     List<String> projectPaths;
 
     @CommandLine.Option(names = {"-h", "--help "}, usageHelp = true, description = "exit after usage help")
