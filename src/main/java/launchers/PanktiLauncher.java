@@ -13,35 +13,44 @@ import spoon.reflect.declaration.CtType;
 import java.util.Arrays;
 import java.util.List;
 
-@CommandLine.Command(name = "java -jar target/<pankti-version-jar-with-dependencies.jar> <PATH1 PATH2 ...>", description = "pankti converts application traces to tests", separator = " ")
+@CommandLine.Command(name = "java -jar target/<pankti-version-jar-with-dependencies.jar>",
+        description = "pankti converts application traces to tests",
+        usageHelpWidth = 100)
 public class PanktiLauncher {
-    // Accept file paths from CLI
-    @CommandLine.Parameters(arity = "0..*", paramLabel = "PROJECT PATHS", description = "Space-separated project paths")
-    List<String> projectPaths;
+    // Accept project path from CLI
+    @CommandLine.Parameters(paramLabel = "PROJECT PATH", description = "Path to a Maven project")
+    String projectPath;
 
     @CommandLine.Option(names = {"-h", "--help "}, usageHelp = true, description = "exit after usage help")
     private boolean usageHelpRequested;
 
-    public void setProjectPaths(String[] projectPaths) {
-        this.projectPaths = Arrays.asList(projectPaths);
+    public void setProjectPath(String projectPath) {
+        this.projectPath = projectPath;
     }
 
-    public List<String> getProjectPaths() {
-        return projectPaths;
+    public String getProjectPath() {
+        return projectPath;
     }
 
     public static void main(String[] args) {
         PanktiLauncher panktiLauncher = new PanktiLauncher();
         CommandLine commandLine = new CommandLine(panktiLauncher);
-        commandLine.parseArgs(args);
-        if (commandLine.isUsageHelpRequested() || args.length == 0) {
+        // Accept project path or -h only
+        try {
+            commandLine.parseArgs(args);
+            if (commandLine.isUsageHelpRequested()) {
+                commandLine.usage(System.out);
+                return;
+            }
+        } catch (Exception e) {
             commandLine.usage(System.out);
             return;
         }
-        panktiLauncher.setProjectPaths(args);
 
-        // TODO: Refactor to include all projects
-        MavenLauncher launcher = new MavenLauncher(panktiLauncher.getProjectPaths().get(0), MavenLauncher.SOURCE_TYPE.APP_SOURCE);
+        panktiLauncher.setProjectPath(args[0]);
+        System.out.println("Processing project at " + panktiLauncher.getProjectPath());
+
+        MavenLauncher launcher = new MavenLauncher(panktiLauncher.getProjectPath(), MavenLauncher.SOURCE_TYPE.APP_SOURCE);
         System.out.println("POM found at " + launcher.getPomFile().getPath());
         launcher.getEnvironment().setAutoImports(true);
         launcher.getEnvironment().setCommentEnabled(true);
