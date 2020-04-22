@@ -3,15 +3,11 @@ package launchers;
 import picocli.CommandLine;
 import processors.FirstMethodProcessor;
 import processors.MethodProcessor;
-import spoon.Launcher;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.CtPackage;
 import spoon.reflect.declaration.CtType;
-
-import java.util.Arrays;
-import java.util.List;
 
 @CommandLine.Command(name = "java -jar target/<pankti-version-jar-with-dependencies.jar>",
         description = "pankti converts application traces to tests",
@@ -80,6 +76,15 @@ public class PanktiLauncher {
         model.processWith(firstMethodProcessor);
         firstMethodProcessor.getMethodLists();
         model.processWith(methodProcessor);
+        System.out.println("Modifiers present in project: " + methodProcessor.getAllMethodModifiersInProject());
+        System.out.println("Abstract methods in project: ");
+        methodProcessor.getAbstractMethods().forEach(ctMethod -> System.out.println(ctMethod.getSignature()));
+        System.out.println("Empty methods in project: ");
+        methodProcessor.getEmptyMethods().forEach(ctMethod -> System.out.println(ctMethod.getSignature()));
+        System.out.println("Methods throwing exeptions: ");
+        methodProcessor.getMethodsThrowingExcepions().forEach(ctMethod -> System.out.println(ctMethod.getSignature()));
+        System.out.println("Candidate methods to check for purity: ");
+        methodProcessor.getCandidateMethods().forEach(ctMethod -> System.out.println(ctMethod.getPath()));
 
         // Save model in spooned/
         launcher.prettyprint();
