@@ -55,38 +55,23 @@ public class PanktiLauncher {
         launcher.buildModel();
         CtModel model = launcher.getModel();
 
-        // List all packages of model
-        for (CtPackage p : model.getAllPackages()) {
-            System.out.println("package: " + p.getQualifiedName());
-        }
-
         // List all classes of model
-        for (CtType<?> s : model.getAllTypes()) {
-            System.out.println("class: " + s.getQualifiedName());
-            System.out.println("methods in class: " + s.getMethods().size());
+        int numberOfMethodsInProject = 0;
+        for (CtType<?> s : model.getAllTypes()) numberOfMethodsInProject += s.getMethods().size();
 
-            for (CtMethod ctMethod : s.getMethods()) {
-                System.out.println(ctMethod.getSimpleName());
-            }
-        }
+        System.out.println("Total number of methods: " + numberOfMethodsInProject);
 
         // Apply processor to model
         FirstMethodProcessor firstMethodProcessor = new FirstMethodProcessor();
         MethodProcessor methodProcessor = new MethodProcessor();
         model.processWith(firstMethodProcessor);
-        firstMethodProcessor.getMethodLists();
         model.processWith(methodProcessor);
         System.out.println("Modifiers present in project: " + methodProcessor.getAllMethodModifiersInProject());
-        System.out.println("Abstract methods in project: ");
-        methodProcessor.getAbstractMethods().forEach(ctMethod -> System.out.println(ctMethod.getSignature()));
-        System.out.println("Empty methods in project: ");
-        methodProcessor.getEmptyMethods().forEach(ctMethod -> System.out.println(ctMethod.getSignature()));
-        System.out.println("Methods throwing exeptions: ");
-        methodProcessor.getMethodsThrowingExcepions().forEach(ctMethod -> System.out.println(ctMethod.getSignature()));
-        System.out.println("Candidate methods to check for purity: ");
-        methodProcessor.getCandidateMethods().forEach(ctMethod -> System.out.println(ctMethod.getPath()));
+        // System.out.println("Candidate methods to check for purity: ");
+        // methodProcessor.getCandidateMethods().forEach(ctMethod -> System.out.println(ctMethod.getPath()));
+        System.out.println("Number of candidate methods to check for purity: " + methodProcessor.getCandidateMethods().size());
 
         // Save model in spooned/
-        launcher.prettyprint();
+        // launcher.prettyprint();
     }
 }

@@ -1,8 +1,7 @@
 package processors;
 
 import spoon.processing.AbstractProcessor;
-import spoon.reflect.code.CtBlock;
-import spoon.reflect.code.CtThrow;
+import spoon.reflect.code.*;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.ModifierKind;
 import spoon.reflect.visitor.filter.TypeFilter;
@@ -28,10 +27,6 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> {
         return emptyMethods;
     }
 
-    public List<CtMethod> getAbstractMethods() {
-        return abstractMethods;
-    }
-
     public Set<ModifierKind> getAllMethodModifiersInProject() {
         return allMethodModifiers;
     }
@@ -44,11 +39,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> {
     public boolean isMethodEmpty(CtMethod ctMethod) {
         // The body of an abstract method is null
         Optional<CtBlock> methodBody = Optional.ofNullable(ctMethod.getBody());
-        if (methodBody.isPresent() && methodBody.get().getStatements().size() == 0) {
-            emptyMethods.add(ctMethod);
-            return true;
-        }
-        return false;
+        return methodBody.isPresent() && methodBody.get().getStatements().size() == 0;
     }
 
     // Find method modifiers
@@ -70,7 +61,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> {
         } else if (ctMethod.getModifiers().contains(ModifierKind.PROTECTED)) {
             protectedMethods.add(ctMethod);
         }
-        System.out.println("Modifiers in " + ctMethod.getSignature() + ": " + ctMethod.getModifiers());
+        // System.out.println("Modifiers in " + ctMethod.getSignature() + ": " + ctMethod.getModifiers());
         return ctMethod.getModifiers();
     }
 
@@ -83,19 +74,33 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> {
         return false;
     }
 
+    // Find if method has invocations
+    public boolean hasInvocations(CtMethod ctMethod) {
+        return ctMethod.getBody().getElements(new TypeFilter<>(CtInvocation.class)).size() > 0;
+    }
+
+    // Find if method has constructor calls
+    public boolean hasConstructorCalls(CtMethod ctMethod) {
+        return ctMethod.getBody().getElements(new TypeFilter<>(CtConstructorCall.class)).size() > 0;
+    }
+
+    // Find if method has assignments
+    public boolean hasAssignments(CtMethod ctMethod) {
+        return ctMethod.getBody().getElements(new TypeFilter<>(CtAssignment.class)).size() > 0;
+    }
+
     public Set<CtMethod> getCandidateMethods() {
         return candidateMethods;
     }
 
     @Override
     public void process(CtMethod<?> ctMethod) {
-        System.out.println("Processing " + ctMethod.getSignature());
-
         Set<ModifierKind> methodModifiers = getMethodModifiers(ctMethod);
 
-        // If method is not empty, abstract, or synchronized, and does not throw exeptions, it is a candidate
+        // If method is not empty, abstract, or synchronized
         if (!(methodModifiers.contains(ModifierKind.ABSTRACT) || methodModifiers.contains(ModifierKind.SYNCHRONIZED) || isMethodEmpty(ctMethod))) {
-            if (!throwsExceptions(ctMethod))
+            // and does not throw exceptions, invoke other methods, or has assignment statements, it is a candidate
+            if (!(throwsExceptions(ctMethod) || hasInvocations(ctMethod) || hasAssignments(ctMethod) || hasConstructorCalls(ctMethod)))
                 candidateMethods.add(ctMethod);
         }
     }
