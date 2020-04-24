@@ -17,7 +17,7 @@ public class FirstMethodProcessorTest {
     public static void setUpLauncherAndModel() {
         testPanktiLauncher = new PanktiLauncher();
         // TODO: replace with a sample project path
-        String[] args = new String[]{"/home/user/dev/spoon-dog"};
+        String[] args = new String[]{"src/test/resources/spoon-dog"};
         testPanktiLauncher.setProjectPath(args[0]);
         testLauncher = new MavenLauncher(testPanktiLauncher.getProjectPath(), MavenLauncher.SOURCE_TYPE.APP_SOURCE);
         testLauncher.buildModel();
@@ -41,5 +41,11 @@ public class FirstMethodProcessorTest {
     public void testNumberOfPrivateMethods() {
         assertEquals(1, firstMethodProcessor.privateMethods.size(),
                 "Number of private methods in test project must be 1");
+    }
+
+    @Test
+    void runMain() {
+        String[] args = new String[]{"src/test/resources/spoon-dog"};
+        testPanktiLauncher.main(args);
     }
 }

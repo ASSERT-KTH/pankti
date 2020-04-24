@@ -72,6 +72,6 @@ public class PanktiLauncher {
         System.out.println("Number of candidate methods to check for purity: " + methodProcessor.getCandidateMethods().size());
 
         // Save model in spooned/
-        // launcher.prettyprint();
+        launcher.prettyprint();
     }
 }
