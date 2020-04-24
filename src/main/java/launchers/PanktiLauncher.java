@@ -5,8 +5,6 @@ import processors.FirstMethodProcessor;
 import processors.MethodProcessor;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
-import spoon.reflect.declaration.CtMethod;
-import spoon.reflect.declaration.CtPackage;
 import spoon.reflect.declaration.CtType;
 
 @CommandLine.Command(name = "java -jar target/<pankti-version-jar-with-dependencies.jar>",
@@ -55,7 +53,7 @@ public class PanktiLauncher {
         launcher.buildModel();
         CtModel model = launcher.getModel();
 
-        // List all classes of model
+        // Find number of methods in project
         int numberOfMethodsInProject = 0;
         for (CtType<?> s : model.getAllTypes()) numberOfMethodsInProject += s.getMethods().size();
 
