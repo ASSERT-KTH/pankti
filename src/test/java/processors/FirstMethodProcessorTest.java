@@ -1,45 +1,51 @@
 package processors;
 
+import java.net.URISyntaxException;
+import java.nio.file.Path;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
 import launchers.PanktiLauncher;
-import org.junit.jupiter.api.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 public class FirstMethodProcessorTest {
-    static PanktiLauncher testPanktiLauncher;
-    static MavenLauncher testLauncher;
-    static CtModel testModel;
-    static FirstMethodProcessor firstMethodProcessor = new FirstMethodProcessor();
+
+    private static PanktiLauncher panktiLauncher;
+    private static MavenLauncher mavenLauncher;
+    private static CtModel testModel;
+    private static FirstMethodProcessor firstMethodProcessor;
+    private static String[] args;
 
     @BeforeAll
-    public static void setUpLauncherAndModel() {
-        testPanktiLauncher = new PanktiLauncher();
+    public static void setUpLauncherAndModel() throws URISyntaxException {
+        firstMethodProcessor = new FirstMethodProcessor();
         // TODO: replace with a sample project path
-        String[] args = new String[]{"/home/user/dev/spoon-dog"};
-        testPanktiLauncher.setProjectPath(args[0]);
-        testLauncher = new MavenLauncher(testPanktiLauncher.getProjectPath(), MavenLauncher.SOURCE_TYPE.APP_SOURCE);
-        testLauncher.buildModel();
-        testModel = testLauncher.getModel();
+        panktiLauncher = new PanktiLauncher(Path.of("src/test/resources/spoon-dog"), true);
+        mavenLauncher = new MavenLauncher(panktiLauncher.getProjectPath().toString(),
+            MavenLauncher.SOURCE_TYPE.APP_SOURCE);
+        mavenLauncher.buildModel();
+        testModel = mavenLauncher.getModel();
         testModel.processWith(firstMethodProcessor);
     }
 
     @Test
     public void testPomPath() {
-        assertEquals(testPanktiLauncher.getProjectPath() + "/pom.xml", testLauncher.getPomFile().getPath(),
-                "POM file must be present in project path");
+        assertEquals(panktiLauncher.getProjectPath().toString() + "/pom.xml", mavenLauncher.getPomFile().getPath(),
+            "POM file must be present in project path");
     }
 
     @Test
     public void testNumberOfPublicMethods() {
         assertEquals(12, firstMethodProcessor.publicMethods.size(),
-                "Number of public methods in test project must be 12");
+            "Number of public methods in test project must be 12");
     }
 
     @Test
     public void testNumberOfPrivateMethods() {
         assertEquals(1, firstMethodProcessor.privateMethods.size(),
-                "Number of private methods in test project must be 1");
+            "Number of private methods in test project must be 1");
     }
 }
