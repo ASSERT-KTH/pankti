@@ -1,6 +1,4 @@
-![build-on-push](https://github.com/castor-software/pankti//workflows/build-on-push/badge.svg)
-
-# pankti
+# pankti ![Build](https://github.com/castor-software/pankti//workflows/build-on-push/badge.svg)
 
 Pankti is a work in progress.
 
