@@ -17,6 +17,7 @@
       <maven.compiler.plugin.release>11</maven.compiler.plugin.release>
       <maven.surefire.plugin.version>2.22.2</maven.surefire.plugin.version>
       <maven.assembly.plugin.version>3.2.0</maven.assembly.plugin.version>
+      <maven.jacoco.plugin.version>0.8.5</maven.jacoco.plugin.version>     
       <junit.jupiter.engine.version>5.5.2</junit.jupiter.engine.version>
       <junit.platform.runner.version>1.5.2</junit.platform.runner.version>
       <junit.jupiter.params.version>5.6.2</junit.jupiter.params.version>
@@ -97,7 +98,25 @@
                </execution>
             </executions>
          </plugin>
+         <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <version>${maven.jacoco.plugin.version}</version>
+            <executions>
+               <execution>
+                  <goals>
+                     <goal>prepare-agent</goal>
+                  </goals>
+               </execution>
+               <execution>
+                  <id>report</id>
+                  <phase>prepare-package</phase>
+                  <goals>
+                     <goal>report</goal>
+                  </goals>
+               </execution>
+            </executions>
+         </plugin>
       </plugins>
    </build>
-
 </project>
