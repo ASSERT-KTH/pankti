@@ -2,10 +2,9 @@ package launchers;
 
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
+import java.util.logging.Logger;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
+import logging.CustomLogger;
 import picocli.CommandLine;
 import processors.FirstMethodProcessor;
 import processors.MethodProcessor;
@@ -19,7 +18,7 @@ import spoon.reflect.declaration.CtType;
         usageHelpWidth = 100)
 public class PanktiLauncher implements Callable<Integer> {
 
-    // private static final Logger LOGGER = LogManager.getLogger(PanktiLauncher.class.getName());
+    private static final Logger LOGGER = CustomLogger.log(PanktiLauncher.class.getName());
 
     @CommandLine.Parameters(
             paramLabel = "PATH",
