@@ -17,7 +17,6 @@ public class FirstMethodProcessorTest {
     private static MavenLauncher mavenLauncher;
     private static CtModel testModel;
     private static FirstMethodProcessor firstMethodProcessor;
-    private static String[] args;
 
     @BeforeAll
     public static void setUpLauncherAndModel() throws URISyntaxException {
@@ -39,7 +38,7 @@ public class FirstMethodProcessorTest {
 
     @Test
     public void testNumberOfPublicMethods() {
-        assertEquals(12, firstMethodProcessor.publicMethods.size(),
+        assertEquals(15, firstMethodProcessor.publicMethods.size(),
             "Number of public methods in test project must be 12");
     }
 
