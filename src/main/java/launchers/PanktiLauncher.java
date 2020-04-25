@@ -64,8 +64,11 @@ public class PanktiLauncher implements Callable<Integer> {
         // Build Spoon model
         CtModel model = buildSpoonModel(launcher);
 
-        // List all methods of model
-        LOGGER.info("Total number of methods: " + countMethods(model));
+        // Find number of methods in project
+        int numberOfMethodsInProject = 0;
+        for (CtType<?> s : model.getAllTypes()) numberOfMethodsInProject += s.getMethods().size();
+
+        System.out.println("Total number of methods: " + numberOfMethodsInProject);
 
         // Apply processor to model
         applyProcessor(model);
