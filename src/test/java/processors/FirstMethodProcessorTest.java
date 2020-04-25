@@ -39,7 +39,7 @@ public class FirstMethodProcessorTest {
     @Test
     public void testNumberOfPublicMethods() {
         assertEquals(15, firstMethodProcessor.publicMethods.size(),
-            "Number of public methods in test project must be 12");
+            "Number of public methods in test project must be 15");
     }
 
     @Test

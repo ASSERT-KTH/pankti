@@ -67,19 +67,18 @@ public class PanktiLauncher implements Callable<Integer> {
         model.processWith(firstMethodProcessor);
         model.processWith(methodProcessor);
 
-        System.out.println("Modifiers present in project: " +
+        LOGGER.info("Modifiers present in project: " +
                 methodProcessor.getAllMethodModifiersInProject());
-        System.out.println("Number of candidate methods to check for purity: " +
+        LOGGER.info("Number of candidate methods to check for purity: " +
                 methodProcessor.getCandidateMethods().size());
         // System.out.println("Candidate methods to check for purity: ");
-        // methodProcessor.getCandidateMethods().forEach(ctMethod -> System.out.println(ctMethod.getSignature()));
+        // methodProcessor.getCandidateMethods().forEach(ctMethod -> System.out.println(ctMethod.getPath()));
     }
 
     @Override
     public Integer call() {
         if (usageHelpRequested) {
-            // LOGGER.info("Pankti version: " + "1.0-SNAPSHOT");
-            System.out.println("Pankti version: " + "1.0-SNAPSHOT");
+            LOGGER.info("Pankti version: " + "1.0-SNAPSHOT");
             return 1;
         }
 
@@ -87,15 +86,15 @@ public class PanktiLauncher implements Callable<Integer> {
         final String name = this.projectPath.getFileName().toString();
 
         // Process project
-        System.out.println("Processing project: " + name);
+        LOGGER.info("Processing project: " + name);
         MavenLauncher launcher = getMavenLauncher(path, name);
-        System.out.println("POM found at: " + launcher.getPomFile().getPath());
+        LOGGER.info("POM found at: " + launcher.getPomFile().getPath());
 
         // Build Spoon model
         CtModel model = buildSpoonModel(launcher);
 
         // Find number of methods in project
-        System.out.println("Total number of methods: " + countMethods(model));
+        LOGGER.info("Total number of methods: " + countMethods(model));
 
         // Apply processor to model
         applyProcessor(model);

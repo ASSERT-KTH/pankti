@@ -110,7 +110,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
         if (!(methodModifiers.contains(ModifierKind.ABSTRACT) ||
             methodModifiers.contains(ModifierKind.SYNCHRONIZED) ||
             isMethodEmpty(ctMethod))) {
-            // and does not throw exceptions, invoke other methods, or has assignment statements, it is a candidate
+            // and does not throw exceptions, invoke other methods, or have assignment statements, it is a candidate
             if (!(throwsExceptions(ctMethod) ||
                 hasInvocations(ctMethod) ||
                 hasAssignments(ctMethod) ||

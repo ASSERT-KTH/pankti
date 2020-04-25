@@ -20,5 +20,4 @@ public class CustomLogger {
         }
         return LOGGER;
     }
-
 }
