@@ -14,89 +14,34 @@ import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtType;
 
 @CommandLine.Command(
-    name = "java -jar target/<pankti-version-jar-with-dependencies.jar>",
-    description = "pankti converts application traces to tests",
-    usageHelpWidth = 100)
+        name = "java -jar target/<pankti-version-jar-with-dependencies.jar>",
+        description = "pankti converts application traces to tests",
+        usageHelpWidth = 100)
 public class PanktiLauncher implements Callable<Integer> {
 
-    private static final Logger LOGGER = LogManager.getLogger(PanktiLauncher.class.getName());
+    // private static final Logger LOGGER = LogManager.getLogger(PanktiLauncher.class.getName());
 
     @CommandLine.Parameters(
-        paramLabel = "PATH",
-        description = "Path of the Maven project")
+            paramLabel = "PATH",
+            description = "Path of the Maven project")
     private Path projectPath;
 
     @CommandLine.Option(
-        names = {"-h", "--help"},
-        description = "Display help/usage.",
-        help = true)
-    private boolean help = false;
-
-    public static void main(String[] args) {
-        int exitCode = new CommandLine(new PanktiLauncher()).execute(args);
-        System.exit(exitCode);
-    }
-
-    public PanktiLauncher(final Path projectPath, final boolean help) {
-        this.projectPath = projectPath;
-        this.help = help;
-    }
+            names = {"-h", "--help"},
+            description = "Display help/usage.",
+            usageHelp = true)
+    private boolean usageHelpRequested;
 
     public PanktiLauncher() {
     }
 
-    @Override
-    public Integer call() {
-
-        if (help) {
-            LOGGER.info("Pankti version: " + "1.0-SNAPSHOT");
-            return 1;
-        }
-
-        final String path = this.projectPath.toString();
-        final String name = this.projectPath.getFileName().toString();
-
-        // Process project
-        LOGGER.info("Processing project: " + name);
-        MavenLauncher launcher = getMavenLauncher(path, name);
-        LOGGER.info("POM found at: " + launcher.getPomFile().getPath());
-
-        // Build Spoon model
-        CtModel model = buildSpoonModel(launcher);
-
-        // Find number of methods in project
-        int numberOfMethodsInProject = 0;
-        for (CtType<?> s : model.getAllTypes()) numberOfMethodsInProject += s.getMethods().size();
-
-        System.out.println("Total number of methods: " + numberOfMethodsInProject);
-
-        // Apply processor to model
-        applyProcessor(model);
-
-        // Save model in spooned/
-        launcher.prettyprint();
-
-        return 0;
+    public Path getProjectPath() {
+        return projectPath;
     }
 
-    private void applyProcessor(final CtModel model) {
-        FirstMethodProcessor firstMethodProcessor = new FirstMethodProcessor();
-        MethodProcessor methodProcessor = new MethodProcessor();
-        model.processWith(firstMethodProcessor);
-        model.processWith(methodProcessor);
-
-        LOGGER.info("Modifiers present in project: " +
-            methodProcessor.getAllMethodModifiersInProject());
-        LOGGER.info("Number of candidate methods to check for purity: " +
-            methodProcessor.getCandidateMethods().size());
-        LOGGER.info("Candidate methods to check for purity: ");
-            methodProcessor.getCandidateMethods().forEach(ctMethod -> System.out.println(ctMethod.getSignature()));
-
-    }
-
-    private CtModel buildSpoonModel(final MavenLauncher launcher) {
-        launcher.buildModel();
-        return launcher.getModel();
+    public PanktiLauncher(final Path projectPath, final boolean help) {
+        this.projectPath = projectPath;
+        this.usageHelpRequested = help;
     }
 
     private MavenLauncher getMavenLauncher(final String projectPath, final String projectName) {
@@ -106,13 +51,64 @@ public class PanktiLauncher implements Callable<Integer> {
         return launcher;
     }
 
+    private CtModel buildSpoonModel(final MavenLauncher launcher) {
+        launcher.buildModel();
+        return launcher.getModel();
+    }
+
     private int countMethods(final CtModel model) {
         int numberOfMethodsInProject = 0;
         for (CtType<?> s : model.getAllTypes()) numberOfMethodsInProject += s.getMethods().size();
         return numberOfMethodsInProject;
     }
 
-    public Path getProjectPath() {
-        return projectPath;
+    private void applyProcessor(final CtModel model) {
+        FirstMethodProcessor firstMethodProcessor = new FirstMethodProcessor();
+        MethodProcessor methodProcessor = new MethodProcessor();
+        model.processWith(firstMethodProcessor);
+        model.processWith(methodProcessor);
+
+        System.out.println("Modifiers present in project: " +
+                methodProcessor.getAllMethodModifiersInProject());
+        System.out.println("Number of candidate methods to check for purity: " +
+                methodProcessor.getCandidateMethods().size());
+        // System.out.println("Candidate methods to check for purity: ");
+        // methodProcessor.getCandidateMethods().forEach(ctMethod -> System.out.println(ctMethod.getSignature()));
+    }
+
+    @Override
+    public Integer call() {
+        if (usageHelpRequested) {
+            // LOGGER.info("Pankti version: " + "1.0-SNAPSHOT");
+            System.out.println("Pankti version: " + "1.0-SNAPSHOT");
+            return 1;
+        }
+
+        final String path = this.projectPath.toString();
+        final String name = this.projectPath.getFileName().toString();
+
+        // Process project
+        System.out.println("Processing project: " + name);
+        MavenLauncher launcher = getMavenLauncher(path, name);
+        System.out.println("POM found at: " + launcher.getPomFile().getPath());
+
+        // Build Spoon model
+        CtModel model = buildSpoonModel(launcher);
+
+        // Find number of methods in project
+        System.out.println("Total number of methods: " + countMethods(model));
+
+        // Apply processor to model
+        applyProcessor(model);
+
+        // Save model in spooned/
+        // launcher.prettyprint();
+
+        return 0;
+    }
+
+    public static void main(String[] args) {
+        int exitCode = new CommandLine(new PanktiLauncher()).execute(args);
+        System.exit(exitCode);
     }
 }
