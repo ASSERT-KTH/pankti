@@ -3,6 +3,9 @@ package launchers;
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import picocli.CommandLine;
 import processors.FirstMethodProcessor;
 import processors.MethodProcessor;
@@ -15,6 +18,8 @@ import spoon.reflect.declaration.CtType;
     description = "pankti converts application traces to tests",
     usageHelpWidth = 100)
 public class PanktiLauncher implements Callable<Integer> {
+
+    private static final Logger LOGGER = LogManager.getLogger(PanktiLauncher.class.getName());
 
     @CommandLine.Parameters(
         paramLabel = "PATH",
@@ -44,23 +49,23 @@ public class PanktiLauncher implements Callable<Integer> {
     public Integer call() {
 
         if (help) {
-            System.out.println("Pankti version: " + "1.0-SNAPSHOT");
+            LOGGER.info("Pankti version: " + "1.0-SNAPSHOT");
             return 1;
         }
 
         final String path = this.projectPath.toString();
         final String name = this.projectPath.getFileName().toString();
 
-        System.out.println("Processing project: " + name);
-
+        // Process project
+        LOGGER.info("Processing project: " + name);
         MavenLauncher launcher = getMavenLauncher(path, name);
-        System.out.println("POM found at: " + launcher.getPomFile().getPath());
+        LOGGER.info("POM found at: " + launcher.getPomFile().getPath());
 
         // Build Spoon model
         CtModel model = buildSpoonModel(launcher);
 
         // List all methods of model
-        System.out.println("Total number of methods: " + countMethods(model));
+        LOGGER.info("Total number of methods: " + countMethods(model));
 
         // Apply processor to model
         applyProcessor(model);
@@ -76,12 +81,14 @@ public class PanktiLauncher implements Callable<Integer> {
         MethodProcessor methodProcessor = new MethodProcessor();
         model.processWith(firstMethodProcessor);
         model.processWith(methodProcessor);
-        System.out.println("Modifiers present in project: " +
+
+        LOGGER.info("Modifiers present in project: " +
             methodProcessor.getAllMethodModifiersInProject());
-        // System.out.println("Candidate methods to check for purity: ");
-        // methodProcessor.getCandidateMethods().forEach(ctMethod -> System.out.println(ctMethod.getPath()));
-        System.out.println("Number of candidate methods to check for purity: " +
+        LOGGER.info("Number of candidate methods to check for purity: " +
             methodProcessor.getCandidateMethods().size());
+        LOGGER.info("Candidate methods to check for purity: ");
+            methodProcessor.getCandidateMethods().forEach(ctMethod -> System.out.println(ctMethod.getSignature()));
+
     }
 
     private CtModel buildSpoonModel(final MavenLauncher launcher) {

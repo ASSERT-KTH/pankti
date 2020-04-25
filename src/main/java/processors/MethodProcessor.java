@@ -70,13 +70,13 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
         } else if (ctMethod.getModifiers().contains(ModifierKind.PROTECTED)) {
             protectedMethods.add(ctMethod);
         }
-        // System.out.println("Modifiers in " + ctMethod.getSignature() + ": " + ctMethod.getModifiers());
         return ctMethod.getModifiers();
     }
 
     // Find if method throws exceptions
     public boolean throwsExceptions(CtMethod ctMethod) {
-        if (ctMethod.getThrownTypes().size() > 0 || (ctMethod.getBody().getElements(new TypeFilter<>(CtThrow.class)).size() > 0)) {
+        if (ctMethod.getThrownTypes().size() > 0 ||
+            (ctMethod.getBody().getElements(new TypeFilter<>(CtThrow.class)).size() > 0)) {
             methodsThrowingExceptions.add(ctMethod);
             return true;
         }
@@ -107,9 +107,14 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
         Set<ModifierKind> methodModifiers = getMethodModifiers(ctMethod);
 
         // If method is not empty, abstract, or synchronized
-        if (!(methodModifiers.contains(ModifierKind.ABSTRACT) || methodModifiers.contains(ModifierKind.SYNCHRONIZED) || isMethodEmpty(ctMethod))) {
+        if (!(methodModifiers.contains(ModifierKind.ABSTRACT) ||
+            methodModifiers.contains(ModifierKind.SYNCHRONIZED) ||
+            isMethodEmpty(ctMethod))) {
             // and does not throw exceptions, invoke other methods, or has assignment statements, it is a candidate
-            if (!(throwsExceptions(ctMethod) || hasInvocations(ctMethod) || hasAssignments(ctMethod) || hasConstructorCalls(ctMethod))) {
+            if (!(throwsExceptions(ctMethod) ||
+                hasInvocations(ctMethod) ||
+                hasAssignments(ctMethod) ||
+                hasConstructorCalls(ctMethod))) {
                 candidateMethods.add(ctMethod);
             }
         }
