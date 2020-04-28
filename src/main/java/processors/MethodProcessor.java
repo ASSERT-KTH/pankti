@@ -9,18 +9,16 @@ import java.util.concurrent.Callable;
 
 import picocli.CommandLine;
 import spoon.processing.AbstractProcessor;
-import spoon.reflect.code.CtAssignment;
-import spoon.reflect.code.CtBlock;
-import spoon.reflect.code.CtConstructorCall;
-import spoon.reflect.code.CtInvocation;
-import spoon.reflect.code.CtThrow;
+import spoon.reflect.code.*;
+import spoon.reflect.declaration.CtElement;
 import spoon.reflect.declaration.CtMethod;
+import spoon.reflect.declaration.CtVariable;
 import spoon.reflect.declaration.ModifierKind;
 import spoon.reflect.visitor.filter.TypeFilter;
 
 @CommandLine.Command(
-    name = "methodsDescription",
-    description = "Process methods"
+        name = "methodsDescription",
+        description = "Process methods"
 )
 public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements Callable<String> {
 
@@ -76,7 +74,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
     // Find if method throws exceptions
     public boolean throwsExceptions(CtMethod ctMethod) {
         if (ctMethod.getThrownTypes().size() > 0 ||
-            (ctMethod.getBody().getElements(new TypeFilter<>(CtThrow.class)).size() > 0)) {
+                (ctMethod.getBody().getElements(new TypeFilter<>(CtThrow.class)).size() > 0)) {
             methodsThrowingExceptions.add(ctMethod);
             return true;
         }
@@ -93,9 +91,17 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
         return ctMethod.getBody().getElements(new TypeFilter<>(CtConstructorCall.class)).size() > 0;
     }
 
-    // Find if method has assignments
-    public boolean hasAssignments(CtMethod ctMethod) {
-        return ctMethod.getBody().getElements(new TypeFilter<>(CtAssignment.class)).size() > 0;
+    // Find if method has assignments to fields
+    public boolean hasFieldAssignments(CtMethod ctMethod) {
+        List<CtAssignment> assignmentStatements = ctMethod.getBody().getElements(new TypeFilter<>(CtAssignment.class));
+        if (assignmentStatements.size() > 0) {
+            for (CtAssignment assignmentStatement : assignmentStatements) {
+                if (assignmentStatement.getElements(new TypeFilter<>(CtFieldWrite.class)).size() > 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public Set<CtMethod> getCandidateMethods() {
@@ -105,16 +111,15 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
     @Override
     public void process(CtMethod<?> ctMethod) {
         Set<ModifierKind> methodModifiers = getMethodModifiers(ctMethod);
-
         // If method is not empty, abstract, or synchronized
         if (!(methodModifiers.contains(ModifierKind.ABSTRACT) ||
-            methodModifiers.contains(ModifierKind.SYNCHRONIZED) ||
-            isMethodEmpty(ctMethod))) {
+                methodModifiers.contains(ModifierKind.SYNCHRONIZED) ||
+                isMethodEmpty(ctMethod))) {
             // and does not throw exceptions, invoke other methods, or have assignment statements, it is a candidate
             if (!(throwsExceptions(ctMethod) ||
-                hasInvocations(ctMethod) ||
-                hasAssignments(ctMethod) ||
-                hasConstructorCalls(ctMethod))) {
+                    hasInvocations(ctMethod) ||
+                    hasFieldAssignments(ctMethod) ||
+                    hasConstructorCalls(ctMethod))) {
                 candidateMethods.add(ctMethod);
             }
         }
@@ -123,16 +128,16 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
     @Override
     public String toString() {
         return "MethodProcessor{" +
-            "publicMethods=" + publicMethods +
-            ", privateMethods=" + privateMethods +
-            ", protectedMethods=" + protectedMethods +
-            ", abstractMethods=" + abstractMethods +
-            ", staticMethods=" + staticMethods +
-            ", synchronizedMethods=" + synchronizedMethods +
-            ", methodsThrowingExcepions=" + methodsThrowingExceptions +
-            ", emptyMethods=" + emptyMethods +
-            ", allMethodModifiers=" + allMethodModifiers +
-            ", candidateMethods=" + candidateMethods +
-            '}';
+                "publicMethods=" + publicMethods +
+                ", privateMethods=" + privateMethods +
+                ", protectedMethods=" + protectedMethods +
+                ", abstractMethods=" + abstractMethods +
+                ", staticMethods=" + staticMethods +
+                ", synchronizedMethods=" + synchronizedMethods +
+                ", methodsThrowingExcepions=" + methodsThrowingExceptions +
+                ", emptyMethods=" + emptyMethods +
+                ", allMethodModifiers=" + allMethodModifiers +
+                ", candidateMethods=" + candidateMethods +
+                '}';
     }
 }

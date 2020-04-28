@@ -71,7 +71,7 @@ public class PanktiLauncher implements Callable<Integer> {
                 methodProcessor.getAllMethodModifiersInProject());
         LOGGER.info("Number of candidate methods to check for purity: " +
                 methodProcessor.getCandidateMethods().size());
-        // System.out.println("Candidate methods to check for purity: ");
+        // LOGGER.info("Candidate methods to check for purity: ");
         // methodProcessor.getCandidateMethods().forEach(ctMethod -> System.out.println(ctMethod.getPath()));
     }
 
