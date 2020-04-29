@@ -10,10 +10,7 @@ import java.util.concurrent.Callable;
 import picocli.CommandLine;
 import spoon.processing.AbstractProcessor;
 import spoon.reflect.code.*;
-import spoon.reflect.declaration.CtElement;
-import spoon.reflect.declaration.CtMethod;
-import spoon.reflect.declaration.CtVariable;
-import spoon.reflect.declaration.ModifierKind;
+import spoon.reflect.declaration.*;
 import spoon.reflect.visitor.filter.TypeFilter;
 
 @CommandLine.Command(
@@ -91,17 +88,33 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
         return ctMethod.getBody().getElements(new TypeFilter<>(CtConstructorCall.class)).size() > 0;
     }
 
-    // Find if method has assignments to fields
+    // Find if method has assignments to / unary operations on fields
     public boolean hasFieldAssignments(CtMethod ctMethod) {
+        boolean hasUnaryOperationsOnFields = false;
+        boolean hasAssignmentStatementsOnFields = false;
+
+        List<CtUnaryOperator> unaryOperators = ctMethod.getBody().getElements(new TypeFilter<>(CtUnaryOperator.class));
+        if (unaryOperators.size() > 0) {
+            for (CtUnaryOperator unaryOperator : unaryOperators) {
+                List<CtFieldWrite> fieldsBeingUpdated = unaryOperator.getOperand().getElements(new TypeFilter<>(CtFieldWrite.class));
+                if (((unaryOperator.getKind().equals(UnaryOperatorKind.PREINC)) ||
+                        (unaryOperator.getKind().equals(UnaryOperatorKind.PREDEC)) ||
+                        (unaryOperator.getKind().equals(UnaryOperatorKind.POSTINC)) ||
+                        (unaryOperator.getKind().equals(UnaryOperatorKind.POSTDEC))) &&
+                        (fieldsBeingUpdated.size() > 0)) {
+                    hasUnaryOperationsOnFields = true;
+                }
+            }
+        }
         List<CtAssignment> assignmentStatements = ctMethod.getBody().getElements(new TypeFilter<>(CtAssignment.class));
         if (assignmentStatements.size() > 0) {
             for (CtAssignment assignmentStatement : assignmentStatements) {
                 if (assignmentStatement.getElements(new TypeFilter<>(CtFieldWrite.class)).size() > 0) {
-                    return true;
+                    hasAssignmentStatementsOnFields = true;
                 }
             }
         }
-        return false;
+        return hasUnaryOperationsOnFields || hasAssignmentStatementsOnFields;
     }
 
     public Set<CtMethod> getCandidateMethods() {
