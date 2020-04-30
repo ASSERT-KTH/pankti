@@ -46,7 +46,7 @@ public class PanktiLauncher implements Callable<Integer> {
     private MavenLauncher getMavenLauncher(final String projectPath, final String projectName) {
         MavenLauncher launcher = new MavenLauncher(projectPath, MavenLauncher.SOURCE_TYPE.APP_SOURCE);
         launcher.getEnvironment().setAutoImports(true);
-        launcher.getEnvironment().setCommentEnabled(true);
+        launcher.getEnvironment().setCommentEnabled(false);
         return launcher;
     }
 
