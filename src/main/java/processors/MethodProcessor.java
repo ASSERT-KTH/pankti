@@ -11,7 +11,9 @@ import picocli.CommandLine;
 import spoon.processing.AbstractProcessor;
 import spoon.reflect.code.*;
 import spoon.reflect.declaration.*;
+import spoon.reflect.path.CtRole;
 import spoon.reflect.visitor.filter.AnnotationFilter;
+import spoon.reflect.visitor.filter.ReferenceTypeFilter;
 import spoon.reflect.visitor.filter.TypeFilter;
 
 @CommandLine.Command(
@@ -42,10 +44,15 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
 
     // Find if method / parent class is @Deprecated
     public boolean isDeprecated(CtMethod ctMethod) {
-        AnnotationFilter deprecationFilter = new AnnotationFilter(Deprecated.class);
-        if (deprecationFilter.matches(ctMethod) || deprecationFilter.matches(ctMethod.getParent()))
+        if (ctMethod.hasAnnotation(Deprecated.class) || ctMethod.getParent().hasAnnotation(Deprecated.class))
             return true;
         return false;
+    }
+
+    // Find if parent class of method is @interface
+    public boolean parentHasInterfaceAnnotation(CtMethod ctMethod) {
+        ReferenceTypeFilter referenceTypeFilter = new ReferenceTypeFilter(CtAnnotationType.class);
+        return referenceTypeFilter.matches(ctMethod.getParent());
     }
 
     // Find if method has no statements
@@ -133,16 +140,17 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
     @Override
     public void process(CtMethod<?> ctMethod) {
         Set<ModifierKind> methodModifiers = getMethodModifiers(ctMethod);
-        // If method is not empty, abstract, or synchronized
+        // If method is not empty, abstract, or synchronized, does not belong to an annotation type
         if (!(methodModifiers.contains(ModifierKind.ABSTRACT) ||
                 methodModifiers.contains(ModifierKind.SYNCHRONIZED) ||
+                parentHasInterfaceAnnotation(ctMethod) ||
                 isMethodEmpty(ctMethod))) {
             // and is not deprecated, does not throw exceptions, invoke constructors or other methods, or assign to fields, it is a candidate
-            if (!(isDeprecated(ctMethod) ||
-                    throwsExceptions(ctMethod) ||
+            if (!(throwsExceptions(ctMethod) ||
                     hasInvocations(ctMethod) ||
                     hasFieldAssignments(ctMethod) ||
-                    hasConstructorCalls(ctMethod))) {
+                    hasConstructorCalls(ctMethod) ||
+                    isDeprecated(ctMethod))) {
                 candidateMethods.add(ctMethod);
             }
         }
