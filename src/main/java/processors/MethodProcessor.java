@@ -94,6 +94,11 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
         return false;
     }
 
+    // Find if method has synchronized statements / blocks
+    public boolean hasSynchronizedStatements(CtMethod ctMethod) {
+        return ctMethod.getBody().getElements(new TypeFilter<>(CtSynchronized.class)).size() > 0;
+    }
+
     // Find if method has invocations
     public boolean hasInvocations(CtMethod ctMethod) {
         return ctMethod.getBody().getElements(new TypeFilter<>(CtInvocation.class)).size() > 0;
@@ -146,11 +151,12 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
                 parentHasInterfaceAnnotation(ctMethod) ||
                 isMethodEmpty(ctMethod))) {
             // and is not deprecated, does not throw exceptions, invoke constructors or other methods, or assign to fields, it is a candidate
-            if (!(throwsExceptions(ctMethod) ||
+            if (!(isDeprecated(ctMethod) ||
+                    throwsExceptions(ctMethod) ||
                     hasInvocations(ctMethod) ||
+                    hasSynchronizedStatements(ctMethod) ||
                     hasFieldAssignments(ctMethod) ||
-                    hasConstructorCalls(ctMethod) ||
-                    isDeprecated(ctMethod))) {
+                    hasConstructorCalls(ctMethod))) {
                 candidateMethods.add(ctMethod);
             }
         }
