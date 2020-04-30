@@ -11,6 +11,7 @@ import picocli.CommandLine;
 import spoon.processing.AbstractProcessor;
 import spoon.reflect.code.*;
 import spoon.reflect.declaration.*;
+import spoon.reflect.visitor.filter.AnnotationFilter;
 import spoon.reflect.visitor.filter.TypeFilter;
 
 @CommandLine.Command(
@@ -37,6 +38,14 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
 
     public Set<ModifierKind> getAllMethodModifiersInProject() {
         return allMethodModifiers;
+    }
+
+    // Find if method / parent class is @Deprecated
+    public boolean isDeprecated(CtMethod ctMethod) {
+        AnnotationFilter deprecationFilter = new AnnotationFilter(Deprecated.class);
+        if (deprecationFilter.matches(ctMethod) || deprecationFilter.matches(ctMethod.getParent()))
+            return true;
+        return false;
     }
 
     // Find if method has no statements
@@ -128,8 +137,9 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
         if (!(methodModifiers.contains(ModifierKind.ABSTRACT) ||
                 methodModifiers.contains(ModifierKind.SYNCHRONIZED) ||
                 isMethodEmpty(ctMethod))) {
-            // and does not throw exceptions, invoke other methods, or have assignment statements, it is a candidate
-            if (!(throwsExceptions(ctMethod) ||
+            // and is not deprecated, does not throw exceptions, invoke constructors or other methods, or assign to fields, it is a candidate
+            if (!(isDeprecated(ctMethod) ||
+                    throwsExceptions(ctMethod) ||
                     hasInvocations(ctMethod) ||
                     hasFieldAssignments(ctMethod) ||
                     hasConstructorCalls(ctMethod))) {
