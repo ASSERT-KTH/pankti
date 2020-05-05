@@ -171,7 +171,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
                 ", abstractMethods=" + abstractMethods +
                 ", staticMethods=" + staticMethods +
                 ", synchronizedMethods=" + synchronizedMethods +
-                ", methodsThrowingExcepions=" + methodsThrowingExceptions +
+                ", methodsThrowingExceptions=" + methodsThrowingExceptions +
                 ", emptyMethods=" + emptyMethods +
                 ", allMethodModifiers=" + allMethodModifiers +
                 ", candidateMethods=" + candidateMethods +
