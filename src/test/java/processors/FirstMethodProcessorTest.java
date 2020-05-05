@@ -38,13 +38,13 @@ public class FirstMethodProcessorTest {
 
     @Test
     public void testNumberOfPublicMethods() {
-        assertEquals(15, firstMethodProcessor.publicMethods.size(),
+        assertEquals(19, firstMethodProcessor.publicMethods.size(),
             "Number of public methods in test project must be 15");
     }
 
     @Test
     public void testNumberOfPrivateMethods() {
-        assertEquals(1, firstMethodProcessor.privateMethods.size(),
+        assertEquals(3, firstMethodProcessor.privateMethods.size(),
             "Number of private methods in test project must be 1");
     }
 }
