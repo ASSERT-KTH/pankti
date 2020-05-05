@@ -8,11 +8,14 @@ import org.junit.jupiter.api.Test;
 
 import launchers.PanktiLauncher;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import runner.PanktiMain;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 
 public class FirstMethodProcessorTest {
 
+    private static PanktiMain panktiMain;
     private static PanktiLauncher panktiLauncher;
     private static MavenLauncher mavenLauncher;
     private static CtModel testModel;
@@ -22,8 +25,8 @@ public class FirstMethodProcessorTest {
     public static void setUpLauncherAndModel() throws URISyntaxException {
         firstMethodProcessor = new FirstMethodProcessor();
         // TODO: replace with a sample project path
-        panktiLauncher = new PanktiLauncher(Path.of("src/test/resources/spoon-dog"), true);
-        mavenLauncher = new MavenLauncher(panktiLauncher.getProjectPath().toString(),
+        panktiMain = new PanktiMain(Path.of("src/test/resources/spoon-dog"), true);
+        mavenLauncher = new MavenLauncher(panktiMain.getProjectPath().toString(),
             MavenLauncher.SOURCE_TYPE.APP_SOURCE);
         mavenLauncher.buildModel();
         testModel = mavenLauncher.getModel();
@@ -32,7 +35,7 @@ public class FirstMethodProcessorTest {
 
     @Test
     public void testPomPath() {
-        assertEquals(panktiLauncher.getProjectPath().toString() + "/pom.xml", mavenLauncher.getPomFile().getPath(),
+        assertEquals(panktiMain.getProjectPath().toString() + "/pom.xml", mavenLauncher.getPomFile().getPath(),
             "POM file must be present in project path");
     }
 

@@ -11,8 +11,6 @@ import picocli.CommandLine;
 import spoon.processing.AbstractProcessor;
 import spoon.reflect.code.*;
 import spoon.reflect.declaration.*;
-import spoon.reflect.path.CtRole;
-import spoon.reflect.visitor.filter.AnnotationFilter;
 import spoon.reflect.visitor.filter.ReferenceTypeFilter;
 import spoon.reflect.visitor.filter.TypeFilter;
 
