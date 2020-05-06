@@ -11,6 +11,7 @@ import picocli.CommandLine;
 import spoon.processing.AbstractProcessor;
 import spoon.reflect.code.*;
 import spoon.reflect.declaration.*;
+import spoon.reflect.reference.CtReference;
 import spoon.reflect.visitor.filter.ReferenceTypeFilter;
 import spoon.reflect.visitor.filter.TypeFilter;
 
@@ -20,16 +21,16 @@ import spoon.reflect.visitor.filter.TypeFilter;
 )
 public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements Callable<String> {
 
-    List<CtMethod> publicMethods = new ArrayList<>();
-    List<CtMethod> privateMethods = new ArrayList<>();
-    List<CtMethod> protectedMethods = new ArrayList<>();
-    List<CtMethod> abstractMethods = new ArrayList<>();
-    List<CtMethod> staticMethods = new ArrayList<>();
-    List<CtMethod> synchronizedMethods = new ArrayList<>();
-    List<CtMethod> methodsThrowingExceptions = new ArrayList<>();
-    List<CtMethod> emptyMethods = new ArrayList<>();
+    List<CtMethod<?>> publicMethods = new ArrayList<>();
+    List<CtMethod<?>> privateMethods = new ArrayList<>();
+    List<CtMethod<?>> protectedMethods = new ArrayList<>();
+    List<CtMethod<?>> abstractMethods = new ArrayList<>();
+    List<CtMethod<?>> staticMethods = new ArrayList<>();
+    List<CtMethod<?>> synchronizedMethods = new ArrayList<>();
+    List<CtMethod<?>> methodsThrowingExceptions = new ArrayList<>();
+    List<CtMethod<?>> emptyMethods = new ArrayList<>();
     Set<ModifierKind> allMethodModifiers = new HashSet<>();
-    Set<CtMethod> candidateMethods = new HashSet<>();
+    Set<CtMethod<?>> candidateMethods = new HashSet<>();
 
     @Override
     public String call() {
@@ -41,27 +42,25 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
     }
 
     // Find if method / parent class is @Deprecated
-    public boolean isDeprecated(CtMethod ctMethod) {
-        if (ctMethod.hasAnnotation(Deprecated.class) || ctMethod.getParent().hasAnnotation(Deprecated.class))
-            return true;
-        return false;
+    public boolean isDeprecated(CtMethod<?> ctMethod) {
+        return ctMethod.hasAnnotation(Deprecated.class) || ctMethod.getParent().hasAnnotation(Deprecated.class);
     }
 
     // Find if parent class of method is @interface
-    public boolean parentHasInterfaceAnnotation(CtMethod ctMethod) {
+    public boolean parentHasInterfaceAnnotation(CtMethod<?> ctMethod) {
         ReferenceTypeFilter referenceTypeFilter = new ReferenceTypeFilter(CtAnnotationType.class);
         return referenceTypeFilter.matches(ctMethod.getParent());
     }
 
     // Find if method has no statements
-    public boolean isMethodEmpty(CtMethod ctMethod) {
+    public boolean isMethodEmpty(CtMethod<?> ctMethod) {
         // The body of an abstract method is null
-        Optional<CtBlock> methodBody = Optional.ofNullable(ctMethod.getBody());
+        Optional<CtBlock<?>> methodBody = Optional.ofNullable(ctMethod.getBody());
         return methodBody.isPresent() && methodBody.get().getStatements().size() == 0;
     }
 
     // Find method modifiers
-    public Set<ModifierKind> getMethodModifiers(CtMethod ctMethod) {
+    public Set<ModifierKind> getMethodModifiers(CtMethod<?> ctMethod) {
         allMethodModifiers.addAll(ctMethod.getModifiers());
         if (ctMethod.getModifiers().contains(ModifierKind.ABSTRACT)) {
             abstractMethods.add(ctMethod);
@@ -83,7 +82,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
     }
 
     // Find if method throws exceptions
-    public boolean throwsExceptions(CtMethod ctMethod) {
+    public boolean throwsExceptions(CtMethod<?> ctMethod) {
         if (ctMethod.getThrownTypes().size() > 0 ||
                 (ctMethod.getBody().getElements(new TypeFilter<>(CtThrow.class)).size() > 0)) {
             methodsThrowingExceptions.add(ctMethod);
@@ -93,29 +92,29 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
     }
 
     // Find if method has synchronized statements / blocks
-    public boolean hasSynchronizedStatements(CtMethod ctMethod) {
+    public boolean hasSynchronizedStatements(CtMethod<?> ctMethod) {
         return ctMethod.getBody().getElements(new TypeFilter<>(CtSynchronized.class)).size() > 0;
     }
 
     // Find if method has invocations
-    public boolean hasInvocations(CtMethod ctMethod) {
+    public boolean hasInvocations(CtMethod<?> ctMethod) {
         return ctMethod.getBody().getElements(new TypeFilter<>(CtInvocation.class)).size() > 0;
     }
 
     // Find if method has constructor calls
-    public boolean hasConstructorCalls(CtMethod ctMethod) {
+    public boolean hasConstructorCalls(CtMethod<?> ctMethod) {
         return ctMethod.getBody().getElements(new TypeFilter<>(CtConstructorCall.class)).size() > 0;
     }
 
     // Find if method has assignments to / unary operations on fields
-    public boolean hasFieldAssignments(CtMethod ctMethod) {
+    public boolean hasFieldAssignments(CtMethod<?> ctMethod) {
         boolean hasUnaryOperationsOnFields = false;
         boolean hasAssignmentStatementsOnFields = false;
 
-        List<CtUnaryOperator> unaryOperators = ctMethod.getBody().getElements(new TypeFilter<>(CtUnaryOperator.class));
+        List<CtUnaryOperator<?>> unaryOperators = ctMethod.getBody().getElements(new TypeFilter<>(CtUnaryOperator.class));
         if (unaryOperators.size() > 0) {
-            for (CtUnaryOperator unaryOperator : unaryOperators) {
-                List<CtFieldWrite> fieldsBeingUpdated = unaryOperator.getOperand().getElements(new TypeFilter<>(CtFieldWrite.class));
+            for (CtUnaryOperator<?> unaryOperator : unaryOperators) {
+                List<CtFieldWrite<?>> fieldsBeingUpdated = unaryOperator.getOperand().getElements(new TypeFilter<>(CtFieldWrite.class));
                 if (((unaryOperator.getKind().equals(UnaryOperatorKind.PREINC)) ||
                         (unaryOperator.getKind().equals(UnaryOperatorKind.PREDEC)) ||
                         (unaryOperator.getKind().equals(UnaryOperatorKind.POSTINC)) ||
@@ -125,9 +124,9 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
                 }
             }
         }
-        List<CtAssignment> assignmentStatements = ctMethod.getBody().getElements(new TypeFilter<>(CtAssignment.class));
+        List<CtAssignment<?,?>> assignmentStatements = ctMethod.getBody().getElements(new TypeFilter<>(CtAssignment.class));
         if (assignmentStatements.size() > 0) {
-            for (CtAssignment assignmentStatement : assignmentStatements) {
+            for (CtAssignment<?,?> assignmentStatement : assignmentStatements) {
                 if (assignmentStatement.getElements(new TypeFilter<>(CtFieldWrite.class)).size() > 0) {
                     hasAssignmentStatementsOnFields = true;
                 }
@@ -136,7 +135,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
         return hasUnaryOperationsOnFields || hasAssignmentStatementsOnFields;
     }
 
-    public Set<CtMethod> getCandidateMethods() {
+    public Set<CtMethod<?>> getCandidateMethods() {
         return candidateMethods;
     }
 

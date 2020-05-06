@@ -5,8 +5,13 @@ import logging.CustomLogger;
 import picocli.CommandLine;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
+import spoon.reflect.declaration.CtMethod;
 
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.logging.Logger;
 
@@ -62,8 +67,17 @@ public class PanktiMain implements Callable<Integer> {
         // Find number of methods in project
         LOGGER.info("Total number of methods: " + panktiLauncher.countMethods(model));
 
+        Instant start = Instant.now();
         // Apply processor to model
-        panktiLauncher.applyProcessor(model);
+        Map<CtMethod<?>, Map<String, Boolean>> methodTags = panktiLauncher.applyProcessor(model);
+        Instant finish = Instant.now();
+        long timeElapsed = Duration.between(start, finish).toMillis();
+        // LOGGER.info("Elapsed time (ms): " + timeElapsed);
+
+        LOGGER.info("Methods tagged: " + methodTags.size());
+//        methodTags.forEach((method, tags) -> System.out.println("Path: " + method.getPath() + "\n" +
+//                "Return type: " + method.getType() + "\n" +
+//                "Tags: " + tags));
 
         // Save model in spooned/
         // launcher.prettyprint();
