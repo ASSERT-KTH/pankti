@@ -71,7 +71,7 @@ public class CandidateTagger {
 
     private Map.Entry<String, Boolean> returnsPrimitives(CtMethod<?> ctMethod) {
         boolean returnsPrimitives = false;
-        if (ctMethod.getType().isPrimitive())
+        if (ctMethod.getType().isPrimitive() && !ctMethod.getType().getSimpleName().equals("void"))
             returnsPrimitives = true;
         return Map.entry("returns_primitives", returnsPrimitives);
     }
