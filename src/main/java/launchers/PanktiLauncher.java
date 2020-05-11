@@ -1,7 +1,6 @@
 package launchers;
 
 import logging.CustomLogger;
-import taggers.CandidateTagger;
 import processors.FirstMethodProcessor;
 import processors.MethodProcessor;
 import spoon.MavenLauncher;
@@ -9,8 +8,7 @@ import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.CtType;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 
 public class PanktiLauncher {
@@ -34,26 +32,15 @@ public class PanktiLauncher {
         return numberOfMethodsInProject;
     }
 
-    public Map<CtMethod<?>, Map<String, Boolean>> applyProcessor(final CtModel model) {
+    public Set<CtMethod<?>> applyProcessor(final CtModel model) {
         FirstMethodProcessor firstMethodProcessor = new FirstMethodProcessor();
         MethodProcessor methodProcessor = new MethodProcessor();
-        CandidateTagger candidateProcessor = new CandidateTagger();
         model.processWith(firstMethodProcessor);
         model.processWith(methodProcessor);
 
-        LOGGER.info("Modifiers present in project: " +
-                methodProcessor.getAllMethodModifiersInProject());
-        LOGGER.info("Number of candidate pure methods: " +
-                methodProcessor.getCandidateMethods().size());
+        // LOGGER.info("Modifiers present in project: " + methodProcessor.getAllMethodModifiersInProject());
         // LOGGER.info("Candidate methods to check for purity: ");
         // methodProcessor.getCandidateMethods().forEach(ctMethod -> System.out.println(ctMethod.getPath()));
-
-        // Tag candidate methods
-        Map<CtMethod<?>, Map<String, Boolean>> methodTags = new HashMap<>();
-        for (CtMethod<?> method : methodProcessor.getCandidateMethods()) {
-            methodTags.putAll(candidateProcessor.tagMethod(method));
-        }
-
-        return methodTags;
+        return methodProcessor.getCandidateMethods();
     }
 }

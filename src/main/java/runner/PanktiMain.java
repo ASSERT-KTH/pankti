@@ -6,11 +6,12 @@ import picocli.CommandLine;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtMethod;
+import taggers.CandidateTagger;
 
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.logging.Logger;
 
@@ -68,15 +69,16 @@ public class PanktiMain implements Callable<Integer> {
 
         Instant start = Instant.now();
         // Apply processor to model
-        Map<CtMethod<?>, Map<String, Boolean>> methodTags = panktiLauncher.applyProcessor(model);
+        Set<CtMethod<?>> candidateMethods = panktiLauncher.applyProcessor(model);
         Instant finish = Instant.now();
         long timeElapsed = Duration.between(start, finish).toMillis();
         // LOGGER.info("Elapsed time (ms): " + timeElapsed);
+        LOGGER.info("Number of candidate pure methods: " +
+                candidateMethods.size());
 
-        LOGGER.info("Methods tagged: " + methodTags.size());
-//        methodTags.forEach((method, tags) -> System.out.println("Path: " + method.getPath() + "\n" +
-//                "Return type: " + method.getType() + "\n" +
-//                "Tags: " + tags));
+        // Generate report for candidate methods
+        CandidateTagger candidateTagger = new CandidateTagger();
+        candidateTagger.generateReport(candidateMethods);
 
         // Save model in spooned/
         // launcher.prettyprint();
