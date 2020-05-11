@@ -11,6 +11,7 @@ import picocli.CommandLine;
 import spoon.processing.AbstractProcessor;
 import spoon.reflect.code.*;
 import spoon.reflect.declaration.*;
+import spoon.reflect.visitor.filter.AnnotationFilter;
 import spoon.reflect.visitor.filter.ReferenceTypeFilter;
 import spoon.reflect.visitor.filter.TypeFilter;
 
@@ -47,7 +48,8 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
 
     // Find if method / parent class is @Deprecated
     public boolean isDeprecated(CtMethod<?> ctMethod) {
-        if (ctMethod.hasAnnotation(Deprecated.class) || ctMethod.getParent().hasAnnotation(Deprecated.class)) {
+        AnnotationFilter<?> deprecationFilter = new AnnotationFilter<>(Deprecated.class);
+        if (ctMethod.hasAnnotation(Deprecated.class) || (ctMethod.getParent(deprecationFilter) != null)) {
             deprecatedMethods.add(ctMethod);
             return true;
         }
@@ -164,12 +166,8 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
         List<CtArrayWrite<?>> arrayWrites = ctMethod.getBody().getElements(new TypeFilter<>(CtArrayWrite.class));
         if (arrayWrites.size() > 0) {
             for (CtArrayWrite<?> arrayWrite : arrayWrites) {
-                for (CtElement element : arrayWrite.getDirectChildren()) {
-                    if (element.getElements(new TypeFilter<>(CtFieldAccess.class)).size() > 0) {
-                        hasAssignmentStatementsOnArrayFields = true;
-                        break;
-                    }
-                }
+                if (arrayWrite.getDirectChildren().get(1).getElements(new TypeFilter<>(CtFieldAccess.class)).size() > 0)
+                    hasAssignmentStatementsOnArrayFields = true;
             }
         }
         if (hasUnaryOperationsOnFields || hasAssignmentStatementsOnFields || hasAssignmentStatementsOnArrayFields) {
