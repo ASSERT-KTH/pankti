@@ -123,6 +123,10 @@ public class CandidateTagger {
         candidateMethods.forEach(method -> allMethodTags.putAll(tagMethod(method)));
         LOGGER.info("Methods tagged: " + allMethodTags.size());
         System.out.println(this);
+//        allMethodTags.forEach((method, tags) -> System.out.println("Path: " + method.getPath() + "\n" +
+//                "Return type: " + method.getType() + "\n" +
+//                "Body:\n" + method +
+//                "Tags: " + tags));
     }
 
     @Override

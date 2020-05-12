@@ -11,4 +11,9 @@ To run pankti,
 1. Clone this repository
 2. `mvn clean install`
 3. `java -jar target/<pankti-version-jar-with-dependencies.jar> <path-to-a-maven-project>`
+___
+
+Preliminary experiments
+- [Finding pure methods in 6 applications](https://github.com/Deee92/journal/blob/master/notes/pankti-analysis.md)
+- [105 pure methods in jitsi-videobridge](https://github.com/Deee92/journal/blob/master/notes/jitsi-analysis.md)
 
