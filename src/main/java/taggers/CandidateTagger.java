@@ -12,6 +12,7 @@ public class CandidateTagger {
     private static final Logger LOGGER = CustomLogger.log(CandidateTagger.class.getName());
 
     List<CtMethod<?>> methodsReturningAValue = new ArrayList<>();
+    List<CtMethod<?>> methodsNotReturningAValue = new ArrayList<>();
     List<CtMethod<?>> methodsReturningAPrimitive = new ArrayList<>();
     List<CtMethod<?>> methodsWithParameters = new ArrayList<>();
     List<CtMethod<?>> methodsWithIfConditions = new ArrayList<>();
@@ -72,6 +73,8 @@ public class CandidateTagger {
         if (ctMethod.getBody().getElements(new TypeFilter<>(CtReturn.class)).size() > 0) {
             methodsReturningAValue.add(ctMethod);
             returnsValue = true;
+        } else {
+            methodsNotReturningAValue.add(ctMethod);
         }
         return Map.entry("returns", returnsValue);
     }

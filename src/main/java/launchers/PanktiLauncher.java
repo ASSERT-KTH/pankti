@@ -1,7 +1,6 @@
 package launchers;
 
 import logging.CustomLogger;
-import processors.FirstMethodProcessor;
 import processors.MethodProcessor;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
@@ -33,9 +32,7 @@ public class PanktiLauncher {
     }
 
     public Set<CtMethod<?>> applyProcessor(final CtModel model) {
-        FirstMethodProcessor firstMethodProcessor = new FirstMethodProcessor();
         MethodProcessor methodProcessor = new MethodProcessor();
-        model.processWith(firstMethodProcessor);
         model.processWith(methodProcessor);
 
         // LOGGER.info("Modifiers present in project: " + methodProcessor.getAllMethodModifiersInProject());

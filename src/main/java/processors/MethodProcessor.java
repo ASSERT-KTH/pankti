@@ -204,19 +204,19 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
     @Override
     public String toString() {
         return "MethodProcessor{" +
-                "publicMethods=" + publicMethods +
-                ", privateMethods=" + privateMethods +
-                ", protectedMethods=" + protectedMethods +
-                ", abstractMethods=" + abstractMethods +
-                ", staticMethods=" + staticMethods +
-                ", synchronizedMethods=" + methodsWithSynchronization +
-                ", methodsThrowingExceptions=" + methodsThrowingExceptions +
-                ", emptyMethods=" + emptyMethods +
-                ", deprecatedMethods=" + deprecatedMethods +
-                ", methodsInAnnotationType=" + methodsInAnnotationType +
-                ", methodsWithInvocations=" + methodsWithInvocations +
-                ", methodsWithConstructorCalls=" + methodsWithConstructorCalls +
-                ", methodsWithFieldAssignments=" + methodsWithFieldAssignments +
+                "publicMethods=" + publicMethods.size() +
+                ", privateMethods=" + privateMethods.size() +
+                ", protectedMethods=" + protectedMethods.size() +
+                ", abstractMethods=" + abstractMethods.size() +
+                ", staticMethods=" + staticMethods.size() +
+                ", synchronizedMethods=" + methodsWithSynchronization.size() +
+                ", methodsThrowingExceptions=" + methodsThrowingExceptions.size() +
+                ", emptyMethods=" + emptyMethods.size() +
+                ", deprecatedMethods=" + deprecatedMethods.size() +
+                ", methodsInAnnotationType=" + methodsInAnnotationType.size() +
+                ", methodsWithInvocations=" + methodsWithInvocations.size() +
+                ", methodsWithConstructorCalls=" + methodsWithConstructorCalls.size() +
+                ", methodsWithFieldAssignments=" + methodsWithFieldAssignments.size() +
                 '}';
     }
 }
