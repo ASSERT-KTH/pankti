@@ -203,6 +203,29 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
         return false;
     }
 
+    // Find if method's parent is anonymous and method modifies non-local variables
+    public boolean modifiesNonLocalVariables(CtMethod<?> ctMethod) {
+        boolean hasAssignmentsToNonLocalVariable = false;
+        List<CtAssignment<?, ?>> assignmentStatements = ctMethod.getBody().getElements(new TypeFilter<>(CtAssignment.class));
+
+        if (ctMethod.getDeclaringType().isAnonymous() && assignmentStatements.size() > 0) {
+            for (CtAssignment<?, ?> assignmentStatement : assignmentStatements) {
+                if (assignmentStatement.getAssigned().getElements(new TypeFilter<>(CtLocalVariable.class)).size() == 0) {
+                    List<CtVariableAccess<?>> variableAccessList = assignmentStatement.getAssigned().getElements(new TypeFilter<>(CtVariableAccess.class));
+                    if (variableAccessList.size() > 0) {
+                        for (CtVariableAccess<?> variableAccess : variableAccessList) {
+                            if (!ctMethod.getBody().getStatements().contains(variableAccess.getVariable().getDeclaration())) {
+                                hasAssignmentsToNonLocalVariable = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return hasAssignmentsToNonLocalVariable;
+    }
+
     public Set<CtMethod<?>> getCandidateMethods() {
         return candidateMethods;
     }
@@ -222,6 +245,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
                     hasSynchronizedStatements(ctMethod) ||
                     hasFieldAssignments(ctMethod) ||
                     modifiesArrayArguments(ctMethod) ||
+                    modifiesNonLocalVariables(ctMethod) ||
                     hasConstructorCalls(ctMethod))) {
                 candidateMethods.add(ctMethod);
             }
