@@ -6,7 +6,7 @@ import picocli.CommandLine;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtMethod;
-import taggers.CandidateTagger;
+import processors.CandidateTagger;
 
 import java.nio.file.Path;
 import java.time.Duration;

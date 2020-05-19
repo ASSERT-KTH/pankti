@@ -1,4 +1,4 @@
-package taggers;
+package processors;
 
 import logging.CustomLogger;
 import spoon.reflect.code.*;

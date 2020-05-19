@@ -34,6 +34,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
     List<CtMethod<?>> methodsWithInvocations = new ArrayList<>();
     List<CtMethod<?>> methodsWithConstructorCalls = new ArrayList<>();
     List<CtMethod<?>> methodsWithFieldAssignments = new ArrayList<>();
+    List<CtMethod<?>> methodsModifyingArrayArguments = new ArrayList<>();
     Set<ModifierKind> allMethodModifiers = new HashSet<>();
     Set<CtMethod<?>> candidateMethods = new HashSet<>();
 
@@ -177,6 +178,31 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
         return false;
     }
 
+    // Find if method modifies array arguments
+    public boolean modifiesArrayArguments(CtMethod<?> ctMethod) {
+        // Method has parameters that are arrays
+        List<CtParameter<?>> arrayParameters = new ArrayList<>();
+        List<CtArrayWrite<?>> arrayWrites = ctMethod.getBody().getElements(new TypeFilter<>(CtArrayWrite.class));
+        if (ctMethod.getParameters().size() > 0) {
+            for (CtParameter<?> parameter : ctMethod.getParameters()) {
+                if (parameter.getType().isArray()) {
+                    arrayParameters.add(parameter);
+                }
+            }
+        }
+        if (arrayParameters.size() > 0 && arrayWrites.size() > 0) {
+            for (CtParameter<?> parameter : arrayParameters) {
+                for (CtArrayWrite<?> arrayWrite : arrayWrites) {
+                    if (arrayWrite.getDirectChildren().get(1).getElements(new TypeFilter<>(CtVariableAccess.class)).toString().contains(parameter.getSimpleName())) {
+                        methodsModifyingArrayArguments.add(ctMethod);
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     public Set<CtMethod<?>> getCandidateMethods() {
         return candidateMethods;
     }
@@ -195,6 +221,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
                     hasInvocations(ctMethod) ||
                     hasSynchronizedStatements(ctMethod) ||
                     hasFieldAssignments(ctMethod) ||
+                    modifiesArrayArguments(ctMethod) ||
                     hasConstructorCalls(ctMethod))) {
                 candidateMethods.add(ctMethod);
             }
@@ -217,6 +244,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
                 ", methodsWithInvocations=" + methodsWithInvocations.size() +
                 ", methodsWithConstructorCalls=" + methodsWithConstructorCalls.size() +
                 ", methodsWithFieldAssignments=" + methodsWithFieldAssignments.size() +
+                ", methodsModifyingArrayArguments=" + methodsModifyingArrayArguments.size() +
                 '}';
     }
 }
