@@ -35,6 +35,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
     List<CtMethod<?>> methodsWithConstructorCalls = new ArrayList<>();
     List<CtMethod<?>> methodsWithFieldAssignments = new ArrayList<>();
     List<CtMethod<?>> methodsModifyingArrayArguments = new ArrayList<>();
+    List<CtMethod<?>> methodsModifyingNonLocalVariables = new ArrayList<>();
     Set<ModifierKind> allMethodModifiers = new HashSet<>();
     Set<CtMethod<?>> candidateMethods = new HashSet<>();
 
@@ -216,6 +217,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
                         for (CtVariableAccess<?> variableAccess : variableAccessList) {
                             if (!ctMethod.getBody().getStatements().contains(variableAccess.getVariable().getDeclaration())) {
                                 hasAssignmentsToNonLocalVariable = true;
+                                methodsModifyingNonLocalVariables.add(ctMethod);
                                 break;
                             }
                         }
@@ -269,6 +271,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
                 ", methodsWithConstructorCalls=" + methodsWithConstructorCalls.size() +
                 ", methodsWithFieldAssignments=" + methodsWithFieldAssignments.size() +
                 ", methodsModifyingArrayArguments=" + methodsModifyingArrayArguments.size() +
+                ", methodsModifyingNonLocalVariables=" + methodsModifyingNonLocalVariables.size() +
                 '}';
     }
 }
