@@ -6,10 +6,7 @@ import org.junit.jupiter.api.Test;
 import runner.PanktiMain;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
-import spoon.reflect.code.CtFieldWrite;
-import spoon.reflect.code.CtInvocation;
-import spoon.reflect.code.CtSynchronized;
-import spoon.reflect.code.CtThrow;
+import spoon.reflect.code.*;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.ModifierKind;
 import spoon.reflect.visitor.filter.TypeFilter;
@@ -105,6 +102,8 @@ public class MethodProcessorTest {
         CtMethod<?> abstractMethod = methodProcessor.abstractMethods.get(0);
         assertTrue(abstractMethod.isAbstract(),
                 "Method should be abstract");
+        assertFalse(methodProcessor.candidateMethods.contains(abstractMethod),
+                "An abstract method is not pure");
     }
 
     @Test
@@ -119,7 +118,9 @@ public class MethodProcessorTest {
         CtMethod<?> methodThrowingExceptions = methodProcessor.methodsThrowingExceptions.get(0);
         assertFalse((methodThrowingExceptions.getThrownTypes().isEmpty() ||
                         methodThrowingExceptions.getElements(new TypeFilter<>(CtThrow.class)).size() == 0),
-                "Method should throw an exception");
+                "Method should throw exceptions");
+        assertFalse(methodProcessor.candidateMethods.contains(methodThrowingExceptions),
+                "A method throwing exceptions is not pure");
     }
 
     @Test
@@ -133,7 +134,9 @@ public class MethodProcessorTest {
     public void testMethodsModifyingFields() {
         CtMethod<?> methodModifyingField = methodProcessor.methodsWithFieldAssignments.get(0);
         assertTrue(methodModifyingField.getElements(new TypeFilter<>(CtFieldWrite.class)).size() > 0,
-                "Method should write to a field");
+                "Method should write to fields");
+        assertFalse(methodProcessor.candidateMethods.contains(methodModifyingField),
+                "A method modifying fields is not pure ");
     }
 
     @Test
@@ -141,6 +144,15 @@ public class MethodProcessorTest {
         assertEquals(3,
                 methodProcessor.methodsWithConstructorCalls.size(),
                 "Number of methods in test resource that invoke constructors is 3");
+    }
+
+    @Test
+    public void testMethodInvokingConstructors() {
+        CtMethod<?> methodWithConstructorInvocations = methodProcessor.methodsWithConstructorCalls.get(0);
+        assertTrue(methodWithConstructorInvocations.getElements(new TypeFilter<>(CtConstructorCall.class)).size() > 0,
+                "Method should invoke constructors");
+        assertFalse(methodProcessor.candidateMethods.contains(methodWithConstructorInvocations),
+                "A method invoking constructors is not pure");
     }
 
     @Test
@@ -155,6 +167,8 @@ public class MethodProcessorTest {
         CtMethod<?> methodWithInvocations = methodProcessor.methodsWithInvocations.get(0);
         assertTrue(methodWithInvocations.getElements(new TypeFilter<>(CtInvocation.class)).size() > 0,
                 "Method should invoke another method");
+        assertFalse(methodProcessor.candidateMethods.contains(methodWithInvocations),
+                "A method invoking other methods is not pure");
     }
 
     @Test
@@ -170,6 +184,8 @@ public class MethodProcessorTest {
         assertTrue(methodWithSynchronization.getModifiers().contains(ModifierKind.SYNCHRONIZED) ||
                         methodWithSynchronization.getElements(new TypeFilter<>(CtSynchronized.class)).size() > 0,
                 "Method should have a synchronized modifier or a synchronized block");
+        assertFalse(methodProcessor.candidateMethods.contains(methodWithSynchronization),
+                "A method with synchronization is not pure");
     }
 
     @Test
@@ -180,10 +196,28 @@ public class MethodProcessorTest {
     }
 
     @Test
+    public void testDeprecatedMethod() {
+        for (CtMethod<?> pureMethod : methodProcessor.candidateMethods) {
+            assertFalse((pureMethod.hasAnnotation(Deprecated.class) ||
+                            pureMethod.getParent().hasAnnotation(Deprecated.class)),
+                    "No method or its parent is deprecated in test resource");
+        }
+    }
+
+    @Test
     public void testNumberOfEmptyMethods() {
         assertEquals(19,
                 methodProcessor.emptyMethods.size(),
                 "Number of empty methods in test resource is 19");
+    }
+
+    @Test
+    public void testEmptyMethod() {
+        CtMethod<?> emptyMethod = methodProcessor.emptyMethods.get(0);
+        assertFalse(emptyMethod.getBody().getStatements().size() > 0,
+                "Method should not have any statements");
+        assertFalse(methodProcessor.candidateMethods.contains(emptyMethod),
+                "An empty method is not pure");
     }
 
     @Test

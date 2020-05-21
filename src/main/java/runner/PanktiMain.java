@@ -72,7 +72,7 @@ public class PanktiMain implements Callable<Integer> {
         Set<CtMethod<?>> candidateMethods = panktiLauncher.applyProcessor(model);
         Instant finish = Instant.now();
         long timeElapsed = Duration.between(start, finish).toMillis();
-        // LOGGER.info("Elapsed time (ms): " + timeElapsed);
+        LOGGER.info("Elapsed time (ms): " + timeElapsed);
         LOGGER.info("Number of candidate pure methods: " +
                 candidateMethods.size());
 

@@ -34,7 +34,7 @@ public class PanktiLauncher {
     public Set<CtMethod<?>> applyProcessor(final CtModel model) {
         MethodProcessor methodProcessor = new MethodProcessor();
         model.processWith(methodProcessor);
-
+        System.out.println(methodProcessor);
         // LOGGER.info("Modifiers present in project: " + methodProcessor.getAllMethodModifiersInProject());
         // LOGGER.info("Candidate methods to check for purity: ");
         // methodProcessor.getCandidateMethods().forEach(ctMethod -> System.out.println(ctMethod.getPath()));
