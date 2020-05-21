@@ -104,7 +104,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
     // Find if method throws exceptions
     public boolean throwsExceptions(CtMethod<?> ctMethod) {
         if (ctMethod.getThrownTypes().size() > 0 ||
-                (ctMethod.getBody().getElements(new TypeFilter<>(CtThrow.class)).size() > 0)) {
+                (ctMethod.getElements(new TypeFilter<>(CtThrow.class)).size() > 0)) {
             methodsThrowingExceptions.add(ctMethod);
             return true;
         }
@@ -113,7 +113,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
 
     // Find if method has synchronized statements / blocks
     public boolean hasSynchronizedStatements(CtMethod<?> ctMethod) {
-        if (ctMethod.getBody().getElements(new TypeFilter<>(CtSynchronized.class)).size() > 0) {
+        if (ctMethod.getElements(new TypeFilter<>(CtSynchronized.class)).size() > 0) {
             methodsWithSynchronization.add(ctMethod);
             return true;
         }
@@ -122,7 +122,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
 
     // Find if method has invocations
     public boolean hasInvocations(CtMethod<?> ctMethod) {
-        if (ctMethod.getBody().getElements(new TypeFilter<>(CtInvocation.class)).size() > 0) {
+        if (ctMethod.getElements(new TypeFilter<>(CtInvocation.class)).size() > 0) {
             methodsWithInvocations.add(ctMethod);
             return true;
         }
@@ -131,7 +131,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
 
     // Find if method has constructor calls
     public boolean hasConstructorCalls(CtMethod<?> ctMethod) {
-        if (ctMethod.getBody().getElements(new TypeFilter<>(CtConstructorCall.class)).size() > 0) {
+        if (ctMethod.getElements(new TypeFilter<>(CtConstructorCall.class)).size() > 0) {
             methodsWithConstructorCalls.add(ctMethod);
             return true;
         }
@@ -144,7 +144,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
         boolean hasAssignmentStatementsOnFields = false;
         boolean hasAssignmentStatementsOnArrayFields = false;
 
-        List<CtUnaryOperator<?>> unaryOperators = ctMethod.getBody().getElements(new TypeFilter<>(CtUnaryOperator.class));
+        List<CtUnaryOperator<?>> unaryOperators = ctMethod.getElements(new TypeFilter<>(CtUnaryOperator.class));
         if (unaryOperators.size() > 0) {
             for (CtUnaryOperator<?> unaryOperator : unaryOperators) {
                 List<CtFieldWrite<?>> fieldsBeingUpdated = unaryOperator.getOperand().getElements(new TypeFilter<>(CtFieldWrite.class));
@@ -157,7 +157,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
                 }
             }
         }
-        List<CtAssignment<?, ?>> assignmentStatements = ctMethod.getBody().getElements(new TypeFilter<>(CtAssignment.class));
+        List<CtAssignment<?, ?>> assignmentStatements = ctMethod.getElements(new TypeFilter<>(CtAssignment.class));
         if (assignmentStatements.size() > 0) {
             for (CtAssignment<?, ?> assignmentStatement : assignmentStatements) {
                 if (assignmentStatement.getElements(new TypeFilter<>(CtFieldWrite.class)).size() > 0) {
@@ -165,7 +165,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
                 }
             }
         }
-        List<CtArrayWrite<?>> arrayWrites = ctMethod.getBody().getElements(new TypeFilter<>(CtArrayWrite.class));
+        List<CtArrayWrite<?>> arrayWrites = ctMethod.getElements(new TypeFilter<>(CtArrayWrite.class));
         if (arrayWrites.size() > 0) {
             for (CtArrayWrite<?> arrayWrite : arrayWrites) {
                 if (arrayWrite.getDirectChildren().get(1).getElements(new TypeFilter<>(CtFieldAccess.class)).size() > 0)
@@ -183,7 +183,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
     public boolean modifiesArrayArguments(CtMethod<?> ctMethod) {
         // Method has parameters that are arrays
         List<CtParameter<?>> arrayParameters = new ArrayList<>();
-        List<CtArrayWrite<?>> arrayWrites = ctMethod.getBody().getElements(new TypeFilter<>(CtArrayWrite.class));
+        List<CtArrayWrite<?>> arrayWrites = ctMethod.getElements(new TypeFilter<>(CtArrayWrite.class));
         if (ctMethod.getParameters().size() > 0) {
             for (CtParameter<?> parameter : ctMethod.getParameters()) {
                 if (parameter.getType().isArray()) {
@@ -207,7 +207,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
     // Find if method's parent is anonymous and method modifies non-local variables
     public boolean modifiesNonLocalVariables(CtMethod<?> ctMethod) {
         boolean hasAssignmentsToNonLocalVariable = false;
-        List<CtAssignment<?, ?>> assignmentStatements = ctMethod.getBody().getElements(new TypeFilter<>(CtAssignment.class));
+        List<CtAssignment<?, ?>> assignmentStatements = ctMethod.getElements(new TypeFilter<>(CtAssignment.class));
 
         if (ctMethod.getDeclaringType().isAnonymous() && assignmentStatements.size() > 0) {
             for (CtAssignment<?, ?> assignmentStatement : assignmentStatements) {

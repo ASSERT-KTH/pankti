@@ -12,7 +12,6 @@ import spoon.reflect.visitor.filter.TypeFilter;
 
 import java.net.URISyntaxException;
 import java.nio.file.Path;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -244,7 +243,7 @@ public class CandidateTaggerTest {
     @Test
     public void testMethodWithLocalVariables() {
         CtMethod<?> methodWithLocalVariables = candidateTagger.methodsWithLocalVariables.get(0);
-        assertTrue(methodWithLocalVariables.getBody().getElements(new TypeFilter<>(CtLocalVariable.class)).size() > 0,
+        assertTrue(methodWithLocalVariables.getElements(new TypeFilter<>(CtLocalVariable.class)).size() > 0,
                 "Method should have local variables");
     }
 

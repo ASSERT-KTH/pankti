@@ -25,7 +25,7 @@ public class CandidateTagger {
 
     private Map.Entry<String, Boolean> getIfs(CtMethod<?> ctMethod) {
         boolean hasIfs = false;
-        if (ctMethod.getBody().getElements(new TypeFilter<>(CtIf.class)).size() > 0) {
+        if (ctMethod.getElements(new TypeFilter<>(CtIf.class)).size() > 0) {
             methodsWithIfConditions.add(ctMethod);
             hasIfs = true;
         }
@@ -34,7 +34,7 @@ public class CandidateTagger {
 
     private Map.Entry<String, Boolean> getSwitches(CtMethod<?> ctMethod) {
         boolean hasSwitches = false;
-        if (ctMethod.getBody().getElements(new TypeFilter<>(CtSwitch.class)).size() > 0) {
+        if (ctMethod.getElements(new TypeFilter<>(CtSwitch.class)).size() > 0) {
             methodWithSwitchCases.add(ctMethod);
             hasSwitches = true;
         }
@@ -43,7 +43,7 @@ public class CandidateTagger {
 
     private Map.Entry<String, Boolean> getConditionals(CtMethod<?> ctMethod) {
         boolean hasConditionals = false;
-        if (ctMethod.getBody().getElements(new TypeFilter<>(CtConditional.class)).size() > 0) {
+        if (ctMethod.getElements(new TypeFilter<>(CtConditional.class)).size() > 0) {
             methodsWithConditionalOperators.add(ctMethod);
             hasConditionals = true;
         }
@@ -61,7 +61,7 @@ public class CandidateTagger {
 
     private Map.Entry<String, Boolean> getLocalVariables(CtMethod<?> ctMethod) {
         boolean hasLocalVariables = false;
-        if (ctMethod.getBody().getElements(new TypeFilter<>(CtLocalVariable.class)).size() > 0) {
+        if (ctMethod.getElements(new TypeFilter<>(CtLocalVariable.class)).size() > 0) {
             methodsWithLocalVariables.add(ctMethod);
             hasLocalVariables = true;
         }
@@ -70,7 +70,7 @@ public class CandidateTagger {
 
     private Map.Entry<String, Boolean> getReturns(CtMethod<?> ctMethod) {
         boolean returnsValue = false;
-        if (ctMethod.getBody().getElements(new TypeFilter<>(CtReturn.class)).size() > 0) {
+        if (ctMethod.getElements(new TypeFilter<>(CtReturn.class)).size() > 0) {
             methodsReturningAValue.add(ctMethod);
             returnsValue = true;
         } else {
@@ -81,7 +81,7 @@ public class CandidateTagger {
 
     private Map.Entry<String, Boolean> getLoops(CtMethod<?> ctMethod) {
         boolean hasLoops = false;
-        if (ctMethod.getBody().getElements(new TypeFilter<>(CtLoop.class)).size() > 0) {
+        if (ctMethod.getElements(new TypeFilter<>(CtLoop.class)).size() > 0) {
             methodsWithLoops.add(ctMethod);
             hasLoops = true;
         }

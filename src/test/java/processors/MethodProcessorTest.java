@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import runner.PanktiMain;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
+import spoon.reflect.code.CtFieldWrite;
 import spoon.reflect.code.CtInvocation;
 import spoon.reflect.code.CtSynchronized;
 import spoon.reflect.code.CtThrow;
@@ -100,6 +101,13 @@ public class MethodProcessorTest {
     }
 
     @Test
+    public void testAbstractMethods() {
+        CtMethod<?> abstractMethod = methodProcessor.abstractMethods.get(0);
+        assertTrue(abstractMethod.isAbstract(),
+                "Method should be abstract");
+    }
+
+    @Test
     public void testNumberOfMethodsThrowingExceptions() {
         assertEquals(95,
                 methodProcessor.methodsThrowingExceptions.size(),
@@ -119,6 +127,13 @@ public class MethodProcessorTest {
         assertEquals(19,
                 methodProcessor.methodsWithFieldAssignments.size(),
                 "Number of methods in test resource that modify fields is 19");
+    }
+
+    @Test
+    public void testMethodsModifyingFields() {
+        CtMethod<?> methodModifyingField = methodProcessor.methodsWithFieldAssignments.get(0);
+        assertTrue(methodModifyingField.getElements(new TypeFilter<>(CtFieldWrite.class)).size() > 0,
+                "Method should write to a field");
     }
 
     @Test
