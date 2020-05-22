@@ -19,7 +19,7 @@ public class CandidateTagger {
     List<CtMethod<?>> methodsWithConditionalOperators = new ArrayList<>();
     List<CtMethod<?>> methodsWithLoops = new ArrayList<>();
     List<CtMethod<?>> methodsWithLocalVariables = new ArrayList<>();
-    List<CtMethod<?>> methodWithSwitchCases = new ArrayList<>();
+    List<CtMethod<?>> methodsWithSwitchStatements = new ArrayList<>();
     List<CtMethod<?>> methodsWithMultipleStatements = new ArrayList<>();
     Map<CtMethod<?>, Map<String, Boolean>> allMethodTags = new HashMap<>();
 
@@ -35,7 +35,7 @@ public class CandidateTagger {
     private Map.Entry<String, Boolean> getSwitches(CtMethod<?> ctMethod) {
         boolean hasSwitches = false;
         if (ctMethod.getElements(new TypeFilter<>(CtSwitch.class)).size() > 0) {
-            methodWithSwitchCases.add(ctMethod);
+            methodsWithSwitchStatements.add(ctMethod);
             hasSwitches = true;
         }
         return Map.entry("switches", hasSwitches);
@@ -142,7 +142,7 @@ public class CandidateTagger {
                 ", methodsWithConditionalOperators=" + methodsWithConditionalOperators.size() +
                 ", methodsWithLoops=" + methodsWithLoops.size() +
                 ", methodsWithLocalVariables=" + methodsWithLocalVariables.size() +
-                ", methodWithSwitchCases=" + methodWithSwitchCases.size() +
+                ", methodsWithSwitchStatements=" + methodsWithSwitchStatements.size() +
                 ", methodsWithMultipleStatements=" + methodsWithMultipleStatements.size() +
                 '}';
     }
