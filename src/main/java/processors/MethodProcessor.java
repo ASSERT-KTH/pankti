@@ -7,10 +7,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import annotations.Pure;
 import picocli.CommandLine;
 import spoon.processing.AbstractProcessor;
 import spoon.reflect.code.*;
 import spoon.reflect.declaration.*;
+import spoon.reflect.factory.AnnotationFactory;
 import spoon.reflect.visitor.filter.AnnotationFilter;
 import spoon.reflect.visitor.filter.ReferenceTypeFilter;
 import spoon.reflect.visitor.filter.TypeFilter;
@@ -251,6 +253,11 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
                     hasConstructorCalls(ctMethod))) {
                 candidateMethods.add(ctMethod);
             }
+        }
+        // Annotate all candidate methods with @Pure
+        for (CtMethod<?> candidateMethod : candidateMethods) {
+            AnnotationFactory annotationFactory = new AnnotationFactory(this.getFactory());
+            annotationFactory.annotate(candidateMethod, Pure.class);
         }
     }
 
