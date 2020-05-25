@@ -81,7 +81,7 @@ public class PanktiMain implements Callable<Integer> {
         candidateTagger.generateReport(candidateMethods);
 
         // Save model in spooned/
-        // launcher.prettyprint();
+        launcher.prettyprint();
 
         return 0;
     }

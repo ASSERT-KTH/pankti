@@ -1,6 +1,7 @@
 package launchers;
 
 import logging.CustomLogger;
+import processors.InstrumentationProcessor;
 import processors.MethodProcessor;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
@@ -32,12 +33,20 @@ public class PanktiLauncher {
     }
 
     public Set<CtMethod<?>> applyProcessor(final CtModel model) {
+        // Filter out pure methods and annotate them
         MethodProcessor methodProcessor = new MethodProcessor();
         model.processWith(methodProcessor);
-        System.out.println(methodProcessor);
+        LOGGER.info(methodProcessor.toString());
+        Set<CtMethod<?>> candidateMethods = methodProcessor.getCandidateMethods();
+
+        // Find @Pure methods and instrument them
+        InstrumentationProcessor instrumentationProcessor = new InstrumentationProcessor();
+        model.processWith(instrumentationProcessor);
+        LOGGER.info(instrumentationProcessor.toString());
+
         // LOGGER.info("Modifiers present in project: " + methodProcessor.getAllMethodModifiersInProject());
         // LOGGER.info("Candidate methods to check for purity: ");
         // methodProcessor.getCandidateMethods().forEach(ctMethod -> System.out.println(ctMethod.getPath()));
-        return methodProcessor.getCandidateMethods();
+        return candidateMethods;
     }
 }
