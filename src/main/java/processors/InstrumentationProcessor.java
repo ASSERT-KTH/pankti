@@ -1,18 +1,17 @@
 package processors;
 
-import annotations.Pure;
-import spoon.processing.AbstractAnnotationProcessor;
+import spoon.processing.AbstractProcessor;
 import spoon.reflect.code.*;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.visitor.filter.TypeFilter;
 
-public class InstrumentationProcessor extends AbstractAnnotationProcessor<Pure, CtMethod<?>> {
+public class InstrumentationProcessor extends AbstractProcessor<CtMethod<?>> {
     final static String VARIABLENAME = "returnedExpression";
 
     // Create a new variable of returned type, add to method beginning
     public void insertReturnedVariableInBeginning(CtMethod<?> method) {
         CtCodeSnippetStatement returnDeclaration = getFactory().Core().createCodeSnippetStatement();
-        final String value = String.format("%s = %s", method.getType(), VARIABLENAME);
+        final String value = String.format("%s %s", method.getType(), VARIABLENAME);
         returnDeclaration.setValue(value);
         method.getBody().insertBegin(returnDeclaration);
     }
@@ -42,10 +41,17 @@ public class InstrumentationProcessor extends AbstractAnnotationProcessor<Pure, 
         method.getBody().insertEnd(returnStatement);
     }
 
-    public void process(Pure pureAnnotation, CtMethod<?> method) {
-        insertReturnedVariableInBeginning(method);
-        assignValueToVariable(method);
-        returnVariable(method);
+    @Override
+    public boolean isToBeProcessed(CtMethod<?> candidate) {
+        return candidate.getAllMetadata().containsKey("pure");
+    }
+
+    public void process(CtMethod<?> method) {
+        if (isToBeProcessed(method)) {
+            insertReturnedVariableInBeginning(method);
+            assignValueToVariable(method);
+            returnVariable(method);
+        }
     }
 
     @Override

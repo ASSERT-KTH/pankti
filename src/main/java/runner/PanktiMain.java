@@ -6,7 +6,6 @@ import picocli.CommandLine;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtMethod;
-import processors.CandidateTagger;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -75,10 +74,6 @@ public class PanktiMain implements Callable<Integer> {
         LOGGER.info("Elapsed time (ms): " + timeElapsed);
         LOGGER.info("Number of candidate pure methods: " +
                 candidateMethods.size());
-
-        // Generate report for candidate methods
-        CandidateTagger candidateTagger = new CandidateTagger();
-        candidateTagger.generateReport(candidateMethods);
 
         // Save model in spooned/
         launcher.prettyprint();

@@ -34,7 +34,7 @@ public class MethodProcessorTest {
         testModel = panktiLauncher.buildSpoonModel(mavenLauncher);
         testModel.processWith(methodProcessor);
         candidateTagger = new CandidateTagger();
-        candidateTagger.generateReport(methodProcessor.getCandidateMethods());
+        testModel.processWith(candidateTagger);
     }
 
     // Test that the project has a POM file in the root path

@@ -1,6 +1,7 @@
 package processors;
 
 import logging.CustomLogger;
+import spoon.processing.AbstractProcessor;
 import spoon.reflect.code.*;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.visitor.filter.TypeFilter;
@@ -8,7 +9,7 @@ import spoon.reflect.visitor.filter.TypeFilter;
 import java.util.*;
 import java.util.logging.Logger;
 
-public class CandidateTagger {
+public class CandidateTagger extends AbstractProcessor<CtMethod<?>> {
     private static final Logger LOGGER = CustomLogger.log(CandidateTagger.class.getName());
 
     List<CtMethod<?>> methodsReturningAValue = new ArrayList<>();
@@ -122,14 +123,8 @@ public class CandidateTagger {
         return methodTags;
     }
 
-    public void generateReport(Set<CtMethod<?>> candidateMethods) {
-        candidateMethods.forEach(method -> allMethodTags.putAll(tagMethod(method)));
-        LOGGER.info("Methods tagged: " + allMethodTags.size());
-        System.out.println(this);
-//        allMethodTags.forEach((method, tags) -> System.out.println("Path: " + method.getPath() + "\n" +
-//                "Return type: " + method.getType() + "\n" +
-//                "Body:\n" + method +
-//                "Tags: " + tags));
+    public void generateReport(CtMethod<?> candidateMethod) {
+        allMethodTags.putAll(tagMethod(candidateMethod));
     }
 
     @Override
@@ -145,5 +140,17 @@ public class CandidateTagger {
                 ", methodsWithSwitchStatements=" + methodsWithSwitchStatements.size() +
                 ", methodsWithMultipleStatements=" + methodsWithMultipleStatements.size() +
                 '}';
+    }
+
+    @Override
+    public boolean isToBeProcessed(CtMethod<?> candidate) {
+        return candidate.getAllMetadata().containsKey("pure");
+    }
+
+    @Override
+    public void process(CtMethod<?> method) {
+        if (isToBeProcessed(method)) {
+            generateReport(method);
+        }
     }
 }

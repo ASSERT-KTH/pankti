@@ -1,6 +1,5 @@
 package processors;
 
-import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -8,13 +7,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-import annotations.Pure;
 import picocli.CommandLine;
 import spoon.processing.AbstractProcessor;
 import spoon.reflect.code.*;
 import spoon.reflect.declaration.*;
-import spoon.reflect.factory.AnnotationFactory;
-import spoon.reflect.reference.CtTypeReference;
 import spoon.reflect.visitor.filter.AnnotationFilter;
 import spoon.reflect.visitor.filter.ReferenceTypeFilter;
 import spoon.reflect.visitor.filter.TypeFilter;
@@ -232,9 +228,8 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
         return hasAssignmentsToNonLocalVariable;
     }
 
-    public void annotateCandidateMethod(CtMethod<?> candidateMethod) {
-        AnnotationFactory annotationFactory = new AnnotationFactory(this.getFactory());
-        annotationFactory.annotate(candidateMethod, Pure.class);
+    public void addMetadataToCandidateMethods(CtMethod<?> candidateMethod) {
+        candidateMethod.putMetadata("pure", true);
     }
 
     public Set<CtMethod<?>> getCandidateMethods() {
@@ -259,7 +254,7 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
                     modifiesNonLocalVariables(ctMethod) ||
                     hasConstructorCalls(ctMethod))) {
                 candidateMethods.add(ctMethod);
-                // annotateCandidateMethod(ctMethod);
+                addMetadataToCandidateMethods(ctMethod);
             }
         }
     }

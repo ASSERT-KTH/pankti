@@ -33,7 +33,7 @@ public class CandidateTaggerTest {
         testModel = panktiLauncher.buildSpoonModel(mavenLauncher);
         testModel.processWith(methodProcessor);
         candidateTagger = new CandidateTagger();
-        candidateTagger.generateReport(methodProcessor.getCandidateMethods());
+        testModel.processWith(candidateTagger);
     }
 
     // Test the number of pure methods that return a value
