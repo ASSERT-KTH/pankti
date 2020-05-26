@@ -228,10 +228,6 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
         return hasAssignmentsToNonLocalVariable;
     }
 
-    public void addMetadataToCandidateMethods(CtMethod<?> candidateMethod) {
-        candidateMethod.putMetadata("pure", true);
-    }
-
     public Set<CtMethod<?>> getCandidateMethods() {
         return candidateMethods;
     }
@@ -254,7 +250,6 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
                     modifiesNonLocalVariables(ctMethod) ||
                     hasConstructorCalls(ctMethod))) {
                 candidateMethods.add(ctMethod);
-                addMetadataToCandidateMethods(ctMethod);
             }
         }
     }

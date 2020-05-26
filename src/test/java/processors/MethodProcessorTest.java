@@ -22,7 +22,6 @@ public class MethodProcessorTest {
     static MavenLauncher mavenLauncher;
     static CtModel testModel;
     static MethodProcessor methodProcessor;
-    static CandidateTagger candidateTagger;
 
     @BeforeAll
     public static void setUpLauncherAndModel() throws URISyntaxException {
@@ -33,8 +32,7 @@ public class MethodProcessorTest {
                 panktiMain.getProjectPath().getFileName().toString());
         testModel = panktiLauncher.buildSpoonModel(mavenLauncher);
         testModel.processWith(methodProcessor);
-        candidateTagger = new CandidateTagger();
-        testModel.processWith(candidateTagger);
+        panktiLauncher.addMetaDataToCandidateMethods(methodProcessor.getCandidateMethods());
     }
 
     // Test that the project has a POM file in the root path

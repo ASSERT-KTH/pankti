@@ -33,12 +33,19 @@ public class PanktiLauncher {
         return numberOfMethodsInProject;
     }
 
+    public void addMetaDataToCandidateMethods(Set<CtMethod<?>> candidateMethods) {
+        for (CtMethod<?> candidateMethod : candidateMethods) {
+            candidateMethod.putMetadata("pure", true);
+        }
+    }
+
     public Set<CtMethod<?>> applyProcessor(final CtModel model) {
         // Filter out pure methods and add metadata to them
         MethodProcessor methodProcessor = new MethodProcessor();
         model.processWith(methodProcessor);
         LOGGER.info(methodProcessor.toString());
         Set<CtMethod<?>> candidateMethods = methodProcessor.getCandidateMethods();
+        addMetaDataToCandidateMethods(candidateMethods);
 
         // Tag pure methods based on their properties
         CandidateTagger candidateTagger = new CandidateTagger();

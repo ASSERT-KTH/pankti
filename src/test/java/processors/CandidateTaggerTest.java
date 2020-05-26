@@ -32,6 +32,7 @@ public class CandidateTaggerTest {
                 panktiMain.getProjectPath().getFileName().toString());
         testModel = panktiLauncher.buildSpoonModel(mavenLauncher);
         testModel.processWith(methodProcessor);
+        panktiLauncher.addMetaDataToCandidateMethods(methodProcessor.getCandidateMethods());
         candidateTagger = new CandidateTagger();
         testModel.processWith(candidateTagger);
     }
