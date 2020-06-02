@@ -10,35 +10,34 @@ public class InstrumentationProcessor extends AbstractProcessor<CtMethod<?>> {
 
     // Create a new variable of returned type, add to method beginning
     public void insertReturnedVariableInBeginning(CtMethod<?> method) {
+        // <method return type> returnedExpression;
         CtCodeSnippetStatement returnDeclaration = getFactory().Core().createCodeSnippetStatement();
         final String value = String.format("%s %s", method.getType(), VARIABLENAME);
         returnDeclaration.setValue(value);
         method.getBody().insertBegin(returnDeclaration);
     }
 
-    // Assign value to created variable
+    // Assign value to created variable and return it
     public void assignValueToVariable(CtMethod<?> method) {
         for (CtBlock<?> block : method.getElements(new TypeFilter<>(CtBlock.class))) {
             for (int i = 0; i < block.getStatements().size(); i++) {
                 CtStatement thisStatement = block.getStatement(i);
                 if (thisStatement instanceof CtReturn) {
                     CtReturn<?> ctReturn = thisStatement.getElements(new TypeFilter<>(CtReturn.class)).get(0);
+                    // returnedExpression = <returned expression>;
                     CtCodeSnippetStatement returnDefinition = getFactory().Core().createCodeSnippetStatement();
                     final String value = String.format("%s = %s", VARIABLENAME, ctReturn.getReturnedExpression());
                     returnDefinition.setValue(value);
                     thisStatement.insertBefore(returnDefinition);
+                    // return returnedExpression;
+                    CtCodeSnippetStatement returnStatement = getFactory().Core().createCodeSnippetStatement();
+                    final String returnStatementValue = String.format("return %s", VARIABLENAME);
+                    returnStatement.setValue(returnStatementValue);
+                    thisStatement.insertBefore(returnStatement);
                     ctReturn.delete();
                 }
             }
         }
-    }
-
-    // Return created variable at the end of method
-    public void returnVariable(CtMethod<?> method) {
-        CtCodeSnippetStatement returnStatement = getFactory().Core().createCodeSnippetStatement();
-        final String value = String.format("return %s", VARIABLENAME);
-        returnStatement.setValue(value);
-        method.getBody().insertEnd(returnStatement);
     }
 
     @Override
@@ -46,11 +45,11 @@ public class InstrumentationProcessor extends AbstractProcessor<CtMethod<?>> {
         return candidate.getAllMetadata().containsKey("pure");
     }
 
+    // TODO: return from a switch case
     public void process(CtMethod<?> method) {
         if (isToBeProcessed(method)) {
             insertReturnedVariableInBeginning(method);
             assignValueToVariable(method);
-            returnVariable(method);
         }
     }
 

@@ -6,6 +6,7 @@ import picocli.CommandLine;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtMethod;
+import spoon.support.compiler.SpoonPom;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -58,7 +59,9 @@ public class PanktiMain implements Callable<Integer> {
         // Process project
         LOGGER.info("Processing project: " + name);
         MavenLauncher launcher = panktiLauncher.getMavenLauncher(path, name);
-        LOGGER.info("POM found at: " + launcher.getPomFile().getPath());
+        SpoonPom projectPom = launcher.getPomFile();
+        LOGGER.info("POM found at: " + projectPom.getPath());
+        LOGGER.info("Number of Maven modules: " + projectPom.getModel().getModules().size());
 
         // Build Spoon model
         CtModel model = panktiLauncher.buildSpoonModel(launcher);
