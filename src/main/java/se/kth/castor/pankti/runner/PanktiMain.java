@@ -1,8 +1,8 @@
-package runner;
+package se.kth.castor.pankti.runner;
 
-import launchers.PanktiLauncher;
-import logging.CustomLogger;
+import se.kth.castor.pankti.launchers.PanktiLauncher;
 import picocli.CommandLine;
+import se.kth.castor.pankti.logging.CustomLogger;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtMethod;
@@ -79,7 +79,7 @@ public class PanktiMain implements Callable<Integer> {
                 candidateMethods.size());
 
         // Save model in spooned/
-        launcher.prettyprint();
+        // launcher.prettyprint();
 
         return 0;
     }

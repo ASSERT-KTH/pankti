@@ -64,7 +64,6 @@
          <artifactId>slf4j-log4j12</artifactId>
          <version>${sl4j.version}</version>
       </dependency>
-
    </dependencies>
 
    <build>
@@ -100,7 +99,7 @@
                   <configuration>
                      <archive>
                         <manifest>
-                           <mainClass>runner.PanktiMain</mainClass>
+                           <mainClass>se.kth.castor.pankti.runner.PanktiMain</mainClass>
                         </manifest>
                      </archive>
                      <descriptorRefs>

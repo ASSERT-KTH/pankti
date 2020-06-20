@@ -1,4 +1,4 @@
-package logging;
+package se.kth.castor.pankti.logging;
 
 import java.io.IOException;
 import java.io.InputStream;

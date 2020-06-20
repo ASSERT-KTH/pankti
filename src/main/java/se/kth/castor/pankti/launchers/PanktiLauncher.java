@@ -1,14 +1,14 @@
-package launchers;
+package se.kth.castor.pankti.launchers;
 
-import logging.CustomLogger;
-import processors.CandidateTagger;
-import processors.InstrumentationProcessor;
-import processors.MethodProcessor;
+import se.kth.castor.pankti.logging.CustomLogger;
+import se.kth.castor.pankti.processors.CandidateTagger;
+import se.kth.castor.pankti.processors.MethodProcessor;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.CtType;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -52,10 +52,14 @@ public class PanktiLauncher {
         model.processWith(candidateTagger);
         LOGGER.info(candidateTagger.toString());
 
+        LOGGER.info("Pure methods and tags");
+        Map<CtMethod<?>, Map<String, Boolean>> allMethodTags = candidateTagger.getAllMethodTags();
+        allMethodTags.forEach((method, tags) -> System.out.println(
+                "Path: " + method.getPath() + "\n" +
+                        "Return type: " + method.getType() + "\n" +
+                        "Tags: " + tags));
+
         // Instrument pure methods
-        InstrumentationProcessor instrumentationProcessor = new InstrumentationProcessor();
-        model.processWith(instrumentationProcessor);
-        LOGGER.info(instrumentationProcessor.toString());
 
         // LOGGER.info("Modifiers present in project: " + methodProcessor.getAllMethodModifiersInProject());
         // LOGGER.info("Candidate methods to check for purity: ");

@@ -1,4 +1,4 @@
-package processors;
+package se.kth.castor.pankti.processors;
 
 import java.util.ArrayList;
 import java.util.HashSet;

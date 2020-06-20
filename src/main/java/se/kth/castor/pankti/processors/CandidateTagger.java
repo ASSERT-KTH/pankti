@@ -1,6 +1,6 @@
-package processors;
+package se.kth.castor.pankti.processors;
 
-import logging.CustomLogger;
+import se.kth.castor.pankti.logging.CustomLogger;
 import spoon.processing.AbstractProcessor;
 import spoon.reflect.code.*;
 import spoon.reflect.declaration.CtMethod;
@@ -12,6 +12,7 @@ import java.util.logging.Logger;
 public class CandidateTagger extends AbstractProcessor<CtMethod<?>> {
     private static final Logger LOGGER = CustomLogger.log(CandidateTagger.class.getName());
 
+    List<CtMethod<?>> staticMethods = new ArrayList<>();
     List<CtMethod<?>> methodsReturningAValue = new ArrayList<>();
     List<CtMethod<?>> methodsNotReturningAValue = new ArrayList<>();
     List<CtMethod<?>> methodsReturningAPrimitive = new ArrayList<>();
@@ -23,6 +24,15 @@ public class CandidateTagger extends AbstractProcessor<CtMethod<?>> {
     List<CtMethod<?>> methodsWithSwitchStatements = new ArrayList<>();
     List<CtMethod<?>> methodsWithMultipleStatements = new ArrayList<>();
     Map<CtMethod<?>, Map<String, Boolean>> allMethodTags = new HashMap<>();
+
+    private Map.Entry<String, Boolean> isStatic(CtMethod<?> ctMethod) {
+        boolean isStatic = false;
+        if (ctMethod.isStatic()) {
+            staticMethods.add(ctMethod);
+            isStatic = true;
+        }
+        return Map.entry("static", isStatic);
+    }
 
     private Map.Entry<String, Boolean> getIfs(CtMethod<?> ctMethod) {
         boolean hasIfs = false;
@@ -110,7 +120,9 @@ public class CandidateTagger extends AbstractProcessor<CtMethod<?>> {
     public Map<CtMethod<?>, Map<String, Boolean>> tagMethod(CtMethod<?> method) {
         Map<CtMethod<?>, Map<String, Boolean>> methodTags = new HashMap<>();
 
-        Map<String, Boolean> tagMap = Map.ofEntries(getIfs(method),
+        Map<String, Boolean> tagMap = Map.ofEntries(
+                isStatic(method),
+                getIfs(method),
                 getConditionals(method),
                 getSwitches(method),
                 getNumberOfStatements(method),
@@ -127,11 +139,16 @@ public class CandidateTagger extends AbstractProcessor<CtMethod<?>> {
         allMethodTags.putAll(tagMethod(candidateMethod));
     }
 
+    public Map<CtMethod<?>, Map<String, Boolean>> getAllMethodTags() {
+        return allMethodTags;
+    }
+
     @Override
     public String toString() {
         return "CandidateTagger{" +
                 "methodsReturningAValue=" + methodsReturningAValue.size() +
                 ", methodsReturningAPrimitive=" + methodsReturningAPrimitive.size() +
+                ", staticMethods=" + staticMethods.size() +
                 ", methodsWithParameters=" + methodsWithParameters.size() +
                 ", methodsWithIfConditions=" + methodsWithIfConditions.size() +
                 ", methodsWithConditionalOperators=" + methodsWithConditionalOperators.size() +
