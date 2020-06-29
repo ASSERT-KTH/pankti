@@ -228,6 +228,10 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
         return hasAssignmentsToNonLocalVariable;
     }
 
+    public boolean isVoidAndHasAssertStatements(CtMethod<?> ctMethod) {
+        return ctMethod.getType().getSimpleName().equals("void") && ctMethod.getElements(new TypeFilter<>(CtAssert.class)).size() > 0;
+    }
+
     public Set<CtMethod<?>> getCandidateMethods() {
         return candidateMethods;
     }
@@ -248,7 +252,8 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
                     hasFieldAssignments(ctMethod) ||
                     modifiesArrayArguments(ctMethod) ||
                     modifiesNonLocalVariables(ctMethod) ||
-                    hasConstructorCalls(ctMethod))) {
+                    hasConstructorCalls(ctMethod) ||
+                    isVoidAndHasAssertStatements(ctMethod))) {
                 candidateMethods.add(ctMethod);
             }
         }
