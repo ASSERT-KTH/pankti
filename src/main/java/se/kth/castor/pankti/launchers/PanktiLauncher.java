@@ -1,5 +1,7 @@
 package se.kth.castor.pankti.launchers;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import se.kth.castor.pankti.logging.CustomLogger;
 import se.kth.castor.pankti.processors.CandidateTagger;
 import se.kth.castor.pankti.processors.MethodProcessor;
@@ -8,6 +10,8 @@ import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.CtType;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -39,6 +43,21 @@ public class PanktiLauncher {
         }
     }
 
+    public void createCSVFile(Map<CtMethod<?>, Map<String, Boolean>> allMethodTags) throws IOException {
+        String[] HEADERS = {"path", "tags", "return-type"};
+        try (FileWriter out = new FileWriter("./pure-methods.csv");
+             CSVPrinter csvPrinter = new CSVPrinter(out, CSVFormat.DEFAULT
+                     .withHeader(HEADERS));
+        ) {
+            for (Map.Entry<CtMethod<?>, Map<String, Boolean>> entry : allMethodTags.entrySet()) {
+                CtMethod<?> method = entry.getKey();
+                Map<String, Boolean> tags = entry.getValue();
+                csvPrinter.printRecord(
+                        method.getPath(), method.getType(), tags);
+            }
+        }
+    }
+
     public Set<CtMethod<?>> applyProcessor(final CtModel model) {
         // Filter out pure methods and add metadata to them
         MethodProcessor methodProcessor = new MethodProcessor();
@@ -52,12 +71,13 @@ public class PanktiLauncher {
         model.processWith(candidateTagger);
         LOGGER.info(candidateTagger.toString());
 
-        LOGGER.info("Pure methods and tags");
         Map<CtMethod<?>, Map<String, Boolean>> allMethodTags = candidateTagger.getAllMethodTags();
-        allMethodTags.forEach((method, tags) -> System.out.println(
-                "Path: " + method.getPath() + "\n" +
-                        "Return type: " + method.getType() + "\n" +
-                        "Tags: " + tags));
+        try {
+            createCSVFile(allMethodTags);
+        } catch (IOException e) {
+            LOGGER.warning(e.getMessage());
+        }
+        LOGGER.info("Output saved in ./pure-methods.csv");
 
         // Instrument pure methods
 
