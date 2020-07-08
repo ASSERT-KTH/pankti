@@ -7,6 +7,7 @@ import se.kth.castor.pankti.processors.CandidateTagger;
 import se.kth.castor.pankti.processors.MethodProcessor;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
+import spoon.reflect.declaration.CtClass;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.CtType;
 
@@ -44,7 +45,7 @@ public class PanktiLauncher {
     }
 
     public void createCSVFile(Map<CtMethod<?>, Map<String, Boolean>> allMethodTags) throws IOException {
-        String[] HEADERS = {"path", "tags", "return-type"};
+        String[] HEADERS = {"parent-FQN", "method-signature", "return-type", "tags"};
         try (FileWriter out = new FileWriter("./pure-methods.csv");
              CSVPrinter csvPrinter = new CSVPrinter(out, CSVFormat.DEFAULT
                      .withHeader(HEADERS));
@@ -53,7 +54,7 @@ public class PanktiLauncher {
                 CtMethod<?> method = entry.getKey();
                 Map<String, Boolean> tags = entry.getValue();
                 csvPrinter.printRecord(
-                        method.getPath(), method.getType(), tags);
+                        method.getParent(CtClass.class).getQualifiedName(), method.getSignature(), method.getType(), tags);
             }
         }
     }
