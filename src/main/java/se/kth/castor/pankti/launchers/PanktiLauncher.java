@@ -45,7 +45,7 @@ public class PanktiLauncher {
     }
 
     public void createCSVFile(Map<CtMethod<?>, Map<String, Boolean>> allMethodTags) throws IOException {
-        String[] HEADERS = {"parent-FQN", "method-signature", "return-type", "tags"};
+        String[] HEADERS = {"parent-FQN", "method-signature", "return-type", "visibility", "tags"};
         try (FileWriter out = new FileWriter("./pure-methods.csv");
              CSVPrinter csvPrinter = new CSVPrinter(out, CSVFormat.DEFAULT
                      .withHeader(HEADERS));
@@ -54,7 +54,11 @@ public class PanktiLauncher {
                 CtMethod<?> method = entry.getKey();
                 Map<String, Boolean> tags = entry.getValue();
                 csvPrinter.printRecord(
-                        method.getParent(CtClass.class).getQualifiedName(), method.getSignature(), method.getType(), tags);
+                        method.getParent(CtClass.class).getQualifiedName(),
+                        method.getSignature(),
+                        method.getType(),
+                        method.getVisibility(),
+                        tags);
             }
         }
     }
