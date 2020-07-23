@@ -9,18 +9,24 @@ import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtClass;
 import spoon.reflect.declaration.CtMethod;
+import spoon.reflect.declaration.CtParameter;
 import spoon.reflect.declaration.CtType;
+import spoon.reflect.reference.CtTypeReference;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
 public class PanktiLauncher {
     private static final Logger LOGGER = CustomLogger.log(PanktiLauncher.class.getName());
+    private static String projectName;
 
     public MavenLauncher getMavenLauncher(final String projectPath, final String projectName) {
+        PanktiLauncher.projectName = projectName;
         MavenLauncher launcher = new MavenLauncher(projectPath, MavenLauncher.SOURCE_TYPE.APP_SOURCE);
         launcher.getEnvironment().setAutoImports(true);
         launcher.getEnvironment().setCommentEnabled(false);
@@ -45,19 +51,27 @@ public class PanktiLauncher {
     }
 
     public void createCSVFile(Map<CtMethod<?>, Map<String, Boolean>> allMethodTags) throws IOException {
-        String[] HEADERS = {"parent-FQN", "method-signature", "return-type", "visibility", "tags"};
-        try (FileWriter out = new FileWriter("./pure-methods.csv");
+        String[] HEADERS = {"visibility", "parent-FQN", "method-name", "param-list", "return-type", "tags"};
+        List<CtTypeReference<?>> paramList;
+        try (FileWriter out = new FileWriter("./pure-methods-" + projectName +".csv");
              CSVPrinter csvPrinter = new CSVPrinter(out, CSVFormat.DEFAULT
                      .withHeader(HEADERS));
         ) {
             for (Map.Entry<CtMethod<?>, Map<String, Boolean>> entry : allMethodTags.entrySet()) {
                 CtMethod<?> method = entry.getKey();
+                paramList = new ArrayList<>();
+                if (method.getParameters().size() > 0) {
+                    for (CtParameter<?> parameter : method.getParameters()) {
+                        paramList.add(parameter.getType());
+                    }
+                }
                 Map<String, Boolean> tags = entry.getValue();
                 csvPrinter.printRecord(
-                        method.getParent(CtClass.class).getQualifiedName(),
-                        method.getSignature(),
-                        method.getType(),
                         method.getVisibility(),
+                        method.getParent(CtClass.class).getQualifiedName(),
+                        method.getSimpleName(),
+                        paramList,
+                        method.getType(),
                         tags);
             }
         }
