@@ -52,7 +52,7 @@ public class PanktiLauncher {
 
     public void createCSVFile(Map<CtMethod<?>, Map<String, Boolean>> allMethodTags) throws IOException {
         String[] HEADERS = {"visibility", "parent-FQN", "method-name", "param-list", "return-type", "tags"};
-        List<CtTypeReference<?>> paramList;
+        List<String> paramList;
         try (FileWriter out = new FileWriter("./pure-methods-" + projectName +".csv");
              CSVPrinter csvPrinter = new CSVPrinter(out, CSVFormat.DEFAULT
                      .withHeader(HEADERS));
@@ -62,7 +62,7 @@ public class PanktiLauncher {
                 paramList = new ArrayList<>();
                 if (method.getParameters().size() > 0) {
                     for (CtParameter<?> parameter : method.getParameters()) {
-                        paramList.add(parameter.getType());
+                        paramList.add(parameter.getType().getQualifiedName());
                     }
                 }
                 Map<String, Boolean> tags = entry.getValue();
@@ -71,7 +71,7 @@ public class PanktiLauncher {
                         method.getParent(CtClass.class).getQualifiedName(),
                         method.getSimpleName(),
                         paramList,
-                        method.getType(),
+                        method.getType().getQualifiedName(),
                         tags);
             }
         }
@@ -96,7 +96,7 @@ public class PanktiLauncher {
         } catch (IOException e) {
             LOGGER.warning(e.getMessage());
         }
-        LOGGER.info("Output saved in ./pure-methods.csv");
+        LOGGER.info("Output saved in ./pure-methods-" + projectName + ".csv");
 
         // Instrument pure methods
 
