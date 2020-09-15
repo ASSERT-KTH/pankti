@@ -1,8 +1,8 @@
-package se.kth.castor.pankti.runner;
+package se.kth.castor.pankti.extract.runners;
 
-import se.kth.castor.pankti.launchers.PanktiLauncher;
 import picocli.CommandLine;
-import se.kth.castor.pankti.logging.CustomLogger;
+import se.kth.castor.pankti.extract.launchers.PanktiLauncher;
+import se.kth.castor.pankti.extract.logging.CustomLogger;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtMethod;

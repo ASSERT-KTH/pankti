@@ -1,9 +1,9 @@
-package se.kth.castor.pankti.processors;
+package se.kth.castor.pankti.extract.processors;
 
-import se.kth.castor.pankti.launchers.PanktiLauncher;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import se.kth.castor.pankti.runner.PanktiMain;
+import se.kth.castor.pankti.extract.launchers.PanktiLauncher;
+import se.kth.castor.pankti.extract.runners.PanktiMain;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.code.*;

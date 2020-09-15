@@ -1,6 +1,6 @@
-package se.kth.castor.pankti.processors;
+package se.kth.castor.pankti.extract.processors;
 
-import se.kth.castor.pankti.logging.CustomLogger;
+import se.kth.castor.pankti.extract.logging.CustomLogger;
 import spoon.processing.AbstractProcessor;
 import spoon.reflect.code.*;
 import spoon.reflect.declaration.CtMethod;
