@@ -1,4 +1,6 @@
+*.csv
 .idea/
+*.iml
 spooned/
 target/
 *.tmp
