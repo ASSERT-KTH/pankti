@@ -28,8 +28,8 @@ To run **pankti-extract**,
 2. `cd /path/to/pankti/pankti-extract/`
 3. `mvn clean install`
 4. `java -jar target/pankti-extract-<version>-jar-with-dependencies.jar /path/to/maven/project`
-
-The output is a CSV file at `/path/to/pankti/pankti-extract/` called _extracted-methods-\<project-name\>.csv_.
+5. The output is a CSV file at `/path/to/pankti/pankti-extract/` called _extracted-methods-\<project-name\>.csv_.
+6. `python filter.py /path/to/CSV/from/step/5.csv` gives the list of methods that are candidates for instrumentation
 ___
 ### Generate (pankti-generate)
 This phase uses the code generation features of Spoon to create test classes for an application.\
