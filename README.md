@@ -29,10 +29,9 @@ To run **pankti-extract**,
 3. `mvn clean install`
 4. `java -jar target/pankti-extract-<version>-jar-with-dependencies.jar /path/to/maven/project`
 5. The output is a CSV file at `/path/to/pankti/pankti-extract/` called _extracted-methods-\<project-name\>.csv_.
-6. `python filter.py /path/to/CSV/from/step/5.csv` gives the list of methods that are candidates for instrumentation
+6. `python filter.py /path/to/CSV/from/step/5.csv` outputs a CSV with the list of methods that are candidates for instrumentation
 ___
 ### Instrument (pankti-instrument)
-
 This phase develops a [Glowroot](https://glowroot.org/) plugin that serializes objects for instrumented methods that are invoked.
 
 To run **pankti-instrument**,
@@ -44,13 +43,16 @@ To run **pankti-instrument**,
 ___
 
 ### Execute
-
-Execute the application using the plugin generated in the instrumentation phase above as a javaagent.
+Execute the application with a workload, using Glowroot as a javaagent.\
+`java -javaagent:/path/to/glowroot/glowroot.jar -jar <project-jar>.jar <cli-args>`\
+The serialized objects for invoked methods are saved at `/tmp/pankti-object-data/`.
+(Optionally, extract the header, and rows from `instrumentation-candidates-<project-name>.csv` which correspond to invoked methods, into a new CSV file, `invoked-methods-<project-name>.csv`)
 ___
 
 ### Generate (pankti-generate)
 This phase uses the code generation features of Spoon to create test classes for an application.\
-It takes as input the path to the Java + Maven project, a CSV file with a list invoked methods, and the path to the directory containing objects serialized as XML.
+It takes as input the path to the Java + Maven project, a CSV file with a list instrumented (or invoked) methods, and the path to the directory containing objects serialized as XML.\
+(_Note_: In case a CSV of instrumented methods is used, exceptions will be thrown for instrumented methods which were not invoked during execution. Alternatively, use a CSV of invoked method, as described above).
 
 To run **pankti-generate**,
 1. `cd /path/to/pankti/pankti-generate/`
