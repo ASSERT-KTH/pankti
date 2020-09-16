@@ -31,6 +31,8 @@ def generate_aspects(df):
             else:
               paramList = str(row['param-list'])
               paramList = re.sub(r"([a-zA-Z0-9\$\.\[\]]+)", "\"" + r"\1" + "\"", paramList)
+              paramList = re.sub("\"T\"", "\"java.lang.Object\"", paramList)
+              paramList = re.sub("\"T\[\]\"", "\"java.lang.Object[]\"", paramList)
             line = re.sub(r"=\s{.*},", "= {" + paramList + "},", line)
           if ("timerName = " in line):
             line = re.sub(r"=\s\".+\"\)", "= \"" + row['parent-FQN'] + "-" + row['method-name'] + "\")", line)

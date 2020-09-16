@@ -3,11 +3,14 @@ package se.kth.castor.pankti.instrument.plugins;
 import org.glowroot.agent.plugin.api.*;
 import org.glowroot.agent.plugin.api.weaving.*;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
+import java.io.StringReader;
 
 public class MethodAspect0 {
     private static int INVOCATION_COUNT;
+
     @Pointcut(className = "fully.qualified.path.to.class",
             methodName = "methodToInstrument",
             methodParameterTypes = {"param1", "param2"},
@@ -36,13 +39,18 @@ public class MethodAspect0 {
         public static synchronized void writeObjectXMLToFile(Object objectToWrite, String objectFilePath) {
             try {
                 FileWriter objectFileWriter = new FileWriter(objectFilePath, true);
-                xStream.toXML(objectToWrite, objectFileWriter);
-                BufferedWriter bw = new BufferedWriter(objectFileWriter);
-                bw.newLine();
-                bw.flush();
-                bw.close();
+                String xml = xStream.toXML(objectToWrite);
+                xml = xml.replaceAll("(&#x)(\\w+;)", "&amp;#x$2");
+                BufferedReader reader = new BufferedReader(new StringReader(xml));
+                BufferedWriter writer = new BufferedWriter(objectFileWriter);
+                while ((xml = reader.readLine()) != null) {
+                    writer.write(xml);
+                    writer.newLine();
+                }
+                writer.flush();
+                writer.close();
             } catch (Exception e) {
-                logger.info("MethodAspect" + COUNT);
+                logger.info("PDFBoxAspect" + COUNT);
             }
         }
 

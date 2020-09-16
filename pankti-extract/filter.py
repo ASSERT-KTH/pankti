@@ -32,15 +32,16 @@ def create_final_df(df, cols):
   # print(final_df.head())
   return final_df
 
-def find_instrumentation_candidates(final_df, cols):
+def find_instrumentation_candidates(final_df, cols, name):
   instrumentation_candidates_df = pd.DataFrame(columns = cols)
   instrumentation_candidates_df =  final_df[((final_df['multiple-statements'] == True) |
   (final_df['ifs'] == True) | (final_df['conditionals'] == True) |
   (final_df['parameters'] == True) | (final_df['switches'] == True) |
   (final_df['loops'] == True) | (final_df['local-variables'] == True)) & (final_df['static'] == False)]
   print("output (rows, columns): ", instrumentation_candidates_df.shape)
-  instrumentation_candidates_df.to_csv(r'./instrumentation-candidates.csv', index=False)
-  print("instrumentation candidates saved in ./instrumentation-candidates.csv")
+  file_name = "instrumentation-candidates-" + name + ".csv"
+  instrumentation_candidates_df.to_csv(r'./' + file_name, index=False)
+  print("instrumentation candidates saved in ./" + file_name)
 
 def main(argv):
   try:
@@ -50,9 +51,11 @@ def main(argv):
     df = pd.read_csv(argv[1])
     print("input (rows, columns): ", df.shape)
     final_df = create_final_df(df, cols)
-    find_instrumentation_candidates(final_df, cols)
-  except:
+    name = re.search("\-(\w+).csv", argv[1]).group(1)
+    find_instrumentation_candidates(final_df, cols, name)
+  except Exception as e:
     print("USAGE: python filter.py </path/to/method/list>.csv")
+    print(e)
     sys.exit()
 
 if __name__ == "__main__":

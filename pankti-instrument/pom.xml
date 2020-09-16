@@ -11,8 +11,8 @@
 
   <artifactId>pankti-instrument</artifactId>
 
-  <name>Glowroot Agent PDFBox Plugin</name>
-  <description>Glowroot Agent PDFBox Plugin</description>
+  <name>Glowroot Agent Plugin</name>
+  <description>Glowroot Agent Plugin</description>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

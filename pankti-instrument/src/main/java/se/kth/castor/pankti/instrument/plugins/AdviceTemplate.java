@@ -3,6 +3,9 @@ package se.kth.castor.pankti.instrument.plugins;
 import com.thoughtworks.xstream.XStream;
 import se.kth.castor.pankti.instrument.converters.*;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
 public interface AdviceTemplate {
     XStream xStream = new XStream();
 
@@ -15,11 +18,19 @@ public interface AdviceTemplate {
     }
 
     static String[] setUpFiles(String path) {
-        String filePath = "../output/object-data/" + path;
-        String receivingObjectFilePath = filePath + "-receiving.xml";
-        String paramObjectsFilePath = filePath + "-params.xml";
-        String returnedObjectFilePath = filePath + "-returned.xml";
-        String invocationCountFilePath = filePath + "-count.txt";
-        return new String[]{receivingObjectFilePath, paramObjectsFilePath, returnedObjectFilePath, invocationCountFilePath};
+        try {
+            String storageDir = "/tmp/pankti-object-data/";
+            Files.createDirectories(Paths.get(storageDir));
+            String filePath = storageDir + path;
+            String receivingObjectFilePath = filePath + "-receiving.xml";
+            String paramObjectsFilePath = filePath + "-params.xml";
+            String returnedObjectFilePath = filePath + "-returned.xml";
+            String invocationCountFilePath = filePath + "-count.txt";
+            return new String[]{receivingObjectFilePath, paramObjectsFilePath, returnedObjectFilePath, invocationCountFilePath};
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(0);
+        }
+        return new String[]{};
     }
 }
