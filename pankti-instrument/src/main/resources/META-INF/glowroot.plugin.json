@@ -1,0 +1,16 @@
+{
+  "name": "pankti plugin to serialize objects",
+  "id": "panktiplugin",
+  "properties": [
+    {
+      "name": "stackTraceThresholdMillis",
+      "type": "double",
+      "default": 0.0,
+      "label": "Stack trace threshold (millis)",
+      "checkboxLabel": "",
+      "description": "Any query that exceeds this threshold will have a stack trace captured and attached to it. An empty value will not collect any stack traces, a zero value will collect a stack trace for every query."
+    }
+  ],
+  "aspects": [
+  ]
+}

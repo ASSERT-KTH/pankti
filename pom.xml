@@ -10,6 +10,7 @@
    <modules>
       <module>pankti-extract</module>
       <module>pankti-generate</module>
+      <module>pankti-instrument</module>
    </modules>
    <packaging>pom</packaging>
 
