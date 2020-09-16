@@ -7,7 +7,7 @@ Pankti transforms production workload into test cases. The test generation pipel
 4. Generate
 ---
 ### Extract (pankti-extract)
-This phase leverages [Spoon](http://spoon.gforge.inria.fr/index.html) to process Java applications built with Maven.
+This phase leverages [Spoon](http://spoon.gforge.inria.fr/index.html) to statically analyze Java applications built with Maven.
 The output is a list of methods that meet the following criteria: 
 - they are not empty
 - they are not abstract, and do not belong to an interface or annotation type
@@ -27,6 +27,18 @@ To run **pankti-extract**,
 1. Clone this repository
 2. `cd /path/to/pankti/pankti-extract/`
 3. `mvn clean install`
-4. `java -jar target/<pankti-extract-version-jar-with-dependencies.jar> <path-to-a-maven-project>`
-5. The output is a CSV file at `/path/to/pankti/pankti-extract` called _extracted-methods-<project-name>.csv_
+4. `java -jar target/pankti-extract-<version>-jar-with-dependencies.jar /path/to/maven/project`
+
+The output is a CSV file at `/path/to/pankti/pankti-extract/` called _extracted-methods-\<project-name\>.csv_.
 ___
+### Generate (pankti-generate)
+This phase uses the code generation features of Spoon to create test classes for an application.\
+It takes as input the path to the Java + Maven project, a CSV file with a list invoked methods, and the path to the directory containing objects serialized as XML.
+
+To run **pankti-generate**,
+1. `cd /path/to/pankti/pankti-generate/`
+2. `mvn clean install`
+3. `java -jar target/pankti-generate-<version>-jar-with-dependencies.jar /path/to/project /path/to/invoked/methods.csv /path/to/directory/with/objects/`
+
+The output is in a directory at `/path/to/pankti/pankti-generate/output/generated/<project-name>/`. Generated test classes are placed in appropriate package directories. The naming convention followed is _Test\<ClassName\>PanktiGen.java_. Resource files for long XML strings are created at `/path/to/pankti/pankti-generate/output/generated/object-data`.
+

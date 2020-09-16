@@ -9,7 +9,7 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>pankti-extract</artifactId>
+  <artifactId>pankti-generate</artifactId>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -23,10 +23,59 @@
     <junit.jupiter.engine.version>5.5.2</junit.jupiter.engine.version>
     <junit.platform.runner.version>1.5.2</junit.platform.runner.version>
     <junit.jupiter.params.version>5.6.2</junit.jupiter.params.version>
+    <junit.version>4.13</junit.version>
     <info.picocli.picocli.version>4.2.0</info.picocli.picocli.version>
     <sl4j.version>1.7.30</sl4j.version>
     <commons.csv.version>1.8</commons.csv.version>
+    <xstream.version>1.4.12</xstream.version>
   </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>fr.inria.gforge.spoon</groupId>
+      <artifactId>spoon-core</artifactId>
+      <version>${spoon.core.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>info.picocli</groupId>
+      <artifactId>picocli</artifactId>
+      <version>${info.picocli.picocli.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.thoughtworks.xstream</groupId>
+      <artifactId>xstream</artifactId>
+      <version>${xstream.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-csv</artifactId>
+      <version>${commons.csv.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <version>${junit.jupiter.engine.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-runner</artifactId>
+      <version>${junit.platform.runner.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
+      <version>${junit.jupiter.params.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${junit.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+  </dependencies>
 
   <build>
     <plugins>
@@ -43,9 +92,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${maven.surefire.plugin.version}</version>
         <configuration>
-          <excludes>
-            <!-- <exclude>**/resources/spoon-dog/*</exclude> -->
-          </excludes>
+          <excludes/>
         </configuration>
       </plugin>
       <plugin>
@@ -61,32 +108,13 @@
             <configuration>
               <archive>
                 <manifest>
-                  <mainClass>se.kth.castor.pankti.extract.runners.PanktiMain</mainClass>
+                  <mainClass>se.kth.castor.pankti.generate.PanktiGenMain</mainClass>
                 </manifest>
               </archive>
               <descriptorRefs>
                 <descriptorRef>jar-with-dependencies</descriptorRef>
               </descriptorRefs>
             </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.jacoco</groupId>
-        <artifactId>jacoco-maven-plugin</artifactId>
-        <version>${maven.jacoco.plugin.version}</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>prepare-agent</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>report</id>
-            <phase>prepare-package</phase>
-            <goals>
-              <goal>report</goal>
-            </goals>
           </execution>
         </executions>
       </plugin>
