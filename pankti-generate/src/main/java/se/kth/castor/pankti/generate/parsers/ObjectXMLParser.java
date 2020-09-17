@@ -86,6 +86,8 @@ public class ObjectXMLParser {
                     serializedObjects.add(serializedObject);
                 }
             }
+        } catch (FileNotFoundException e) {
+          System.out.println("No object files found for " + basePath);
         } catch (Exception e) {
             e.printStackTrace();
         }

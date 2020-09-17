@@ -50,7 +50,7 @@ public class MethodAspect0 {
                 writer.flush();
                 writer.close();
             } catch (Exception e) {
-                logger.info("PDFBoxAspect" + COUNT);
+                logger.info("MethodAspect" + COUNT);
             }
         }
 
