@@ -3,10 +3,7 @@ package se.kth.castor.pankti.instrument.plugins;
 import org.glowroot.agent.plugin.api.*;
 import org.glowroot.agent.plugin.api.weaving.*;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.StringReader;
+import java.io.*;
 
 public class MethodAspect0 {
     private static int INVOCATION_COUNT;
@@ -23,7 +20,9 @@ public class MethodAspect0 {
         private static String paramObjectsFilePath;
         private static String returnedObjectFilePath;
         private static String invocationCountFilePath;
+        private static String invokedMethodsCSVFilePath;
         private static Logger logger = Logger.getLogger(PureMethodAdvice.class);
+        private static String rowInCSVFile = "";
         private static final String methodFQN = PureMethodAdvice.class.getAnnotation(Pointcut.class).className() + "."
                 + PureMethodAdvice.class.getAnnotation(Pointcut.class).methodName();
 
@@ -34,6 +33,7 @@ public class MethodAspect0 {
             paramObjectsFilePath = fileNames[1];
             returnedObjectFilePath = fileNames[2];
             invocationCountFilePath = fileNames[3];
+            invokedMethodsCSVFilePath = fileNames[4];
         }
 
         public static synchronized void writeObjectXMLToFile(Object objectToWrite, String objectFilePath) {
@@ -64,6 +64,18 @@ public class MethodAspect0 {
             }
         }
 
+        public static synchronized void appendRowToInvokedCSVFile() {
+            try {
+                File invokedMethodsCSVFile = new File(invokedMethodsCSVFilePath);
+                FileWriter fr = new FileWriter(invokedMethodsCSVFile, true);
+                fr.write("\n");
+                fr.write(rowInCSVFile);
+                fr.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
         @OnBefore
         public static TraceEntry onBefore(OptionalThreadContext context,
                                           @BindReceiver Object receivingObject,
@@ -89,6 +101,9 @@ public class MethodAspect0 {
                 writeObjectXMLToFile(returnedObject, returnedObjectFilePath);
             }
             INVOCATION_COUNT++;
+            if (INVOCATION_COUNT == 1) {
+                appendRowToInvokedCSVFile();
+            }
             writeInvocationCountToFile();
             traceEntry.end();
         }

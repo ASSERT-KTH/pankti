@@ -46,13 +46,12 @@ ___
 Execute the application with a workload, using Glowroot as a javaagent.\
 `java -javaagent:/path/to/glowroot/glowroot.jar -jar <project-jar>.jar <cli-args>`\
 The serialized objects for invoked methods are saved at `/tmp/pankti-object-data/`.
-(Optionally, extract the header, and rows from `instrumentation-candidates-<project-name>.csv` which correspond to invoked methods, into a new CSV file, `invoked-methods-<project-name>.csv`)
+Additionally, a CSV file with a list of invoked methods is generated at `/tmp/pankti-object-data/`. 
 ___
 
 ### Generate (pankti-generate)
 This phase uses the code generation features of Spoon to create test classes for an application.\
-It takes as input the path to the Java + Maven project, a CSV file with a list instrumented (or invoked) methods, and the path to the directory containing objects serialized as XML.\
-(_Note_: In case a CSV of instrumented methods is used, exceptions will be thrown for instrumented methods which were not invoked during execution. Alternatively, use a CSV of invoked method, as described above).
+It takes as input the path to the Java + Maven project, a CSV file with a list of invoked methods, and the path to the directory containing objects serialized as XML.
 
 To run **pankti-generate**,
 1. `cd /path/to/pankti/pankti-generate/`

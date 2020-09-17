@@ -25,6 +25,15 @@ def generate_aspects(df):
             line = re.sub(r"=\s\"(.+)\",", "= \"" + row['parent-FQN'] + "\",", line)
           if ("methodName = " in line):
             line = re.sub(r"=\s\"(.+)\",", "= \"" + row['method-name'] + "\",", line)
+          if ("String rowInCSVFile" in line):
+            values = []
+            for col in df.columns:
+              col_value = str(row[col])
+              if "," in col_value:
+                col_value = "\\\"" + col_value.replace(" ", "") + "\\\""
+              values.append(col_value)
+            row_as_string = ','.join(values)
+            line = re.sub(r"\"\"", "\"" + row_as_string + "\"", line)
           if ("methodParameterTypes = " in line):
             if (pd.isnull(row['param-list'])):
               paramList = ""

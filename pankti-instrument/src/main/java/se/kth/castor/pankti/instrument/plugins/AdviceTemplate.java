@@ -3,8 +3,11 @@ package se.kth.castor.pankti.instrument.plugins;
 import com.thoughtworks.xstream.XStream;
 import se.kth.castor.pankti.instrument.converters.*;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 public interface AdviceTemplate {
     XStream xStream = new XStream();
@@ -17,16 +20,28 @@ public interface AdviceTemplate {
         xStream.registerConverter(new ThreadGroupConverter());
     }
 
+    static String setUpInvokedMethodsCSVFile(String storageDir) throws Exception {
+        String HEADERS = "visibility,parent-FQN,method-name,param-list,return-type,tags";
+        File invokedMethodsCSVFile = new File(storageDir + "invoked-methods.csv");
+        if (!invokedMethodsCSVFile.exists()) {
+            FileWriter myWriter = new FileWriter(invokedMethodsCSVFile);
+            myWriter.write(HEADERS);
+            myWriter.close();
+        }
+        return invokedMethodsCSVFile.getAbsolutePath();
+    }
+
     static String[] setUpFiles(String path) {
         try {
             String storageDir = "/tmp/pankti-object-data/";
             Files.createDirectories(Paths.get(storageDir));
+            String invokedMethodsCSVFilePath = setUpInvokedMethodsCSVFile(storageDir);
             String filePath = storageDir + path;
             String receivingObjectFilePath = filePath + "-receiving.xml";
             String paramObjectsFilePath = filePath + "-params.xml";
             String returnedObjectFilePath = filePath + "-returned.xml";
             String invocationCountFilePath = filePath + "-count.txt";
-            return new String[]{receivingObjectFilePath, paramObjectsFilePath, returnedObjectFilePath, invocationCountFilePath};
+            return new String[]{receivingObjectFilePath, paramObjectsFilePath, returnedObjectFilePath, invocationCountFilePath, invokedMethodsCSVFilePath};
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(0);
