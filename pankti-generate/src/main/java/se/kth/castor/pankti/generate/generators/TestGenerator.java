@@ -69,7 +69,7 @@ public class TestGenerator {
 
     @SuppressWarnings("unchecked")
     public CtInvocation<?> generateAssertionInTestMethod(CtMethod<?> method) throws ClassNotFoundException {
-        CtExpression<?> assertExpectedObject = factory.createCodeSnippetExpression("returnedObject");
+        CtExpression<?> assertExpectedObject = factory.createCodeSnippetExpression("expectedObject");
 
         StringBuilder arguments = new StringBuilder();
         for (int i = 1; i <= method.getParameters().size(); i++) {
@@ -157,7 +157,7 @@ public class TestGenerator {
 
     public CtStatement parseReturnedObject(String returnedObjectType, CtMethod<?> method) {
         return factory.createCodeSnippetStatement(String.format(
-                "%s returnedObject = (%s) xStream.fromXML(returnedXML)",
+                "%s expectedObject = (%s) xStream.fromXML(returnedXML)",
                 returnedObjectType,
                 testGenUtil.findObjectBoxType(method.getType())));
     }

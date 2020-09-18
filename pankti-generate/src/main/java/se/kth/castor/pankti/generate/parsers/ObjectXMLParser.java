@@ -87,7 +87,7 @@ public class ObjectXMLParser {
                 }
             }
         } catch (FileNotFoundException e) {
-          System.out.println("No object files found for " + basePath);
+          System.out.println("NO OBJECT FILES FOUND FOR " + basePath + " - SKIPPING");
         } catch (Exception e) {
             e.printStackTrace();
         }
