@@ -19,6 +19,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <maven.compiler.plugin.version>3.8.1</maven.compiler.plugin.version>
     <maven.compiler.plugin.release>11</maven.compiler.plugin.release>
+    <maven.assembly.plugin.version>3.2.0</maven.assembly.plugin.version>
   </properties>
 
   <dependencies>
@@ -53,7 +54,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
-        <version>3.2.0</version>
+        <version>${maven.assembly.plugin.version}</version>
         <executions>
           <execution>
             <phase>package</phase>
