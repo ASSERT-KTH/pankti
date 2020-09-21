@@ -96,12 +96,6 @@ public class PanktiLauncher {
             LOGGER.warning(e.getMessage());
         }
         LOGGER.info("Output saved in ./extracted-methods-" + projectName + ".csv");
-
-        // Instrument pure methods
-
-        // LOGGER.info("Modifiers present in project: " + methodProcessor.getAllMethodModifiersInProject());
-        // LOGGER.info("Candidate methods to check for purity: ");
-        // methodProcessor.getCandidateMethods().forEach(ctMethod -> System.out.println(ctMethod.getPath()));
         return candidateMethods;
     }
 }

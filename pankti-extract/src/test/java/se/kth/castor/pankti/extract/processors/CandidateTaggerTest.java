@@ -37,22 +37,22 @@ public class CandidateTaggerTest {
         testModel.processWith(candidateTagger);
     }
 
-    // Test the number of pure methods that return a value
+    // Test the number of extracted methods that return a value
     @Test
     public void testNumberOfMethodsRetuningAValue() {
-        assertEquals(105, candidateTagger.methodsReturningAValue.size(),
-                "105 pure methods in test resource should return a value");
+        assertEquals(220, candidateTagger.methodsReturningAValue.size(),
+                "220 extracted methods in test resource should return a value");
     }
 
 
-    // Test that all pure methods return a value
+    // Test that all extracted methods return a value
     @Test
-    public void testAllPureMethodsReturnAValue() {
+    public void testAllextractedMethodsReturnAValue() {
         assertEquals(methodProcessor.candidateMethods.size(), candidateTagger.methodsReturningAValue.size(),
-                "All pure methods in test resource should return a value");
+                "All extracted methods in test resource should return a value");
     }
 
-    // Test that a pure method found to return a value actually does so
+    // Test that an extracted method found to return a value actually does so
     @Test
     public void testMethodRetuningAValue() {
         CtMethod<?> methodReturningAValue = candidateTagger.methodsReturningAValue.get(0);
@@ -63,7 +63,7 @@ public class CandidateTaggerTest {
                         "and its return type cannot be void");
     }
 
-    // Test that a pure method returning a value is tagged as such
+    // Test that an extracted method returning a value is tagged as such
     @Test
     public void testTagOfMethodRetuningAValue() {
         CtMethod<?> methodReturningAValue = candidateTagger.methodsReturningAValue.get(0);
@@ -71,22 +71,22 @@ public class CandidateTaggerTest {
                 "returns tag should be true for method");
     }
 
-    // Test that no pure method returns nothing
+    // Test that no extracted method returns nothing
     @Test
     public void testNumberOfMethodsNotReturningAValue() {
         assertTrue(candidateTagger.methodsNotReturningAValue.isEmpty(),
-                "all pure methods in test resource return a value");
+                "all extracted methods in test resource return a value");
     }
 
-    // Test the number of pure methods returning a primitive
+    // Test the number of extracted methods returning a primitive
     @Test
     public void testNumberOfMethodsReturningPrimitives() {
-        assertEquals(48,
+        assertEquals(68,
                 candidateTagger.methodsReturningAPrimitive.size(),
-                "48 pure methods in test resource return a primitive value");
+                "68 extracted methods in test resource return a primitive value");
     }
 
-    // Test that a pure method found to return a primitive actually does so
+    // Test that an extracted method found to return a primitive actually does so
     @Test
     public void testMethodRetuningAPrimitive() {
         CtMethod<?> methodReturningAPrimitive = candidateTagger.methodsReturningAPrimitive.get(0);
@@ -97,7 +97,7 @@ public class CandidateTaggerTest {
                         "and its return type cannot be void");
     }
 
-    // Test that a pure method returning a primitive is tagged as such
+    // Test that an extracted method returning a primitive is tagged as such
     @Test
     public void testTagOfMethodRetuningAPrimitive() {
         CtMethod<?> methodReturningAPrimitive = candidateTagger.methodsReturningAPrimitive.get(0);
@@ -105,16 +105,16 @@ public class CandidateTaggerTest {
                 "returns_primitives tag should be true for method");
     }
 
-    // Test the number of pure methods not returning a primitive
+    // Test the number of extracted methods not returning a primitive
     @Test
     public void testNumberOfMethodsNotReturningPrimitives() {
-        assertEquals(57,
+        assertEquals(152,
                 candidateTagger.methodsReturningAValue.size() -
                         candidateTagger.methodsReturningAPrimitive.size(),
-                "57 pure methods in test resource return an object");
+                "152 extracted methods in test resource return an object");
     }
 
-    // Test that a pure method found to not return a primitive actually does not
+    // Test that an extracted method found to not return a primitive actually does not
     @Test
     public void testMethodRetuningNotAPrimitive() {
         for (CtMethod<?> methodReturningAValue : candidateTagger.methodsReturningAValue) {
@@ -129,7 +129,7 @@ public class CandidateTaggerTest {
         }
     }
 
-    // Test that a pure method not returning a primitive is tagged as such
+    // Test that an extracted method not returning a primitive is tagged as such
     @Test
     public void testTagOfMethodNotRetuningAPrimitive() {
         for (CtMethod<?> methodReturningAValue : candidateTagger.methodsReturningAValue) {
@@ -141,15 +141,15 @@ public class CandidateTaggerTest {
         }
     }
 
-    // Test the number of pure methods with if conditions
+    // Test the number of extracted methods with if conditions
     @Test
     public void testNumberOfMethodsWithIfConditions() {
-        assertEquals(4,
+        assertEquals(54,
                 candidateTagger.methodsWithIfConditions.size(),
-                "4 pure methods in test resource have an if condition");
+                "54 extracted methods in test resource have an if condition");
     }
 
-    // Test that a pure method found to have if condition(s) actually does so
+    // Test that an extracted method found to have if condition(s) actually does so
     @Test
     public void testMethodsWithIfCondition() {
         CtMethod<?> methodWithIfCondition = candidateTagger.methodsWithIfConditions.get(0);
@@ -157,7 +157,7 @@ public class CandidateTaggerTest {
                 "Method should have an if condition");
     }
 
-    // Test that a pure method having if condition(s) is tagged as such
+    // Test that an extracted method having if condition(s) is tagged as such
     @Test
     public void testTagOfMethodWithIfCondition() {
         CtMethod<?> methodWithIfCondition = candidateTagger.methodsWithIfConditions.get(0);
@@ -165,15 +165,15 @@ public class CandidateTaggerTest {
                 "ifs tag should be true for method");
     }
 
-    // Test the number of pure methods with conditional operators
+    // Test the number of extracted methods with conditional operators
     @Test
     public void testNumberOfMethodsWithConditionals() {
-        assertEquals(4,
+        assertEquals(6,
                 candidateTagger.methodsWithConditionalOperators.size(),
-                "4 pure methods in test resource use a conditional operator");
+                "6 extracted methods in test resource use a conditional operator");
     }
 
-    // Test that a pure method found to have conditional operator(s) actually does so
+    // Test that an extracted method found to have conditional operator(s) actually does so
     @Test
     public void testMethodWithConditionals() {
         CtMethod<?> methodWithIfCondition = candidateTagger.methodsWithConditionalOperators.get(0);
@@ -181,7 +181,7 @@ public class CandidateTaggerTest {
                 "Method should have a conditional operator");
     }
 
-    // Test that a pure method with conditional operator(s) is tagged as such
+    // Test that an extracted method with conditional operator(s) is tagged as such
     @Test
     public void testTagOfMethodWithConditionals() {
         CtMethod<?> methodWithConditional = candidateTagger.methodsWithConditionalOperators.get(0);
@@ -189,22 +189,22 @@ public class CandidateTaggerTest {
                 "conditionals tag should be true for method");
     }
 
-    // Test the number of pure methods with loops
+    // Test the number of extracted methods with loops
     @Test
     public void testNumberOfMethodsWithLoops() {
-        assertTrue(candidateTagger.methodsWithLoops.isEmpty(),
-                "No pure method in test resource has a loop");
+        assertEquals(16, candidateTagger.methodsWithLoops.size(),
+                "16 extracted method in test resource have a loop");
     }
 
-    // Test the number of pure methods with switch statements
+    // Test the number of extracted methods with switch statements
     @Test
     public void testNumberOfMethodsWithSwitchStatements() {
         assertEquals(1,
                 candidateTagger.methodsWithSwitchStatements.size(),
-                "1 pure method in test resource has switch cases");
+                "1 extracted method in test resource has switch statements");
     }
 
-    // Test that a pure method found to have switch statement(s) actually does so
+    // Test that an extracted method found to have switch statement(s) actually does so
     @Test
     public void testMethodWithSwitchStatements() {
         CtMethod<?> methodWithSwitchStatements = candidateTagger.methodsWithSwitchStatements.get(0);
@@ -212,7 +212,7 @@ public class CandidateTaggerTest {
                 "Method should have a conditional operator");
     }
 
-    // Test that a pure method with switch statement(s) is tagged as such
+    // Test that an extracted method with switch statement(s) is tagged as such
     @Test
     public void testTagOfMethodWithSwitchStatements() {
         CtMethod<?> methodWithSwitchStatements = candidateTagger.methodsWithSwitchStatements.get(0);
@@ -220,15 +220,15 @@ public class CandidateTaggerTest {
                 "switches tag should be true for method");
     }
 
-    // Test the number of pure methods with parameters
+    // Test the number of extracted methods with parameters
     @Test
     public void testNumberOfMethodsWithParameters() {
-        assertEquals(16,
+        assertEquals(74,
                 candidateTagger.methodsWithParameters.size(),
-                "16 pure methods in test resource have parameters");
+                "74 extracted methods in test resource have parameters");
     }
 
-    // Test that a pure method found to have parameters actually does so
+    // Test that an extracted method found to have parameters actually does so
     @Test
     public void testMethodWithParameters() {
         CtMethod<?> methodWithParameters = candidateTagger.methodsWithParameters.get(0);
@@ -236,7 +236,7 @@ public class CandidateTaggerTest {
                 "Method should have a conditional operator");
     }
 
-    // Test that a pure method with parameters is tagged as such
+    // Test that an extracted method with parameters is tagged as such
     @Test
     public void testTagOfMethodWithParameters() {
         CtMethod<?> methodWithParameters = candidateTagger.methodsWithParameters.get(0);
@@ -244,15 +244,15 @@ public class CandidateTaggerTest {
                 "parameters tag should be true for method");
     }
 
-    // Test the number of pure methods with multiple statements
+    // Test the number of extracted methods with multiple statements
     @Test
     public void testNumberOfMethodsWithMultipleStatements() {
-        assertEquals(4,
+        assertEquals(89,
                 candidateTagger.methodsWithMultipleStatements.size(),
-                "4 pure methods in test resource have multiple statements");
+                "89 extracted methods in test resource have multiple statements");
     }
 
-    // Test that a pure method found to have multiple statements actually does so
+    // Test that an extracted method found to have multiple statements actually does so
     @Test
     public void testMethodWithMultipleStatements() {
         CtMethod<?> methodWithMultipleStatements = candidateTagger.methodsWithMultipleStatements.get(0);
@@ -260,7 +260,7 @@ public class CandidateTaggerTest {
                 "Method should have multiple statements");
     }
 
-    // Test that a pure method with multiple statements is tagged as such
+    // Test that an extracted method with multiple statements is tagged as such
     @Test
     public void testTagOfMethodWithMultipleStatements() {
         CtMethod<?> methodWithMultipleStatements = candidateTagger.methodsWithMultipleStatements.get(0);
@@ -271,12 +271,12 @@ public class CandidateTaggerTest {
     // Test the number of methods with local variables
     @Test
     public void testNumberOfMethodsWithLocalVariables() {
-        assertEquals(2,
+        assertEquals(76,
                 candidateTagger.methodsWithLocalVariables.size(),
-                "2 pure methods in test resource define local variables");
+                "76 extracted methods in test resource define local variables");
     }
 
-    // Test that a pure method found to have local variables actually does so
+    // Test that an extracted method found to have local variables actually does so
     @Test
     public void testMethodWithLocalVariables() {
         CtMethod<?> methodWithLocalVariables = candidateTagger.methodsWithLocalVariables.get(0);
@@ -284,7 +284,7 @@ public class CandidateTaggerTest {
                 "Method should have local variables");
     }
 
-    // Test that a pure method defining local variables is tagged as such
+    // Test that an extracted method defining local variables is tagged as such
     @Test
     public void testTagOfMethodWithLocalVariables() {
         CtMethod<?> methodWithLocalVariables = candidateTagger.methodsWithLocalVariables.get(0);

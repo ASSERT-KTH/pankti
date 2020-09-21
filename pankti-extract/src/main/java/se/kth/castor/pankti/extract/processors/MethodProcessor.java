@@ -232,6 +232,10 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
         return ctMethod.getType().getSimpleName().equals("void") && ctMethod.getElements(new TypeFilter<>(CtAssert.class)).size() > 0;
     }
 
+    public boolean isReturnTypeVoid(CtMethod<?> ctMethod) {
+        return ctMethod.getType().getSimpleName().equals("void");
+    }
+
     public Set<CtMethod<?>> getCandidateMethods() {
         return candidateMethods;
     }
@@ -240,22 +244,14 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
     public void process(CtMethod<?> ctMethod) {
         Set<ModifierKind> methodModifiers = getMethodModifiers(ctMethod);
         // If method is not empty, abstract, or synchronized, does not belong to an annotation type
-        if (!(methodModifiers.contains(ModifierKind.ABSTRACT) ||
-                methodModifiers.contains(ModifierKind.SYNCHRONIZED) ||
-                parentHasInterfaceAnnotation(ctMethod) ||
-                isMethodEmpty(ctMethod))) {
-            // and is not deprecated, does not throw exceptions, invoke constructors or other methods, or assign to fields, it is a candidate
-            if (!(isDeprecated(ctMethod) ||
-                    throwsExceptions(ctMethod) ||
-                    hasInvocations(ctMethod) ||
-                    hasSynchronizedStatements(ctMethod) ||
-                    hasFieldAssignments(ctMethod) ||
-                    modifiesArrayArguments(ctMethod) ||
-                    modifiesNonLocalVariables(ctMethod) ||
-                    hasConstructorCalls(ctMethod) ||
-                    isVoidAndHasAssertStatements(ctMethod))) {
-                candidateMethods.add(ctMethod);
-            }
+        if (methodModifiers.contains(ModifierKind.PUBLIC) &&
+                !(methodModifiers.contains(ModifierKind.ABSTRACT) ||
+                        methodModifiers.contains(ModifierKind.STATIC) ||
+                        parentHasInterfaceAnnotation(ctMethod) ||
+                        isMethodEmpty(ctMethod) ||
+                        isDeprecated(ctMethod) ||
+                        isReturnTypeVoid(ctMethod))) {
+            candidateMethods.add(ctMethod);
         }
     }
 
@@ -268,15 +264,9 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
                 ", abstractMethods=" + abstractMethods.size() +
                 ", staticMethods=" + staticMethods.size() +
                 ", synchronizedMethods=" + methodsWithSynchronization.size() +
-                ", methodsThrowingExceptions=" + methodsThrowingExceptions.size() +
                 ", emptyMethods=" + emptyMethods.size() +
                 ", deprecatedMethods=" + deprecatedMethods.size() +
                 ", methodsInAnnotationType=" + methodsInAnnotationType.size() +
-                ", methodsWithInvocations=" + methodsWithInvocations.size() +
-                ", methodsWithConstructorCalls=" + methodsWithConstructorCalls.size() +
-                ", methodsWithFieldAssignments=" + methodsWithFieldAssignments.size() +
-                ", methodsModifyingArrayArguments=" + methodsModifyingArrayArguments.size() +
-                ", methodsModifyingNonLocalVariables=" + methodsModifyingNonLocalVariables.size() +
                 '}';
     }
 }

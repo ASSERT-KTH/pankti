@@ -111,100 +111,7 @@ public class MethodProcessorTest {
         assertTrue(abstractMethod.isAbstract(),
                 "Method should be abstract");
         assertFalse(methodProcessor.candidateMethods.contains(abstractMethod),
-                "An abstract method is not pure");
-    }
-
-    // Test the number of methods throwing exceptions in the project
-    @Test
-    public void testNumberOfMethodsThrowingExceptions() {
-        assertEquals(95,
-                methodProcessor.methodsThrowingExceptions.size(),
-                "Number of methods in test resource that throw exceptions is 95");
-    }
-
-    // Test that a method classified as throwing exceptions actually does so, and is not classified as pure
-    @Test
-    public void testMethodThrowingExceptions() {
-        CtMethod<?> methodThrowingExceptions = methodProcessor.methodsThrowingExceptions.get(0);
-        assertFalse((methodThrowingExceptions.getThrownTypes().isEmpty() ||
-                        methodThrowingExceptions.getElements(new TypeFilter<>(CtThrow.class)).size() == 0),
-                "Method should throw exceptions");
-        assertFalse(methodProcessor.candidateMethods.contains(methodThrowingExceptions),
-                "A method throwing exceptions is not pure");
-    }
-
-    // Test the number of methods that modify fields in the project
-    @Test
-    public void testNumberOfMethodsModifyingFields() {
-        assertEquals(19,
-                methodProcessor.methodsWithFieldAssignments.size(),
-                "Number of methods in test resource that modify fields is 19");
-    }
-
-    // Test that a method classified as modifying fields actually does so, and is not classified as pure
-    @Test
-    public void testMethodsModifyingFields() {
-        CtMethod<?> methodModifyingField = methodProcessor.methodsWithFieldAssignments.get(0);
-        assertTrue(methodModifyingField.getElements(new TypeFilter<>(CtFieldWrite.class)).size() > 0,
-                "Method should write to fields");
-        assertFalse(methodProcessor.candidateMethods.contains(methodModifyingField),
-                "A method modifying fields is not pure ");
-    }
-
-    // Test the number of methods that invoke constructors
-    @Test
-    public void testNumberOfMethodsInvokingConstructors() {
-        assertEquals(3,
-                methodProcessor.methodsWithConstructorCalls.size(),
-                "Number of methods in test resource that invoke constructors is 3");
-    }
-
-    // Test that a method classified as invoking constructors actually does so, and is not classified as pure
-    @Test
-    public void testMethodInvokingConstructors() {
-        CtMethod<?> methodWithConstructorInvocations = methodProcessor.methodsWithConstructorCalls.get(0);
-        assertTrue(methodWithConstructorInvocations.getElements(new TypeFilter<>(CtConstructorCall.class)).size() > 0,
-                "Method should invoke constructors");
-        assertFalse(methodProcessor.candidateMethods.contains(methodWithConstructorInvocations),
-                "A method invoking constructors is not pure");
-    }
-
-    // Test the number of methods that invoke other methods
-    @Test
-    public void testNumberOfMethodsInvokingOtherMethods() {
-        assertEquals(650,
-                methodProcessor.methodsWithInvocations.size(),
-                "Number of methods in test resource that invoke other methods is 650");
-    }
-
-    // Test that a method classified as invoking methods actually does so, and is not classified as pure
-    @Test
-    public void testMethodInvokingOtherMethods() {
-        CtMethod<?> methodWithInvocations = methodProcessor.methodsWithInvocations.get(0);
-        assertTrue(methodWithInvocations.getElements(new TypeFilter<>(CtInvocation.class)).size() > 0,
-                "Method should invoke another method");
-        assertFalse(methodProcessor.candidateMethods.contains(methodWithInvocations),
-                "A method invoking other methods is not pure");
-    }
-
-    // Test the number of methods that are classified as synchronized
-    @Test
-    public void testNumberOfSynchronizedMethods() {
-        assertEquals(15,
-                methodProcessor.methodsWithSynchronization.size(),
-                "Number of methods in test resource with synchronization is 15");
-    }
-
-    // Test that a method classified as synchronized actually has synchronized blocks or a synchronized modifier
-    // and that it is not classified as pure
-    @Test
-    public void testSynchronizedMethod() {
-        CtMethod<?> methodWithSynchronization = methodProcessor.methodsWithSynchronization.get(0);
-        assertTrue(methodWithSynchronization.getModifiers().contains(ModifierKind.SYNCHRONIZED) ||
-                        methodWithSynchronization.getElements(new TypeFilter<>(CtSynchronized.class)).size() > 0,
-                "Method should have a synchronized modifier or a synchronized block");
-        assertFalse(methodProcessor.candidateMethods.contains(methodWithSynchronization),
-                "A method with synchronization is not pure");
+                "An abstract method is not extracted");
     }
 
     // Test the number of methods that are classified as deprecated
@@ -218,9 +125,9 @@ public class MethodProcessorTest {
     // Test that a method classified as deprecated actually is deprecated or has a deprecated parent
     @Test
     public void testDeprecatedMethod() {
-        for (CtMethod<?> pureMethod : methodProcessor.candidateMethods) {
-            assertFalse((pureMethod.hasAnnotation(Deprecated.class) ||
-                            pureMethod.getParent().hasAnnotation(Deprecated.class)),
+        for (CtMethod<?> extractedMethod : methodProcessor.candidateMethods) {
+            assertFalse((extractedMethod.hasAnnotation(Deprecated.class) ||
+                            extractedMethod.getParent().hasAnnotation(Deprecated.class)),
                     "No method or its parent is deprecated in test resource");
         }
     }
@@ -228,50 +135,34 @@ public class MethodProcessorTest {
     // Test the number of methods that are empty
     @Test
     public void testNumberOfEmptyMethods() {
-        assertEquals(19,
+        assertEquals(13,
                 methodProcessor.emptyMethods.size(),
-                "Number of empty methods in test resource is 19");
+                "Number of empty methods in test resource is 13");
     }
 
-    // Test that a method classified as empty indeed has no statements, and is not classified as pure
+    // Test that a method classified as empty indeed has no statements, and is not extracted
     @Test
     public void testEmptyMethod() {
         CtMethod<?> emptyMethod = methodProcessor.emptyMethods.get(0);
         assertFalse(emptyMethod.getBody().getStatements().size() > 0,
                 "Method should not have any statements");
         assertFalse(methodProcessor.candidateMethods.contains(emptyMethod),
-                "An empty method is not pure");
-    }
-
-    // Test the number of methods that modify array arguments
-    @Test
-    public void testNumberOfMethodsModifyingArrayArguments() {
-        assertEquals(0,
-                methodProcessor.methodsModifyingArrayArguments.size(),
-                "Number of methods in test resource that modify array arguments is 0");
-    }
-
-    // Test that a method classified as modifying non-local variables actually does so
-    @Test
-    public void testNumberOfMethodsModifyingNonLocalVariables() {
-        assertEquals(0,
-                methodProcessor.methodsModifyingNonLocalVariables.size(),
-                "Number of methods in test resource that modify non-local variables is 188");
+                "An empty method is not extracted");
     }
 
     // Test the number of methods whose parents are annotation types
     @Test
     public void testNumberOfAnnotationTypeMethods() {
-        assertEquals(2,
+        assertEquals(0,
                 methodProcessor.methodsInAnnotationType.size(),
-                "Number of methods in annotation types in test resource is 2");
+                "Number of methods in annotation types in test resource is 0");
     }
 
-    // Test the total number of pure methods found in the test resource
+    // Test the total number of extracted methods found in the test resource
     @Test
     public void testNumberOfCandidateMethods() {
-        assertEquals(105,
+        assertEquals(220,
                 methodProcessor.candidateMethods.size(),
-                "Number of pure methods in test resource 105");
+                "Number of extracted methods in test resource 220");
     }
 }

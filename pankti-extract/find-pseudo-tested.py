@@ -1,3 +1,4 @@
+import json
 import pandas as pd
 import re
 import sys
@@ -29,31 +30,40 @@ def create_final_df(df, cols):
     final_df.loc[index, 'ifs'] = extract_from_tags("ifs", str(row['tags']))
     final_df.loc[index, 'static'] = extract_from_tags("static", str(row['tags']))
     final_df.loc[index, 'returns-primitives'] = extract_from_tags("returns_primitives", str(row['tags']))
-  return final_df
+  return final_df.sort_values(by=['parent-FQN', 'method-name'])
 
-def find_instrumentation_candidates(final_df, cols, name):
+def find_instrumentation_candidates(final_df, cols, name, json_files):
   instrumentation_candidates_df = pd.DataFrame(columns = cols)
-  instrumentation_candidates_df =  final_df[((final_df['multiple-statements'] == True) |
-  (final_df['ifs'] == True) | (final_df['conditionals'] == True) |
-  (final_df['parameters'] == True) | (final_df['switches'] == True) |
-  (final_df['loops'] == True) | (final_df['local-variables'] == True)) & (final_df['static'] == False)]
-  print("output (rows, columns):", instrumentation_candidates_df.shape)
+  for json_file in json_files:
+    print("Finding pseudo-tested methods in", json_file)
+    with open(json_file, 'r') as f:
+      descartes_output = json.load(f)
+      for i in range(len(descartes_output['methods'])):
+        method = descartes_output['methods'][i]
+        if method['classification'] == "pseudo-tested":
+          parent_fqn = method['package'].replace('/', '.') + '.' + method['class']
+          method_name = method['name']
+          instrumentation_candidates_df = instrumentation_candidates_df.append(
+          final_df.loc[(final_df['parent-FQN'] == parent_fqn) & (final_df['method-name'] == method_name)]
+          )
+  instrumentation_candidates_df.sort_values(by=['parent-FQN', 'method-name'], inplace=True)
   file_name = name.replace("extracted-methods", "instrumentation-candidates")
   instrumentation_candidates_df.to_csv(r'./' + file_name, index=False)
-  print("instrumentation candidates saved in ./" + file_name)
+  print(len(instrumentation_candidates_df), "instrumentation candidates saved in ./" + file_name)
 
 def main(argv):
   try:
+    name = argv[1]
+    json_files = list(argv[2:])
     cols = ["visibility", "parent-FQN", "method-name", "param-list", "return-type",
     "local-variables", "conditionals", "multiple-statements", "loops", "parameters",
     "returns","switches", "ifs", "static", "returns-primitives"]
-    df = pd.read_csv(argv[1])
+    df = pd.read_csv(name)
     print("input (rows, columns):", df.shape)
     final_df = create_final_df(df, cols)
-    name = argv[1]
-    find_instrumentation_candidates(final_df, cols, name)
+    find_instrumentation_candidates(final_df, cols, name, json_files)
   except Exception as e:
-    print("USAGE: python filter.py </path/to/method/list>.csv")
+    print("USAGE: python filter.py </path/to/method/list>.csv </space/separated/paths/to/descartes/json/output/files>")
     print(e)
     sys.exit()
 
