@@ -11,15 +11,8 @@ This phase leverages [Spoon](http://spoon.gforge.inria.fr/index.html) to statica
 The output is a list of methods that meet the following criteria: 
 - they are not empty
 - they are not abstract, and do not belong to an interface or annotation type
-- they do not throw exceptions
-- they are not synchronized, and do not have synchronized statements or blocks
 - they are not deprecated and do not belong to a deprecated class
-- they do not invoke other methods
-- they do not invoke constructors (create new objects)
-- they do not modify fields
-- they do not modify arrays passed as arguments
-- they do not modify non-local variables
-- they may accept arguments, define new local variables, read-access fields, perform computations
+- they are not static
 - they return a value
 
 To run **pankti-extract**,
@@ -29,7 +22,10 @@ To run **pankti-extract**,
 3. `mvn clean install`
 4. `java -jar target/pankti-extract-<version>-jar-with-dependencies.jar /path/to/maven/project`
 5. The output is a CSV file at `/path/to/pankti/pankti-extract/` called _extracted-methods-\<project-name\>.csv_.
-6. `python filter.py /path/to/CSV/from/step/5.csv` outputs a CSV with the list of methods that are candidates for instrumentation
+6. Generate Descartes report(s) to find pseudo-tested methods in the project (we use the `method.json` files)
+  - [pitest-descartes on GitHub](https://github.com/STAMP-project/pitest-descartes)
+  - [pitest-descartes for multi-module projects](https://github.com/STAMP-project/pitmp-maven-plugin)
+7. `python find-pseudo-tested.py /path/to/method/list/from/step5.csv /space/separated/paths/to/descartes/method.json` outputs a CSV with the list of methods that are candidates for instrumentation.
 ___
 ### Instrument (pankti-instrument)
 This phase develops a [Glowroot](https://glowroot.org/) plugin that serializes objects for instrumented methods that are invoked.
