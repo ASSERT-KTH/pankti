@@ -63,7 +63,7 @@ def main(argv):
     final_df = create_final_df(df, cols)
     find_instrumentation_candidates(final_df, cols, name, json_files)
   except Exception as e:
-    print("USAGE: python filter.py </path/to/method/list>.csv </space/separated/paths/to/descartes/json/output/files>")
+    print("USAGE: python find-pseudo-tested.py </path/to/method/list>.csv </space/separated/paths/to/descartes/json/output/files>")
     print(e)
     sys.exit()
 
