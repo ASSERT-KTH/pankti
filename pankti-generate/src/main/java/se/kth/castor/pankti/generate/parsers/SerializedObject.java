@@ -28,7 +28,10 @@ public class SerializedObject {
     }
 
     public String getObjectType(String objectXML) {
-        return objectXML.substring(1, objectXML.indexOf(">")).replaceAll("_-", ".");
+        return objectXML
+                .substring(1, objectXML.indexOf(">"))
+                .replaceAll("_-", ".")
+                .replace("/", "");
     }
 
     @Override

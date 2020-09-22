@@ -333,10 +333,10 @@ public class TestGenerator {
             statementsInMethodBody.forEach(tryBody::addStatement);
             tryBlock.setBody(tryBody);
             CtBlock<?> catchBlock = factory.createBlock();
-            CtStatement failAssertionStatement = factory.createCodeSnippetStatement("Assert.fail()");
             CtStatement stackTraceStatement = factory.createCodeSnippetStatement("e.printStackTrace()");
-            catchBlock.addStatement(failAssertionStatement);
+            CtStatement failAssertionStatement = factory.createCodeSnippetStatement("Assert.fail()");
             catchBlock.addStatement(stackTraceStatement);
+            catchBlock.addStatement(failAssertionStatement);
             tryBlock.addCatcher(factory.createCtCatch("e", Exception.class, catchBlock));
             methodBody.addStatement(tryBlock);
         } else {
