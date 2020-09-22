@@ -4,6 +4,7 @@ import org.glowroot.agent.plugin.api.*;
 import org.glowroot.agent.plugin.api.weaving.*;
 
 import java.io.*;
+import java.util.Scanner;
 
 public class MethodAspect0 {
     private static int INVOCATION_COUNT;
@@ -67,10 +68,21 @@ public class MethodAspect0 {
         public static synchronized void appendRowToInvokedCSVFile() {
             try {
                 File invokedMethodsCSVFile = new File(invokedMethodsCSVFilePath);
-                FileWriter fr = new FileWriter(invokedMethodsCSVFile, true);
-                fr.write("\n");
-                fr.write(rowInCSVFile);
-                fr.close();
+                Scanner scanner = new Scanner(invokedMethodsCSVFile);
+                boolean found = false;
+                while (scanner.hasNextLine()) {
+                    String lineFromFile = scanner.nextLine();
+                    if (lineFromFile.contains(rowInCSVFile)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    FileWriter fr = new FileWriter(invokedMethodsCSVFile, true);
+                    fr.write("\n");
+                    fr.write(rowInCSVFile);
+                    fr.close();
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }

@@ -1,4 +1,5 @@
 import glob
+import numpy as np
 import os
 import pandas as pd
 import re
@@ -11,6 +12,7 @@ def generate_aspects(df):
   count = int(re.search(r"(\d+)", found_aspects[-1]).group())
   aspects = []
   template_file_path = base_path + str(0) + ".java"
+  df.replace(np.nan, '', regex=True, inplace=True)
   for index, row in df.iterrows():
     with open(template_file_path) as template:
       count += 1
