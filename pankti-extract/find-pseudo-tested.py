@@ -47,7 +47,7 @@ def find_instrumentation_candidates(final_df, cols, name, json_files):
           final_df.loc[(final_df['parent-FQN'] == parent_fqn) & (final_df['method-name'] == method_name), 'classification'] = method['classification']
           instrumentation_candidates_df = instrumentation_candidates_df.append(
             final_df.loc[(final_df['parent-FQN'] == parent_fqn) &
-                         (final_df['method-name'] == method_name)])
+                         (final_df['method-name'] == method_name)], sort = False)
   instrumentation_candidates_df.sort_values(by=['parent-FQN', 'method-name'], inplace=True)
   file_name = name.replace("extracted-methods", "instrumentation-candidates")
   instrumentation_candidates_df.to_csv(r'./' + file_name, index=False)
