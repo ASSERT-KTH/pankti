@@ -1,5 +1,4 @@
 import json
-import numpy as np
 import pandas as pd
 import re
 import sys
@@ -41,13 +40,13 @@ def find_instrumentation_candidates(final_df, cols, name, json_files):
       descartes_output = json.load(f)
       for i in range(len(descartes_output['methods'])):
         method = descartes_output['methods'][i]
-        if (method['classification'] == "pseudo-tested") or (method['classification'] == "not-covered"):
+        if (method['classification'] == "pseudo-tested"):
           parent_fqn = method['package'].replace('/', '.') + '.' + method['class']
           method_name = method['name']
           final_df.loc[(final_df['parent-FQN'] == parent_fqn) & (final_df['method-name'] == method_name), 'classification'] = method['classification']
           instrumentation_candidates_df = instrumentation_candidates_df.append(
             final_df.loc[(final_df['parent-FQN'] == parent_fqn) &
-                         (final_df['method-name'] == method_name)], sort = False)
+                         (final_df['method-name'] == method_name)], sort=False)
   instrumentation_candidates_df.sort_values(by=['parent-FQN', 'method-name'], inplace=True)
   file_name = name.replace("extracted-methods", "instrumentation-candidates")
   instrumentation_candidates_df.to_csv(r'./' + file_name, index=False)

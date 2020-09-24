@@ -161,7 +161,7 @@ public class CandidateTagger extends AbstractProcessor<CtMethod<?>> {
 
     @Override
     public boolean isToBeProcessed(CtMethod<?> candidate) {
-        return candidate.getAllMetadata().containsKey("pure");
+        return candidate.getAllMetadata().containsKey("pankti-target");
     }
 
     @Override

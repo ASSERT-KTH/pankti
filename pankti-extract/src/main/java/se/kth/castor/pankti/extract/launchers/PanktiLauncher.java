@@ -45,7 +45,7 @@ public class PanktiLauncher {
 
     public void addMetaDataToCandidateMethods(Set<CtMethod<?>> candidateMethods) {
         for (CtMethod<?> candidateMethod : candidateMethods) {
-            candidateMethod.putMetadata("pure", true);
+            candidateMethod.putMetadata("pankti-target", true);
         }
     }
 
@@ -77,14 +77,14 @@ public class PanktiLauncher {
     }
 
     public Set<CtMethod<?>> applyProcessor(final CtModel model) {
-        // Filter out pure methods and add metadata to them
+        // Filter out target methods and add metadata to them
         MethodProcessor methodProcessor = new MethodProcessor();
         model.processWith(methodProcessor);
         LOGGER.info(methodProcessor.toString());
         Set<CtMethod<?>> candidateMethods = methodProcessor.getCandidateMethods();
         addMetaDataToCandidateMethods(candidateMethods);
 
-        // Tag pure methods based on their properties
+        // Tag target methods based on their properties
         CandidateTagger candidateTagger = new CandidateTagger();
         model.processWith(candidateTagger);
         LOGGER.info(candidateTagger.toString());

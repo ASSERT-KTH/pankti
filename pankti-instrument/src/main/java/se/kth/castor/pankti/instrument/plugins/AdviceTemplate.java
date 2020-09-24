@@ -7,8 +7,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
 
 public interface AdviceTemplate {
     XStream xStream = new XStream();
