@@ -8,6 +8,7 @@ public class InstrumentedMethod {
     List<String> paramList;
     String returnType;
     String visibility;
+    boolean isOverloaded;
 
     public InstrumentedMethod(String parentFQN, String methodName, List<String> paramList, String returnType, String visibility) {
         this.parentFQN = parentFQN;
@@ -44,6 +45,15 @@ public class InstrumentedMethod {
     public String getFullMethodPath() {
         return this.parentFQN + "." + this.getMethodName();
     }
+
+    public boolean isOverloaded() {
+        return isOverloaded;
+    }
+
+    public void setOverloaded(boolean overloaded) {
+        isOverloaded = overloaded;
+    }
+
 
     @Override
     public String toString() {

@@ -7,6 +7,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,11 +32,10 @@ public class MethodAspect0 {
         private static Logger logger = Logger.getLogger(TargetMethodAdvice.class);
         private static String rowInCSVFile = "";
         private static final String methodParamTypesString = String.join(",", TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodParameterTypes());
+        private static final String postfix = methodParamTypesString.isEmpty() ? "" : "_" + methodParamTypesString;
         private static final String methodFQN = TargetMethodAdvice.class.getAnnotation(Pointcut.class).className() + "."
-                + TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodName();
+                + TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodName() + postfix;
         private static final String invocationString = String.format("Invocation count for %s: ", methodFQN);
-
-        // TODO: add params to filenames
 
         private static void setup() {
             AdviceTemplate.setUpXStream();
@@ -45,14 +45,17 @@ public class MethodAspect0 {
             returnedObjectFilePath = fileNames[2];
             invocationCountFilePath = fileNames[3];
             invokedMethodsCSVFilePath = fileNames[4];
-            checkFileSizeLimit(receivingObjectFilePath);
+            checkFileSizeLimit();
         }
 
         // Limit object XML files to ~400 MB
-        public static void checkFileSizeLimit(String fileName) {
-            File file = new File(fileName);
-            if (file.exists() && (file.length() / (1024 * 1024) > 350)) {
-                fileSizeWithinLimits = false;
+        public static void checkFileSizeLimit() {
+            File[] files = {new File(receivingObjectFilePath), new File(returnedObjectFilePath), new File(paramObjectsFilePath)};
+            for (File file : files) {
+                if (file.exists() && (file.length() / (1024 * 1024) > 350)) {
+                    fileSizeWithinLimits = false;
+                    break;
+                }
             }
         }
 
@@ -143,7 +146,7 @@ public class MethodAspect0 {
                                     @BindTraveler TraceEntry traceEntry) {
             if (fileSizeWithinLimits) {
                 writeObjectXMLToFile(returnedObject, returnedObjectFilePath);
-                checkFileSizeLimit(receivingObjectFilePath);
+                checkFileSizeLimit();
             }
             INVOCATION_COUNT++;
             if (INVOCATION_COUNT == 1) {

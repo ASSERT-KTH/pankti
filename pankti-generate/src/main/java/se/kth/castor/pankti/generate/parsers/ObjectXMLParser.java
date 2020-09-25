@@ -5,6 +5,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.ls.DOMImplementationLS;
 import org.w3c.dom.ls.LSSerializer;
+import se.kth.castor.pankti.generate.generators.TestGeneratorUtil;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -64,15 +65,21 @@ public class ObjectXMLParser {
         return rawXMLObjects;
     }
 
-    public Set<SerializedObject> parseXML(String basePath, boolean hasParams) {
+    public Set<SerializedObject> parseXML(String basePath, InstrumentedMethod instrumentedMethod) {
+        String postfix = "";
         try {
-            File receivingObjectFile = findXMLFileByObjectType(basePath, receivingObjectFilePostfix);
+            boolean hasParams = instrumentedMethod.hasParams();
+            if (hasParams) {
+                TestGeneratorUtil util = new TestGeneratorUtil();
+                postfix = util.getParamListPostFix(instrumentedMethod);
+            }
+            File receivingObjectFile = findXMLFileByObjectType(basePath, postfix + receivingObjectFilePostfix);
             List<String> receivingObjects = parseXMLInFile(receivingObjectFile);
-            File returnedObjectFile = findXMLFileByObjectType(basePath, returnedObjectFilePostfix);
+            File returnedObjectFile = findXMLFileByObjectType(basePath, postfix + returnedObjectFilePostfix);
             List<String> returnedObjects = parseXMLInFile(returnedObjectFile);
             List<String> paramObjects = new ArrayList<>();
             if (hasParams) {
-                File paramObjectsFile = findXMLFileByObjectType(basePath, paramObjectsFilePostfix);
+                File paramObjectsFile = findXMLFileByObjectType(basePath, postfix + paramObjectsFilePostfix);
                 paramObjects = parseXMLInFile(paramObjectsFile);
             }
 
@@ -87,7 +94,7 @@ public class ObjectXMLParser {
                 }
             }
         } catch (FileNotFoundException e) {
-          System.out.println("NO OBJECT FILES FOUND FOR " + basePath + " - SKIPPING");
+          System.out.println("NO OBJECT FILES FOUND FOR " + basePath + " PARAMS" + postfix + " - SKIPPING");
         } catch (Exception e) {
             e.printStackTrace();
         }

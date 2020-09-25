@@ -1,5 +1,6 @@
 package se.kth.castor.pankti.generate.generators;
 
+import se.kth.castor.pankti.generate.parsers.InstrumentedMethod;
 import spoon.reflect.code.CtExpression;
 import spoon.reflect.code.CtLocalVariable;
 import spoon.reflect.code.CtStatement;
@@ -78,5 +79,10 @@ public class TestGeneratorUtil {
         if (typeReference.isPrimitive())
             return typeReference.box().getSimpleName();
         else return typeReference.getQualifiedName().replaceAll("\\$", ".");
+    }
+
+    // Gets method param list as _param1,param2,param3
+    public String getParamListPostFix(InstrumentedMethod instrumentedMethod) {
+            return  "_" + String.join(",", instrumentedMethod.getParamList());
     }
 }
