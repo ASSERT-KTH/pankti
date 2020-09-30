@@ -244,6 +244,10 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
         return false;
     }
 
+    public boolean isParentNonClass(CtMethod<?> ctMethod) {
+        return ctMethod.getParent(CtClass.class) == null;
+    }
+
     public Set<CtMethod<?>> getCandidateMethods() {
         return candidateMethods;
     }
@@ -256,9 +260,11 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
                 !methodModifiers.contains(ModifierKind.STATIC) &
                 !isMethodEmpty(ctMethod) &
                 !isDeprecated(ctMethod) &
+                !isParentNonClass(ctMethod) &
                 !isParentPrivateStatic(ctMethod) &
                 !parentHasInterfaceAnnotation(ctMethod) &
                 !isReturnTypeVoid(ctMethod)) {
+
             candidateMethods.add(ctMethod);
         }
     }
