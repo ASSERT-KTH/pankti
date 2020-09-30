@@ -40,8 +40,8 @@ public class CandidateTaggerTest {
     // Test the number of extracted methods that return a value
     @Test
     public void testNumberOfMethodsRetuningAValue() {
-        assertEquals(220, candidateTagger.methodsReturningAValue.size(),
-                "220 extracted methods in test resource should return a value");
+        assertEquals(214, candidateTagger.methodsReturningAValue.size(),
+                "214 extracted methods in test resource should return a value");
     }
 
 
@@ -81,9 +81,9 @@ public class CandidateTaggerTest {
     // Test the number of extracted methods returning a primitive
     @Test
     public void testNumberOfMethodsReturningPrimitives() {
-        assertEquals(68,
+        assertEquals(65,
                 candidateTagger.methodsReturningAPrimitive.size(),
-                "68 extracted methods in test resource return a primitive value");
+                "65 extracted methods in test resource return a primitive value");
     }
 
     // Test that an extracted method found to return a primitive actually does so
@@ -108,10 +108,10 @@ public class CandidateTaggerTest {
     // Test the number of extracted methods not returning a primitive
     @Test
     public void testNumberOfMethodsNotReturningPrimitives() {
-        assertEquals(152,
+        assertEquals(149,
                 candidateTagger.methodsReturningAValue.size() -
                         candidateTagger.methodsReturningAPrimitive.size(),
-                "152 extracted methods in test resource return an object");
+                "149 extracted methods in test resource return an object");
     }
 
     // Test that an extracted method found to not return a primitive actually does not
@@ -223,9 +223,9 @@ public class CandidateTaggerTest {
     // Test the number of extracted methods with parameters
     @Test
     public void testNumberOfMethodsWithParameters() {
-        assertEquals(74,
+        assertEquals(72,
                 candidateTagger.methodsWithParameters.size(),
-                "74 extracted methods in test resource have parameters");
+                "72 extracted methods in test resource have parameters");
     }
 
     // Test that an extracted method found to have parameters actually does so

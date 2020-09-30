@@ -135,9 +135,9 @@ public class MethodProcessorTest {
     // Test the number of methods that are empty
     @Test
     public void testNumberOfEmptyMethods() {
-        assertEquals(13,
+        assertEquals(19,
                 methodProcessor.emptyMethods.size(),
-                "Number of empty methods in test resource is 13");
+                "Number of empty methods in test resource is 19");
     }
 
     // Test that a method classified as empty indeed has no statements, and is not extracted
@@ -153,16 +153,16 @@ public class MethodProcessorTest {
     // Test the number of methods whose parents are annotation types
     @Test
     public void testNumberOfAnnotationTypeMethods() {
-        assertEquals(0,
+        assertEquals(2,
                 methodProcessor.methodsInAnnotationType.size(),
-                "Number of methods in annotation types in test resource is 0");
+                "Number of methods in annotation types in test resource is 2");
     }
 
     // Test the total number of extracted methods found in the test resource
     @Test
     public void testNumberOfCandidateMethods() {
-        assertEquals(220,
+        assertEquals(214,
                 methodProcessor.candidateMethods.size(),
-                "Number of extracted methods in test resource 220");
+                "Number of extracted methods in test resource 214");
     }
 }

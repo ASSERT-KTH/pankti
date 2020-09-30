@@ -5,6 +5,7 @@ import org.apache.commons.csv.CSVPrinter;
 import se.kth.castor.pankti.extract.logging.CustomLogger;
 import se.kth.castor.pankti.extract.processors.CandidateTagger;
 import se.kth.castor.pankti.extract.processors.MethodProcessor;
+import se.kth.castor.pankti.extract.util.MethodUtil;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtClass;
@@ -50,18 +51,21 @@ public class PanktiLauncher {
     }
 
     public void createCSVFile(Map<CtMethod<?>, Map<String, Boolean>> allMethodTags) throws IOException {
-        String[] HEADERS = {"visibility", "parent-FQN", "method-name", "param-list", "return-type", "tags"};
+        String[] HEADERS = {"visibility", "parent-FQN", "method-name", "param-list", "return-type", "param-signature", "tags"};
         List<String> paramList;
-        try (FileWriter out = new FileWriter("./extracted-methods-" + projectName +".csv");
+        try (FileWriter out = new FileWriter("./extracted-methods-" + projectName + ".csv");
              CSVPrinter csvPrinter = new CSVPrinter(out, CSVFormat.DEFAULT
                      .withHeader(HEADERS));
         ) {
             for (Map.Entry<CtMethod<?>, Map<String, Boolean>> entry : allMethodTags.entrySet()) {
                 CtMethod<?> method = entry.getKey();
+                StringBuilder paramSignature = new StringBuilder();
                 paramList = new ArrayList<>();
                 if (method.getParameters().size() > 0) {
                     for (CtParameter<?> parameter : method.getParameters()) {
-                        paramList.add(parameter.getType().getQualifiedName());
+                        String paramType = parameter.getType().getQualifiedName();
+                        paramList.add(paramType);
+                        paramSignature.append(MethodUtil.findMethodParamSignature(paramType));
                     }
                 }
                 Map<String, Boolean> tags = entry.getValue();
@@ -71,6 +75,7 @@ public class PanktiLauncher {
                         method.getSimpleName(),
                         paramList,
                         method.getType().getQualifiedName(),
+                        paramSignature.toString(),
                         tags);
             }
         }

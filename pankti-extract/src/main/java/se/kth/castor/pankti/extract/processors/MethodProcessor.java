@@ -236,6 +236,14 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
         return ctMethod.getType().getSimpleName().equals("void");
     }
 
+    public boolean isParentPrivateStatic(CtMethod<?> ctMethod) {
+        if (ctMethod.getParent() instanceof CtClass<?>) {
+            CtClass<?> parent = (CtClass<?>) ctMethod.getParent();
+            return parent.hasModifier(ModifierKind.PRIVATE) && (parent.hasModifier(ModifierKind.STATIC));
+        }
+        return false;
+    }
+
     public Set<CtMethod<?>> getCandidateMethods() {
         return candidateMethods;
     }
@@ -243,14 +251,14 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
     @Override
     public void process(CtMethod<?> ctMethod) {
         Set<ModifierKind> methodModifiers = getMethodModifiers(ctMethod);
-        // If method is not empty, abstract, or synchronized, does not belong to an annotation type
-        if (methodModifiers.contains(ModifierKind.PUBLIC) &&
-                !(methodModifiers.contains(ModifierKind.ABSTRACT) ||
-                        methodModifiers.contains(ModifierKind.STATIC) ||
-                        parentHasInterfaceAnnotation(ctMethod) ||
-                        isMethodEmpty(ctMethod) ||
-                        isDeprecated(ctMethod) ||
-                        isReturnTypeVoid(ctMethod))) {
+        if (methodModifiers.contains(ModifierKind.PUBLIC) &
+                !methodModifiers.contains(ModifierKind.ABSTRACT) &
+                !methodModifiers.contains(ModifierKind.STATIC) &
+                !isMethodEmpty(ctMethod) &
+                !isDeprecated(ctMethod) &
+                !isParentPrivateStatic(ctMethod) &
+                !parentHasInterfaceAnnotation(ctMethod) &
+                !isReturnTypeVoid(ctMethod)) {
             candidateMethods.add(ctMethod);
         }
     }

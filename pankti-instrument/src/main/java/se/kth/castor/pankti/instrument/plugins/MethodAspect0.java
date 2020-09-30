@@ -7,7 +7,6 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -48,11 +47,11 @@ public class MethodAspect0 {
             checkFileSizeLimit();
         }
 
-        // Limit object XML files to ~400 MB
+        // Limit object XML files to ~300 MB
         public static void checkFileSizeLimit() {
             File[] files = {new File(receivingObjectFilePath), new File(returnedObjectFilePath), new File(paramObjectsFilePath)};
             for (File file : files) {
-                if (file.exists() && (file.length() / (1024 * 1024) > 350)) {
+                if (file.exists() && (file.length() / (1024 * 1024) > 300)) {
                     fileSizeWithinLimits = false;
                     break;
                 }
