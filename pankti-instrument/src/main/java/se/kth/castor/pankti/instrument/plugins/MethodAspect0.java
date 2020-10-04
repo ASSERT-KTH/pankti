@@ -37,7 +37,7 @@ public class MethodAspect0 {
         private static final String invocationString = String.format("Invocation count for %s: ", methodFQN);
 
         private static void setup() {
-            AdviceTemplate.setUpXStream();
+//            AdviceTemplate.setUpXStream();
             String[] fileNames = AdviceTemplate.setUpFiles(methodFQN);
             receivingObjectFilePath = fileNames[0];
             paramObjectsFilePath = fileNames[1];
@@ -47,7 +47,7 @@ public class MethodAspect0 {
             checkFileSizeLimit();
         }
 
-        // Limit object XML files to ~300 MB
+        // Limit object JSON files to ~300 MB
         public static void checkFileSizeLimit() {
             File[] files = {new File(receivingObjectFilePath), new File(returnedObjectFilePath), new File(paramObjectsFilePath)};
             for (File file : files) {
@@ -58,15 +58,15 @@ public class MethodAspect0 {
             }
         }
 
-        public static synchronized void writeObjectXMLToFile(Object objectToWrite, String objectFilePath) {
+        public static synchronized void writeObjectJSONToFile(Object objectToWrite, String objectFilePath) {
             try {
                 FileWriter objectFileWriter = new FileWriter(objectFilePath, true);
-                String xml = xStream.toXML(objectToWrite);
-                xml = xml.replaceAll("(&#x)(\\w+;)", "&amp;#x$2");
-                BufferedReader reader = new BufferedReader(new StringReader(xml));
+                String jsonString = xStream.toXML(objectToWrite);
+                BufferedReader reader = new BufferedReader(new StringReader(jsonString));
                 BufferedWriter writer = new BufferedWriter(objectFileWriter);
-                while ((xml = reader.readLine()) != null) {
-                    writer.write(xml);
+                String line = null;
+                while ((line = reader.readLine()) != null) {
+                    writer.write(line);
                     writer.newLine();
                 }
                 writer.flush();
@@ -129,8 +129,8 @@ public class MethodAspect0 {
                                           @BindMethodName String methodName) {
             setup();
             if (fileSizeWithinLimits) {
-                writeObjectXMLToFile(receivingObject, receivingObjectFilePath);
-                writeObjectXMLToFile(parameterObjects, paramObjectsFilePath);
+                writeObjectJSONToFile(receivingObject, receivingObjectFilePath);
+                writeObjectJSONToFile(parameterObjects, paramObjectsFilePath);
             }
             MessageSupplier messageSupplier = MessageSupplier.create(
                     "className: {}, methodName: {}",
@@ -144,7 +144,7 @@ public class MethodAspect0 {
         public static void onReturn(@BindReturn Object returnedObject,
                                     @BindTraveler TraceEntry traceEntry) {
             if (fileSizeWithinLimits) {
-                writeObjectXMLToFile(returnedObject, returnedObjectFilePath);
+                writeObjectJSONToFile(returnedObject, returnedObjectFilePath);
                 checkFileSizeLimit();
             }
             INVOCATION_COUNT++;
