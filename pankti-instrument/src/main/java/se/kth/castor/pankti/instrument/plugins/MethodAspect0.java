@@ -47,11 +47,11 @@ public class MethodAspect0 {
             checkFileSizeLimit();
         }
 
-        // Limit object XML files to ~300 MB
+        // Limit object XML files to ~200 MB
         public static void checkFileSizeLimit() {
             File[] files = {new File(receivingObjectFilePath), new File(returnedObjectFilePath), new File(paramObjectsFilePath)};
             for (File file : files) {
-                if (file.exists() && (file.length() / (1024 * 1024) > 300)) {
+                if (file.exists() && (file.length() / (1024 * 1024) >= 200)) {
                     fileSizeWithinLimits = false;
                     break;
                 }
@@ -73,6 +73,7 @@ public class MethodAspect0 {
                 writer.close();
             } catch (Exception e) {
                 logger.info("MethodAspect" + COUNT);
+                e.printStackTrace();
             }
         }
 
