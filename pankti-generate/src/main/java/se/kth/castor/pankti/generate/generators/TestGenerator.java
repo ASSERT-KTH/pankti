@@ -323,6 +323,7 @@ public class TestGenerator {
         generatedMethod.addAnnotation(testAnnotation);
         generatedMethod.setModifiers(Collections.singleton(ModifierKind.PUBLIC));
         generatedMethod.setType(factory.createCtTypeReference(void.class));
+        generatedMethod.addThrownType(factory.createCtTypeReference(Exception.class));
 
         // Get serialized objects as XML strings
         String receivingXML = serializedObject.getReceivingObject();
@@ -340,10 +341,6 @@ public class TestGenerator {
         List<CtStatement> statementsInMethodBody =
                 generateStatementsInMethodBody(instrumentedMethod, method, methodCounter, serializedObject,
                         receivingXML, receivingObjectType, returnedXML, returnedObjectType, paramsXML, launcher);
-
-        // if XML strings are too long, or method is private, add throws to method signature
-        if (receivingXML.length() > 10000 || returnedXML.length() > 10000 || paramsXML.length() > 10000 || instrumentedMethod.getVisibility().equals("private"))
-            generatedMethod.addThrownType(factory.createCtTypeReference(Exception.class));
 
         statementsInMethodBody.forEach(methodBody::addStatement);
         generatedMethod.setBody(methodBody);
