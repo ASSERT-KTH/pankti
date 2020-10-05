@@ -37,6 +37,7 @@ public class TestGeneratorUtil {
     }
 
     public List<CtStatement> addScannerVariableToTestMethod(Factory factory, String fileName, String type) {
+        type = type.substring(0, 1).toUpperCase() + type.substring(1);
         String fileVariableName = "file" + type;
         String scannerVariableName = "scanner" + type;
         List<CtStatement> fileAndScannerStatements = new ArrayList<>();
@@ -63,7 +64,7 @@ public class TestGeneratorUtil {
     }
 
     public CtLocalVariable<String> readStringFromScanner(Factory factory, String type) {
-        String scannerVariableName = "scanner" + type;
+        String scannerVariableName = "scanner" + type.substring(0, 1).toUpperCase() + type.substring(1);;
         String xmlVariableName = type + "XML";
         CtExpression<String> variableExpression = factory.createCodeSnippetExpression(
                 scannerVariableName + ".useDelimiter(\"\\\\A\").next()"

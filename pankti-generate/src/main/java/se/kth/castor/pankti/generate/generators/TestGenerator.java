@@ -12,7 +12,6 @@ import spoon.reflect.code.*;
 import spoon.reflect.declaration.*;
 import spoon.reflect.factory.Factory;
 import spoon.reflect.reference.CtExecutableReference;
-import spoon.support.reflect.code.CtTryImpl;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -342,25 +341,14 @@ public class TestGenerator {
                 generateStatementsInMethodBody(instrumentedMethod, method, methodCounter, serializedObject,
                         receivingXML, receivingObjectType, returnedXML, returnedObjectType, paramsXML, launcher);
 
-        // if XML strings are too long, or method is private, enclose statements within a try block
-        if (receivingXML.length() > 10000 || returnedXML.length() > 10000 || paramsXML.length() > 10000 || instrumentedMethod.getVisibility().equals("private")) {
-            CtTryImpl tryBlock = (CtTryImpl) factory.createTry();
-            CtBlock<?> tryBody = factory.createBlock();
-            statementsInMethodBody.forEach(tryBody::addStatement);
-            tryBlock.setBody(tryBody);
-            CtBlock<?> catchBlock = factory.createBlock();
-            CtStatement stackTraceStatement = factory.createCodeSnippetStatement("e.printStackTrace()");
-            CtStatement failAssertionStatement = factory.createCodeSnippetStatement("Assert.fail()");
-            catchBlock.addStatement(stackTraceStatement);
-            catchBlock.addStatement(failAssertionStatement);
-            tryBlock.addCatcher(factory.createCtCatch("e", Exception.class, catchBlock));
-            methodBody.addStatement(tryBlock);
-        } else {
-            statementsInMethodBody.forEach(methodBody::addStatement);
-        }
+        // if XML strings are too long, or method is private, add throws to method signature
+        if (receivingXML.length() > 10000 || returnedXML.length() > 10000 || paramsXML.length() > 10000 || instrumentedMethod.getVisibility().equals("private"))
+            generatedMethod.addThrownType(factory.createCtTypeReference(Exception.class));
+
+        statementsInMethodBody.forEach(methodBody::addStatement);
         generatedMethod.setBody(methodBody);
         return generatedMethod;
-    }
+}
 
     public CtClass<?> generateFullTestClass(CtType<?> type,
                                             CtMethod<?> method,
