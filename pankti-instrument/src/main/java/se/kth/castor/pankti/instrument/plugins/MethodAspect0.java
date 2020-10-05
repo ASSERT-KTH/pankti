@@ -73,6 +73,7 @@ public class MethodAspect0 {
                 writer.close();
             } catch (Exception e) {
                 logger.info("MethodAspect" + COUNT);
+                e.printStackTrace();
             }
         }
 
