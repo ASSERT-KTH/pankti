@@ -37,7 +37,7 @@ public class MethodAspect0 {
         private static final String invocationString = String.format("Invocation count for %s: ", methodFQN);
 
         private static void setup() {
-//            AdviceTemplate.setUpXStream();
+            AdviceTemplate.setUpXStream();
             String[] fileNames = AdviceTemplate.setUpFiles(methodFQN);
             receivingObjectFilePath = fileNames[0];
             paramObjectsFilePath = fileNames[1];

@@ -12,13 +12,13 @@ import java.nio.file.Paths;
 public interface AdviceTemplate {
     XStream xStream = new XStream(new JettisonMappedXmlDriver());
 
-//    static void setUpXStream() {
-//        xStream.registerConverter(new FileCleanableConverter());
-//        xStream.registerConverter(new InflaterConverter());
-//        xStream.registerConverter(new CleanerImplConverter());
-//        xStream.registerConverter(new ThreadConverter());
-//        xStream.registerConverter(new ThreadGroupConverter());
-//    }
+    static void setUpXStream() {
+        xStream.registerConverter(new FileCleanableConverter());
+        xStream.registerConverter(new InflaterConverter());
+        xStream.registerConverter(new CleanerImplConverter());
+        xStream.registerConverter(new ThreadConverter());
+        xStream.registerConverter(new ThreadGroupConverter());
+    }
 
     static String setUpInvokedMethodsCSVFile(String storageDir) throws Exception {
         String[] HEADERS = {"visibility", "parent-FQN", "method-name", "param-list", "return-type",
