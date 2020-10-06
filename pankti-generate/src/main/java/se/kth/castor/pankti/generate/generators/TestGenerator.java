@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 public class TestGenerator {
     private static Factory factory;
     private static final String XSTREAM_REFERENCE = "com.thoughtworks.xstream.XStream";
+    private static final String XSTREAM_DRIVER_REFERENCE = "com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver";
     private static final String XSTREAM_CONSTRUCTOR = "new XStream(new JettisonMappedXmlDriver())";
     private static final String JUNIT_TEST_REFERENCE = "org.junit.Test";
     private static final String JUNIT_BEFORE_REFERENCE = "org.junit.Before";
@@ -49,6 +50,7 @@ public class TestGenerator {
 
     public void addImportsToGeneratedClass(CtClass<?> generatedClass) {
         generatedClass.getFactory().createUnresolvedImport(XSTREAM_REFERENCE, false);
+        generatedClass.getFactory().createUnresolvedImport(XSTREAM_DRIVER_REFERENCE, false);
         generatedClass.getFactory().createUnresolvedImport(JUNIT_TEST_REFERENCE, false);
         generatedClass.getFactory().createUnresolvedImport(JUNIT_BEFORE_REFERENCE, false);
         generatedClass.getFactory().createUnresolvedImport(JUNIT_ASSERT_REFERENCE, false);
