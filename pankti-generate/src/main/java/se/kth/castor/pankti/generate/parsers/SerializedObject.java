@@ -26,8 +26,14 @@ public class SerializedObject {
         return this.paramObjects.get("paramObjects");
     }
 
-    public String getReturnedObject() {
-        return this.returnedObject.get("returnedObject");
+    public String getReturnedObject(boolean isPrimitive) {
+        if (isPrimitive) {
+            JSONObject jsonObject = JSON.parseObject(this.returnedObject.get("returnedObject"));
+            String key = jsonObject.keySet().iterator().next();
+            return jsonObject.getString(key);
+        } else {
+            return this.returnedObject.get("returnedObject");
+        }
     }
 
     public String getObjectType(String objectJSON) {

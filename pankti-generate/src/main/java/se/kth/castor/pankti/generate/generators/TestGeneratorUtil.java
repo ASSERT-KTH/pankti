@@ -16,7 +16,7 @@ public class TestGeneratorUtil {
     public CtLocalVariable<String> addStringVariableToTestMethod(Factory factory, String fieldName, String fieldValue) {
         fieldValue = fieldValue.replaceAll("\\n", "\" +\n\"");
         CtExpression<String> variableExpression = factory.createCodeSnippetExpression(
-                "\n\"" + fieldValue + "\""
+                "\n\"" + fieldValue.replace("\"", "\\\"") + "\""
         );
         return factory.createLocalVariable(
                 factory.createCtTypeReference(String.class),

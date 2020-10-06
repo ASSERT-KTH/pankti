@@ -71,7 +71,7 @@ public class TestGenerator {
     public CtInvocation<?> generateAssertionInTestMethod(CtMethod<?> method, SerializedObject serializedObject) throws ClassNotFoundException {
         CtExpression<?> assertExpectedObject;
         if (method.getType().isPrimitive()) {
-            String value = serializedObject.getReturnedObject().replaceAll("</?\\w+>", "");
+            String value = serializedObject.getReturnedObject(true);
             assertExpectedObject = factory.createCodeSnippetExpression(value);
         } else {
             assertExpectedObject = factory.createCodeSnippetExpression("expectedObject");
@@ -328,7 +328,7 @@ public class TestGenerator {
         // Get serialized objects as JSON strings
         String receivingJSON = serializedObject.getReceivingObject();
         String receivingObjectType = serializedObject.getObjectType(receivingJSON);
-        String returnedJSON = serializedObject.getReturnedObject();
+        String returnedJSON = serializedObject.getReturnedObject(false);
         String returnedObjectType = instrumentedMethod.getReturnType();
 
         String paramsJSON = "";

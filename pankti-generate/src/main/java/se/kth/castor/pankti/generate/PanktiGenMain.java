@@ -28,9 +28,9 @@ public class PanktiGenMain implements Callable<Integer> {
 
     @CommandLine.Parameters(
             index = "2",
-            paramLabel = "DIRECTORY_WITH_OBJECT_XML_FILES",
-            description = "Path to directory containing object XML files")
-    private Path objectXMLDirectoryPath;
+            paramLabel = "DIRECTORY_WITH_OBJECT_JSON_FILES",
+            description = "Path to directory containing object JSON files")
+    private Path objectJSONDirectoryPath;
 
     @CommandLine.Option(
             names = {"-h", "--help"},
@@ -44,10 +44,10 @@ public class PanktiGenMain implements Callable<Integer> {
         return projectPath;
     }
 
-    public PanktiGenMain(final Path projectPath, final Path methodCSVFilePath, final Path objectXMLDirectoryPath, final boolean help) {
+    public PanktiGenMain(final Path projectPath, final Path methodCSVFilePath, final Path objectJSONDirectoryPath, final boolean help) {
         this.projectPath = projectPath;
         this.methodCSVFilePath = methodCSVFilePath;
-        this.objectXMLDirectoryPath = objectXMLDirectoryPath;
+        this.objectJSONDirectoryPath = objectJSONDirectoryPath;
         this.usageHelpRequested = help;
     }
 
@@ -67,7 +67,7 @@ public class PanktiGenMain implements Callable<Integer> {
 
         TestGenerator testGenerator = new TestGenerator();
         System.out.println("Number of new test cases: " + testGenerator.process(model, launcher,
-                methodCSVFilePath.toString(), objectXMLDirectoryPath.toString()));
+                methodCSVFilePath.toString(), objectJSONDirectoryPath.toString()));
 
         // Save model in outputdir/
 
