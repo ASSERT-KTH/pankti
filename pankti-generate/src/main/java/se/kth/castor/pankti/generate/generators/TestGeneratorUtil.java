@@ -42,20 +42,20 @@ public class TestGeneratorUtil {
         List<CtStatement> fileAndScannerStatements = new ArrayList<>();
         // Create file
         CtExpression<String> fileVariableExpression = factory.createCodeSnippetExpression(
-                "new File(classLoader.getResource(\"" + fileName + "\").getFile())"
+            "new File(classLoader.getResource(\"" + fileName + "\").getFile())"
         );
         CtLocalVariable<?> fileVariable = factory.createLocalVariable(
-                factory.createCtTypeReference(File.class),
-                fileVariableName,
-                fileVariableExpression);
+            factory.createCtTypeReference(File.class),
+            fileVariableName,
+            fileVariableExpression);
         // Create scanner
         CtExpression<String> scannerVariableExpression = factory.createCodeSnippetExpression(
-                "new Scanner(" + fileVariableName + ")"
+            "new Scanner(" + fileVariableName + ")"
         );
         CtLocalVariable<?> scannerVariable = factory.createLocalVariable(
-                factory.createCtTypeReference(Scanner.class),
-                scannerVariableName,
-                scannerVariableExpression
+            factory.createCtTypeReference(Scanner.class),
+            scannerVariableName,
+            scannerVariableExpression
         );
         fileAndScannerStatements.add(fileVariable);
         fileAndScannerStatements.add(scannerVariable);
@@ -64,14 +64,14 @@ public class TestGeneratorUtil {
 
     public CtLocalVariable<String> readStringFromScanner(Factory factory, String type) {
         String scannerVariableName = "scanner" + type;
-        String xmlVariableName = type + "XML";
+        String jsonVariableName = type + "JSON";
         CtExpression<String> variableExpression = factory.createCodeSnippetExpression(
-                scannerVariableName + ".useDelimiter(\"\\\\A\").next()"
+            scannerVariableName
         );
         return factory.createLocalVariable(
-                factory.createCtTypeReference(String.class),
-                xmlVariableName,
-                variableExpression
+            factory.createCtTypeReference(String.class),
+            jsonVariableName,
+            variableExpression
         );
     }
 

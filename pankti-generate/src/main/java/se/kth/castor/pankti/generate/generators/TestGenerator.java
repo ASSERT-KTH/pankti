@@ -2,7 +2,7 @@ package se.kth.castor.pankti.generate.generators;
 
 import se.kth.castor.pankti.generate.parsers.CSVFileParser;
 import se.kth.castor.pankti.generate.parsers.InstrumentedMethod;
-import se.kth.castor.pankti.generate.parsers.ObjectXMLParser;
+import se.kth.castor.pankti.generate.parsers.ObjectJSONParser;
 import se.kth.castor.pankti.generate.parsers.SerializedObject;
 import spoon.MavenLauncher;
 import spoon.compiler.SpoonResource;
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 public class TestGenerator {
     private static Factory factory;
     private static final String XSTREAM_REFERENCE = "com.thoughtworks.xstream.XStream";
-    private static final String XSTREAM_CONSTRUCTOR = "new XStream()";
+    private static final String XSTREAM_CONSTRUCTOR = "new XStream(new JettisonMappedXmlDriver())";
     private static final String JUNIT_TEST_REFERENCE = "org.junit.Test";
     private static final String JUNIT_BEFORE_REFERENCE = "org.junit.Before";
     private static final String JUNIT_ASSERT_REFERENCE = "org.junit.Assert";
@@ -128,16 +128,16 @@ public class TestGenerator {
         return assertInvocation;
     }
 
-    public String createLongXMLStringFile(String methodIdentifier, String xmlType, String longXML, MavenLauncher launcher) {
+    public String createLongJSONStringFile(String methodIdentifier, String type, String longJSON, MavenLauncher launcher) {
         String fileName = "";
         try {
-            File longXMLFile = new File("./output/object-data/" + methodIdentifier + "-" + xmlType + ".xml");
-            longXMLFile.getParentFile().mkdirs();
-            FileWriter myWriter = new FileWriter(longXMLFile);
-            myWriter.write(longXML.replaceAll("\\\\\"", "\""));
+            File longJSONFile = new File("./output/object-data/" + methodIdentifier + "-" + type + ".json");
+            longJSONFile.getParentFile().mkdirs();
+            FileWriter myWriter = new FileWriter(longJSONFile);
+            myWriter.write(longJSON);
             myWriter.close();
-            SpoonResource newResource = SpoonResourceHelper.createResource(longXMLFile);
-            launcher.addInputResource(longXMLFile.getAbsolutePath());
+            SpoonResource newResource = SpoonResourceHelper.createResource(longJSONFile);
+            launcher.addInputResource(longJSONFile.getAbsolutePath());
             fileName = newResource.getName();
         } catch (Exception e) {
             e.printStackTrace();
@@ -145,7 +145,7 @@ public class TestGenerator {
         return fileName;
     }
 
-    public List<CtStatement> readXMLFromFile(String fileName, String type) {
+    public List<CtStatement> readJSONFromFile(String fileName, String type) {
         List<CtStatement> createScannerReadString = new ArrayList<>();
         List<CtStatement> scannerDeclaration = testGenUtil.addScannerVariableToTestMethod(factory, fileName, type);
         CtStatement stringReadFromScanner = testGenUtil.readStringFromScanner(factory, type);
@@ -156,40 +156,40 @@ public class TestGenerator {
 
     public CtStatement parseReceivingObject(String receivingObjectType) {
         return factory.createCodeSnippetStatement(String.format(
-                "%s receivingObject = (%s) xStream.fromXML(receivingXML)",
-                receivingObjectType,
-                receivingObjectType));
+            "%s receivingObject = (%s) xStream.fromXML(receivingJSON)",
+            receivingObjectType,
+            receivingObjectType));
     }
 
     public CtStatement parseReturnedObject(String returnedObjectType, CtMethod<?> method) {
         return factory.createCodeSnippetStatement(String.format(
-                "%s expectedObject = (%s) xStream.fromXML(returnedXML)",
-                returnedObjectType,
-                testGenUtil.findObjectBoxType(method.getType())));
+            "%s expectedObject = (%s) xStream.fromXML(returnedJSON)",
+            returnedObjectType,
+            testGenUtil.findObjectBoxType(method.getType())));
     }
 
-    public List<CtStatement> addAndParseMethodParams(String paramsXML, CtMethod<?> method) {
+    public List<CtStatement> addAndParseMethodParams(String paramsJSON, CtMethod<?> method) {
         List<CtStatement> paramStatements = new ArrayList<>();
-        if (paramsXML.length() <= 10000) {
-            CtStatement paramsXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "paramsXML", paramsXML);
-            paramStatements.add(paramsXMLStringDeclaration);
+        if (paramsJSON.length() <= 10000) {
+            CtStatement paramsJSONStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "paramsJSON", paramsJSON);
+            paramStatements.add(paramsJSONStringDeclaration);
         }
         CtStatement parseParamObjects = factory.createCodeSnippetStatement(
-                String.format(
-                        "%s paramObjects = (%s) xStream.fromXML(paramsXML)",
-                        "Object[]",
-                        "Object[]"));
+            String.format(
+                "%s paramObjects = (%s) xStream.fromXML(paramsJSON)",
+                "Object[]",
+                "Object[]"));
 
         paramStatements.add(parseParamObjects);
 
         List<CtParameter<?>> parameters = method.getParameters();
         for (int i = 0; i < parameters.size(); i++) {
             CtStatement parseParamObject = factory.createCodeSnippetStatement(
-                    String.format("%s paramObject%d = (%s) paramObjects[%d]",
-                            parameters.get(i).getType().getQualifiedName(),
-                            i + 1,
-                            testGenUtil.findObjectBoxType(parameters.get(i).getType()),
-                            i));
+                String.format("%s paramObject%d = (%s) paramObjects[%d]",
+                    parameters.get(i).getType().getQualifiedName(),
+                    i + 1,
+                    testGenUtil.findObjectBoxType(parameters.get(i).getType()),
+                    i));
             paramStatements.add(parseParamObject);
         }
         return paramStatements;
@@ -199,12 +199,12 @@ public class TestGenerator {
         List<CtStatement> reflectionStatements = new ArrayList<>();
         // Create Class<?> variable
         CtExpression<String> classVariableExpression = factory.createCodeSnippetExpression(
-                "Class.forName(\"" + instrumentedMethod.getParentFQN() + "\")"
+            "Class.forName(\"" + instrumentedMethod.getParentFQN() + "\")"
         );
         CtLocalVariable<?> classVariable = factory.createLocalVariable(
-                factory.createCtTypeReference(Class.class),
-                "Clazz",
-                classVariableExpression);
+            factory.createCtTypeReference(Class.class),
+            "Clazz",
+            classVariableExpression);
 
         // Create param list
         List<String> paramList = instrumentedMethod.getParamList();
@@ -219,12 +219,12 @@ public class TestGenerator {
         }
         // Create Method variable
         CtExpression<String> methodVariableExpression = factory.createCodeSnippetExpression(
-                "Clazz.getDeclaredMethod(\"" + instrumentedMethod.getMethodName() + "\"" + paramString + ")"
+            "Clazz.getDeclaredMethod(\"" + instrumentedMethod.getMethodName() + "\"" + paramString + ")"
         );
         CtLocalVariable<?> methodVariable = factory.createLocalVariable(
-                factory.createCtTypeReference(Method.class),
-                instrumentedMethod.getMethodName(),
-                methodVariableExpression);
+            factory.createCtTypeReference(Method.class),
+            instrumentedMethod.getMethodName(),
+            methodVariableExpression);
         CtStatement setAccessibleStatement = factory.createCodeSnippetStatement(instrumentedMethod.getMethodName() + ".setAccessible(true)");
 
         reflectionStatements.add(classVariable);
@@ -237,11 +237,11 @@ public class TestGenerator {
                                                             CtMethod<?> method,
                                                             int methodCounter,
                                                             SerializedObject serializedObject,
-                                                            String receivingXML,
+                                                            String receivingJSON,
                                                             String receivingObjectType,
-                                                            String returnedXML,
+                                                            String returnedJSON,
                                                             String returnedObjectType,
-                                                            String paramsXML,
+                                                            String paramsJSON,
                                                             MavenLauncher launcher) throws ClassNotFoundException {
         List<CtStatement> methodBody = new ArrayList<>();
         String postfix = "";
@@ -249,38 +249,38 @@ public class TestGenerator {
             postfix = testGenUtil.getParamListPostFix(instrumentedMethod);
         }
         String methodIdentifier = instrumentedMethod.getFullMethodPath() + postfix + methodCounter;
-        if (receivingXML.length() > 10000 || returnedXML.length() > 10000 || paramsXML.length() > 10000) {
+        if (receivingJSON.length() > 10000 || returnedJSON.length() > 10000 || paramsJSON.length() > 10000) {
             CtStatement classLoaderDeclaration = testGenUtil.addClassLoaderVariableToTestMethod(factory);
             methodBody.add(classLoaderDeclaration);
         }
-        if (receivingXML.length() > 10000) {
+        if (receivingJSON.length() > 10000) {
             String type = "receiving";
-            String fileName = createLongXMLStringFile(methodIdentifier, type, receivingXML, launcher);
-            List<CtStatement> createScannerReadXML = readXMLFromFile(fileName, type);
-            methodBody.addAll(createScannerReadXML);
+            String fileName = createLongJSONStringFile(methodIdentifier, type, receivingJSON, launcher);
+            List<CtStatement> createScannerReadJSON = readJSONFromFile(fileName, type);
+            methodBody.addAll(createScannerReadJSON);
         } else {
-            CtStatement receivingXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "receivingXML", receivingXML);
-            methodBody.add(receivingXMLStringDeclaration);
+            CtStatement receivingJSONStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "receivingJSON", receivingJSON);
+            methodBody.add(receivingJSONStringDeclaration);
         }
         methodBody.add(parseReceivingObject(receivingObjectType));
-        if (returnedXML.length() > 10000) {
+        if (returnedJSON.length() > 10000) {
             String type = "returned";
-            String fileName = createLongXMLStringFile(methodIdentifier, type, returnedXML, launcher);
-            List<CtStatement> createScannerReadXML = readXMLFromFile(fileName, type);
-            methodBody.addAll(createScannerReadXML);
+            String fileName = createLongJSONStringFile(methodIdentifier, type, returnedJSON, launcher);
+            List<CtStatement> createScannerReadJSON = readJSONFromFile(fileName, type);
+            methodBody.addAll(createScannerReadJSON);
         } else {
-            CtStatement returnedXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "returnedXML", returnedXML);
-            methodBody.add(returnedXMLStringDeclaration);
+            CtStatement returnedJSONStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "returnedJSON", returnedJSON);
+            methodBody.add(returnedJSONStringDeclaration);
         }
         methodBody.add(parseReturnedObject(returnedObjectType, method));
-        if (!paramsXML.isEmpty()) {
-            if (paramsXML.length() > 10000) {
+        if (!paramsJSON.isEmpty()) {
+            if (paramsJSON.length() > 10000) {
                 String type = "params";
-                String fileName = createLongXMLStringFile(methodIdentifier, type, paramsXML, launcher);
-                List<CtStatement> createScannerReadXML = readXMLFromFile(fileName, type);
-                methodBody.addAll(createScannerReadXML);
+                String fileName = createLongJSONStringFile(methodIdentifier, type, paramsJSON, launcher);
+                List<CtStatement> createScannerReadJSON = readJSONFromFile(fileName, type);
+                methodBody.addAll(createScannerReadJSON);
             }
-            List<CtStatement> paramStatements = addAndParseMethodParams(paramsXML, method);
+            List<CtStatement> paramStatements = addAndParseMethodParams(paramsJSON, method);
             methodBody.addAll(paramStatements);
         }
         if (instrumentedMethod.getVisibility().equals("private")) {
@@ -325,25 +325,25 @@ public class TestGenerator {
         generatedMethod.setModifiers(Collections.singleton(ModifierKind.PUBLIC));
         generatedMethod.setType(factory.createCtTypeReference(void.class));
 
-        // Get serialized objects as XML strings
-        String receivingXML = serializedObject.getReceivingObject();
-        String receivingObjectType = serializedObject.getObjectType(receivingXML);
-        String returnedXML = serializedObject.getReturnedObject();
+        // Get serialized objects as JSON strings
+        String receivingJSON = serializedObject.getReceivingObject();
+        String receivingObjectType = serializedObject.getObjectType(receivingJSON);
+        String returnedJSON = serializedObject.getReturnedObject();
         String returnedObjectType = instrumentedMethod.getReturnType();
 
-        String paramsXML = "";
+        String paramsJSON = "";
         if (instrumentedMethod.hasParams()) {
-            paramsXML = serializedObject.getParamObjects();
+            paramsJSON = serializedObject.getParamObjects();
         }
 
         CtBlock<?> methodBody = factory.createBlock();
 
         List<CtStatement> statementsInMethodBody =
                 generateStatementsInMethodBody(instrumentedMethod, method, methodCounter, serializedObject,
-                        receivingXML, receivingObjectType, returnedXML, returnedObjectType, paramsXML, launcher);
+                        receivingJSON, receivingObjectType, returnedJSON, returnedObjectType, paramsJSON, launcher);
 
-        // if XML strings are too long, or method is private, enclose statements within a try block
-        if (receivingXML.length() > 10000 || returnedXML.length() > 10000 || paramsXML.length() > 10000 || instrumentedMethod.getVisibility().equals("private")) {
+        // if JSON strings are too long, or method is private, enclose statements within a try block
+        if (receivingJSON.length() > 10000 || returnedJSON.length() > 10000 || paramsJSON.length() > 10000 || instrumentedMethod.getVisibility().equals("private")) {
             CtTryImpl tryBlock = (CtTryImpl) factory.createTry();
             CtBlock<?> tryBody = factory.createBlock();
             statementsInMethodBody.forEach(tryBody::addStatement);
@@ -366,7 +366,7 @@ public class TestGenerator {
                                             CtMethod<?> method,
                                             InstrumentedMethod instrumentedMethod,
                                             MavenLauncher launcher,
-                                            String objectXMLDirectoryPath) throws ClassNotFoundException {
+                                            String objectJSONDirectoryPath) throws ClassNotFoundException {
         factory = type.getFactory();
         CtClass<?> generatedClass = factory.Class().get(getGeneratedClassName(type.getPackage(), type.getSimpleName()));
         if (generatedClass == null) {
@@ -375,9 +375,9 @@ public class TestGenerator {
             generatedClass.addField(addXStreamFieldToGeneratedClass());
         }
         String methodPath = instrumentedMethod.getFullMethodPath();
-        ObjectXMLParser objectXMLParser = new ObjectXMLParser();
-        Set<SerializedObject> serializedObjects = objectXMLParser.parseXML(
-                objectXMLDirectoryPath + File.separatorChar + methodPath, instrumentedMethod);
+        ObjectJSONParser objectJSONParser = new ObjectJSONParser();
+        Set<SerializedObject> serializedObjects = objectJSONParser.parseJSON(
+                objectJSONDirectoryPath + File.separatorChar + methodPath, instrumentedMethod);
         System.out.println("Number of unique pairs/triples of object values: " + serializedObjects.size());
         numberOfTestCasesGenerated += serializedObjects.size();
 
@@ -422,7 +422,7 @@ public class TestGenerator {
         return new AbstractMap.SimpleEntry<>(methodsByName.get(0), false);
     }
 
-    public int process(CtModel ctModel, MavenLauncher launcher, String methodCSVFilePath, String objectXMLDirectoryPath) {
+    public int process(CtModel ctModel, MavenLauncher launcher, String methodCSVFilePath, String objectJSONDirectoryPath) {
         // Get list of instrumented methods from CSV file
         List<InstrumentedMethod> instrumentedMethods = CSVFileParser.parseCSVFile(methodCSVFilePath);
         System.out.println("Number of instrumented methods: " + instrumentedMethods.size());
@@ -441,7 +441,7 @@ public class TestGenerator {
                         try {
                             CtClass<?> generatedClass = generateFullTestClass(
                                     type, methodToGenerateTestsFor, instrumentedMethod,
-                                    launcher, objectXMLDirectoryPath);
+                                    launcher, objectJSONDirectoryPath);
                             System.out.println("Generated test class: " + generatedClass.getQualifiedName());
                             System.out.println("--------------------------------------------------------------");
                         } catch (ClassNotFoundException e) {

@@ -1,5 +1,8 @@
 package se.kth.castor.pankti.generate.parsers;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -27,11 +30,13 @@ public class SerializedObject {
         return this.returnedObject.get("returnedObject");
     }
 
-    public String getObjectType(String objectXML) {
-        return objectXML
-                .substring(1, objectXML.indexOf(">"))
-                .replaceAll("_-", ".")
-                .replace("/", "");
+    public String getObjectType(String objectJSON) {
+        String typeString = null;
+        JSONObject jsonObject = JSON.parseObject(objectJSON);
+        if (!jsonObject.keySet().isEmpty()) {
+            typeString = jsonObject.keySet().iterator().next();
+        }
+        return typeString;
     }
 
     @Override
