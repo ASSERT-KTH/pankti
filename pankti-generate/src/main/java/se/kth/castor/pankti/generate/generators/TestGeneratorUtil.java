@@ -11,12 +11,13 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import org.apache.commons.text.StringEscapeUtils;
 
 public class TestGeneratorUtil {
     public CtLocalVariable<String> addStringVariableToTestMethod(Factory factory, String fieldName, String fieldValue) {
-        fieldValue = fieldValue.replaceAll("\\n", "\" +\n\"");
+        fieldValue = StringEscapeUtils.escapeJava(fieldValue).replaceAll("\\n", "\" +\n\"");
         CtExpression<String> variableExpression = factory.createCodeSnippetExpression(
-                "\n\"" + fieldValue.replace("\"", "\\\"") + "\""
+                "\"" + fieldValue + "\""
         );
         return factory.createLocalVariable(
                 factory.createCtTypeReference(String.class),
@@ -66,7 +67,7 @@ public class TestGeneratorUtil {
         String scannerVariableName = "scanner" + type;
         String jsonVariableName = type + "JSON";
         CtExpression<String> variableExpression = factory.createCodeSnippetExpression(
-            scannerVariableName
+            scannerVariableName + ".useDelimiter(\"\\\\A\").next()" // to be discussed
         );
         return factory.createLocalVariable(
             factory.createCtTypeReference(String.class),
