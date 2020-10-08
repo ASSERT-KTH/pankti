@@ -12,7 +12,6 @@ import spoon.reflect.code.*;
 import spoon.reflect.declaration.*;
 import spoon.reflect.factory.Factory;
 import spoon.reflect.reference.CtExecutableReference;
-import spoon.support.reflect.code.CtTryImpl;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -271,10 +270,14 @@ public class TestGenerator {
             List<CtStatement> createScannerReadJSON = readJSONFromFile(fileName, type);
             methodBody.addAll(createScannerReadJSON);
         } else {
-            CtStatement returnedJSONStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "returnedJSON", returnedJSON);
-            methodBody.add(returnedJSONStringDeclaration);
+            if (!method.getType().isPrimitive()) {
+                CtStatement returnedJSONStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "returnedJSON", returnedJSON);
+                methodBody.add(returnedJSONStringDeclaration);
+            }
         }
-        methodBody.add(parseReturnedObject(returnedObjectType, method));
+        if (!method.getType().isPrimitive())
+            methodBody.add(parseReturnedObject(returnedObjectType, method));
+
         if (!paramsJSON.isEmpty()) {
             if (paramsJSON.length() > 10000) {
                 String type = "params";
@@ -326,6 +329,7 @@ public class TestGenerator {
         generatedMethod.addAnnotation(testAnnotation);
         generatedMethod.setModifiers(Collections.singleton(ModifierKind.PUBLIC));
         generatedMethod.setType(factory.createCtTypeReference(void.class));
+        generatedMethod.addThrownType(factory.createCtTypeReference(Exception.class));
 
         // Get serialized objects as JSON strings
         String receivingJSON = serializedObject.getReceivingObject();
@@ -344,25 +348,10 @@ public class TestGenerator {
                 generateStatementsInMethodBody(instrumentedMethod, method, methodCounter, serializedObject,
                         receivingJSON, receivingObjectType, returnedJSON, returnedObjectType, paramsJSON, launcher);
 
-        // if JSON strings are too long, or method is private, enclose statements within a try block
-        if (receivingJSON.length() > 10000 || returnedJSON.length() > 10000 || paramsJSON.length() > 10000 || instrumentedMethod.getVisibility().equals("private")) {
-            CtTryImpl tryBlock = (CtTryImpl) factory.createTry();
-            CtBlock<?> tryBody = factory.createBlock();
-            statementsInMethodBody.forEach(tryBody::addStatement);
-            tryBlock.setBody(tryBody);
-            CtBlock<?> catchBlock = factory.createBlock();
-            CtStatement stackTraceStatement = factory.createCodeSnippetStatement("e.printStackTrace()");
-            CtStatement failAssertionStatement = factory.createCodeSnippetStatement("Assert.fail()");
-            catchBlock.addStatement(stackTraceStatement);
-            catchBlock.addStatement(failAssertionStatement);
-            tryBlock.addCatcher(factory.createCtCatch("e", Exception.class, catchBlock));
-            methodBody.addStatement(tryBlock);
-        } else {
-            statementsInMethodBody.forEach(methodBody::addStatement);
-        }
+        statementsInMethodBody.forEach(methodBody::addStatement);
         generatedMethod.setBody(methodBody);
         return generatedMethod;
-    }
+}
 
     public CtClass<?> generateFullTestClass(CtType<?> type,
                                             CtMethod<?> method,
@@ -398,7 +387,7 @@ public class TestGenerator {
 
     public List<CtType<?>> getTypesToProcess(CtModel ctModel) {
         List<CtType<?>> types = ctModel.getAllTypes().stream().
-                filter(CtType::isClass).
+                filter(ctType -> ctType.isClass() || ctType.isEnum()).
                 collect(Collectors.toList());
         List<CtType<?>> typesToProcess = new ArrayList<>(types);
         for (CtType<?> type : types) {
