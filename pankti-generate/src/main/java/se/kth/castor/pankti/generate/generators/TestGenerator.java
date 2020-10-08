@@ -268,10 +268,14 @@ public class TestGenerator {
             List<CtStatement> createScannerReadXML = readXMLFromFile(fileName, type);
             methodBody.addAll(createScannerReadXML);
         } else {
-            CtStatement returnedXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "returnedXML", returnedXML);
-            methodBody.add(returnedXMLStringDeclaration);
+            if (!method.getType().isPrimitive()) {
+                CtStatement returnedXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "returnedXML", returnedXML);
+                methodBody.add(returnedXMLStringDeclaration);
+            }
         }
-        methodBody.add(parseReturnedObject(returnedObjectType, method));
+        if (!method.getType().isPrimitive())
+            methodBody.add(parseReturnedObject(returnedObjectType, method));
+
         if (!paramsXML.isEmpty()) {
             if (paramsXML.length() > 10000) {
                 String type = "params";
@@ -381,7 +385,7 @@ public class TestGenerator {
 
     public List<CtType<?>> getTypesToProcess(CtModel ctModel) {
         List<CtType<?>> types = ctModel.getAllTypes().stream().
-                filter(CtType::isClass).
+                filter(ctType -> ctType.isClass() || ctType.isEnum()).
                 collect(Collectors.toList());
         List<CtType<?>> typesToProcess = new ArrayList<>(types);
         for (CtType<?> type : types) {
