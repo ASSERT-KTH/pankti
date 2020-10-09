@@ -7,7 +7,7 @@ Pankti transforms production workload into test cases. The test generation pipel
 4. Generate
 ___
 ### Extract (pankti-extract)
-This phase leverages [Spoon](http://spoon.gforge.inria.fr/index.html) to statically analyze Java applications built with Maven.
+pankti-extract leverages [Spoon](http://spoon.gforge.inria.fr/index.html) to statically analyze Java applications in order to find relevant methods for test generation.
 The output is a list of methods that meet the following criteria: 
 - they are not empty
 - they are not abstract, and do not belong to an interface or annotation type
@@ -28,7 +28,7 @@ To run **pankti-extract**,
 7. `python find-pseudo-tested.py /path/to/method/list/from/step5.csv /space/separated/paths/to/descartes/method.json` outputs a CSV with the list of methods that are candidates for instrumentation.
 ___
 ### Instrument (pankti-instrument)
-This phase develops a [Glowroot](https://glowroot.org/) plugin that serializes objects for instrumented methods that are invoked.
+pankti-instrument is [Glowroot](https://glowroot.org/) plugin that serializes objects for instrumented methods that are invoked.
 
 To run **pankti-instrument**,
 1. `cd /path/to/pankti/pankti-instrument/`
@@ -46,7 +46,7 @@ Additionally, a CSV file with a list of invoked methods is generated at `/tmp/pa
 ___
 
 ### Generate (pankti-generate)
-This phase uses the code generation features of Spoon to create test classes for an application.\
+pankti-generate create test classes for an application from the collected object profiles.\
 It takes as input the path to the Java + Maven project, a CSV file with a list of invoked methods, and the path to the directory containing objects serialized as XML.
 
 To run **pankti-generate**,
