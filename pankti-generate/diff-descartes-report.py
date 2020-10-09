@@ -57,6 +57,7 @@ def main():
         result = list()
         improvement = {
             "pseudo-tested-before": 0,
+            "not-covered-after": 0,
             "pseudo-tested-after": 0,
             "partially-tested-after": 0,
             "tested-after": 0
