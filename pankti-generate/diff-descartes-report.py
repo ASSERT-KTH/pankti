@@ -65,7 +65,7 @@ def main():
         for row in rows:
             key = "%s.%s"%(row["parent-FQN"], row["method-name"])
             classification_after = methods_classification[key]
-            row["classification-after"] = classification_after
+            row["classification-after"] = classification_after if classification_after != "not-covered" else row["classification"]
             result.append(copy.copy(row))
 
             improvement["%s-before"%row["classification"]] = improvement["%s-before"%row["classification"]] + 1
