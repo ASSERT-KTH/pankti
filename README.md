@@ -28,7 +28,7 @@ To run **pankti-extract**,
 7. `python find-pseudo-tested.py /path/to/method/list/from/step5.csv /space/separated/paths/to/descartes/method.json` outputs a CSV with the list of methods that are candidates for instrumentation.
 ___
 ### Instrument (pankti-instrument)
-pankti-instrument is [Glowroot](https://glowroot.org/) plugin that serializes objects for instrumented methods that are invoked.
+pankti-instrument is a [Glowroot](https://glowroot.org/) plugin that serializes objects for instrumented methods that are invoked.
 
 To run **pankti-instrument**,
 1. `cd /path/to/pankti/pankti-instrument/`
@@ -46,7 +46,7 @@ Additionally, a CSV file with a list of invoked methods is generated at `/tmp/pa
 ___
 
 ### Generate (pankti-generate)
-pankti-generate create test classes for an application from the collected object profiles.\
+pankti-generate creates test classes for an application from the collected object profiles.\
 It takes as input the path to the Java + Maven project, a CSV file with a list of invoked methods, and the path to the directory containing objects serialized as XML.
 
 To run **pankti-generate**,
