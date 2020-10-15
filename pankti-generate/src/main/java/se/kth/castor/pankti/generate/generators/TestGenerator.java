@@ -363,7 +363,7 @@ public class TestGenerator {
         System.out.println("Number of unique pairs/triples of object values: " + serializedObjects.size());
 
         if (serializedObjects.size() == 0) {
-            System.out.println("Skip generating tests method.");
+            System.out.println("Skip generating tests for this method.");
             return null;
         } else {
             numberOfTestCasesGenerated += serializedObjects.size();
