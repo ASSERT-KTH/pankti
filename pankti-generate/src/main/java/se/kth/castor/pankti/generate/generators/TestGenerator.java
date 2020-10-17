@@ -356,31 +356,39 @@ public class TestGenerator {
                                             InstrumentedMethod instrumentedMethod,
                                             MavenLauncher launcher,
                                             String objectXMLDirectoryPath) throws ClassNotFoundException {
-        factory = type.getFactory();
-        CtClass<?> generatedClass = factory.Class().get(getGeneratedClassName(type.getPackage(), type.getSimpleName()));
-        if (generatedClass == null) {
-            generatedClass = generateTestClass(type.getPackage(), type.getSimpleName());
-            addImportsToGeneratedClass(generatedClass);
-            generatedClass.addField(addXStreamFieldToGeneratedClass());
-        }
         String methodPath = instrumentedMethod.getFullMethodPath();
         ObjectXMLParser objectXMLParser = new ObjectXMLParser();
         Set<SerializedObject> serializedObjects = objectXMLParser.parseXML(
                 objectXMLDirectoryPath + File.separatorChar + methodPath, instrumentedMethod);
         System.out.println("Number of unique pairs/triples of object values: " + serializedObjects.size());
-        numberOfTestCasesGenerated += serializedObjects.size();
 
-        // Create @Before method
-        // generatedClass.addMethod(generateSetupMethod());
+        if (serializedObjects.size() == 0) {
+            System.out.println("Skip generating tests for this method.");
+            return null;
+        } else {
+            numberOfTestCasesGenerated += serializedObjects.size();
 
-        // Create @Test method
-        int methodCounter = 1;
-        for (SerializedObject serializedObject : serializedObjects) {
-            CtMethod<?> generatedMethod = generateTestMethod(method, methodCounter, instrumentedMethod, serializedObject, launcher);
-            generatedClass.addMethod(generatedMethod);
-            methodCounter++;
+            factory = type.getFactory();
+            CtClass<?> generatedClass = factory.Class().get(getGeneratedClassName(type.getPackage(), type.getSimpleName()));
+            if (generatedClass == null) {
+                generatedClass = generateTestClass(type.getPackage(), type.getSimpleName());
+                addImportsToGeneratedClass(generatedClass);
+                generatedClass.addField(addXStreamFieldToGeneratedClass());
+            }
+
+            // Create @Before method
+            // generatedClass.addMethod(generateSetupMethod());
+
+            // Create @Test method
+            int methodCounter = 1;
+            for (SerializedObject serializedObject : serializedObjects) {
+                CtMethod<?> generatedMethod = generateTestMethod(method, methodCounter, instrumentedMethod, serializedObject, launcher);
+                generatedClass.addMethod(generatedMethod);
+                methodCounter++;
+            }
+            return generatedClass;
         }
-        return generatedClass;
+
     }
 
     public List<CtType<?>> getTypesToProcess(CtModel ctModel) {
@@ -431,7 +439,9 @@ public class TestGenerator {
                             CtClass<?> generatedClass = generateFullTestClass(
                                     type, methodToGenerateTestsFor, instrumentedMethod,
                                     launcher, objectXMLDirectoryPath);
-                            System.out.println("Generated test class: " + generatedClass.getQualifiedName());
+                            if (generatedClass != null) {
+                                System.out.println("Generated test class: " + generatedClass.getQualifiedName());
+                            }
                             System.out.println("--------------------------------------------------------------");
                         } catch (ClassNotFoundException e) {
                             e.printStackTrace();
