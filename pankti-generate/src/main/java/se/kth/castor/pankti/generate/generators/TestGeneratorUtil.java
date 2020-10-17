@@ -4,6 +4,8 @@ import se.kth.castor.pankti.generate.parsers.InstrumentedMethod;
 import spoon.reflect.code.CtExpression;
 import spoon.reflect.code.CtLocalVariable;
 import spoon.reflect.code.CtStatement;
+import spoon.reflect.declaration.CtMethod;
+import spoon.reflect.declaration.CtParameter;
 import spoon.reflect.factory.Factory;
 import spoon.reflect.reference.CtTypeReference;
 
@@ -85,5 +87,18 @@ public class TestGeneratorUtil {
     // Gets method param list as _param1,param2,param3
     public String getParamListPostFix(InstrumentedMethod instrumentedMethod) {
             return  "_" + String.join(",", instrumentedMethod.getParamList());
+    }
+
+    public boolean allMethodParametersArePrimitive(CtMethod<?> method) {
+        for (CtParameter<?> parameter : method.getParameters()) {
+            if (!parameter.getType().isPrimitive()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean returnedObjectIsNull(String returnedXML) {
+        return returnedXML.equals("<null/>");
     }
 }

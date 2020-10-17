@@ -71,15 +71,41 @@ public class TestGenerator {
         CtExpression<?> assertExpectedObject;
         if (method.getType().isPrimitive()) {
             String value = serializedObject.getReturnedObject().replaceAll("</?\\w+>", "");
-            assertExpectedObject = factory.createCodeSnippetExpression(value);
+            assertExpectedObject = factory.createCodeSnippetExpression(
+                    method.getType().getSimpleName().equals("char") ?
+                    "'" + value + "'" :
+                    value);
+        } else if (testGenUtil.returnedObjectIsNull(serializedObject.getReturnedObject())) {
+            assertExpectedObject = factory.createLiteral(null);
         } else {
             assertExpectedObject = factory.createCodeSnippetExpression("expectedObject");
         }
 
+        List<CtParameter<?>> parameters = method.getParameters();
         StringBuilder arguments = new StringBuilder();
-        for (int i = 1; i <= method.getParameters().size(); i++) {
-            arguments.append("paramObject").append(i);
-            if (i != method.getParameters().size()) {
+
+        boolean hasOnlyPrimitiveParams = testGenUtil.allMethodParametersArePrimitive(method);
+
+        List<String> primitiveParams = new ArrayList<>();
+        if (parameters.size() > 0 & hasOnlyPrimitiveParams) {
+            primitiveParams = Arrays.asList(
+                    serializedObject.getParamObjects()
+                            .replaceAll("</?object-array>", "")
+                            .trim()
+                            .split("\\n"));
+        }
+
+        for (int i = 1; i <= parameters.size(); i++) {
+            // TODO: handling of char parameters needs improvement
+            if (hasOnlyPrimitiveParams) {
+                arguments.append(primitiveParams.get(i - 1)
+                        .replaceAll("<char>(.{1})<\\/char>", "<char>'$1'</char>" )
+                        .replaceAll("<\\w+>(.+)<\\/\\w+>", "$1")
+                        .replaceAll("\\s", ""));
+            } else {
+                arguments.append("paramObject").append(i);
+            }
+            if (i != parameters.size()) {
                 arguments.append(", ");
             }
         }
@@ -268,12 +294,12 @@ public class TestGenerator {
             List<CtStatement> createScannerReadXML = readXMLFromFile(fileName, type);
             methodBody.addAll(createScannerReadXML);
         } else {
-            if (!method.getType().isPrimitive()) {
+            if (!method.getType().isPrimitive() & !testGenUtil.returnedObjectIsNull(returnedXML)) {
                 CtStatement returnedXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "returnedXML", returnedXML);
                 methodBody.add(returnedXMLStringDeclaration);
             }
         }
-        if (!method.getType().isPrimitive())
+        if (!method.getType().isPrimitive() & !testGenUtil.returnedObjectIsNull(returnedXML))
             methodBody.add(parseReturnedObject(returnedObjectType, method));
 
         if (!paramsXML.isEmpty()) {
@@ -283,8 +309,10 @@ public class TestGenerator {
                 List<CtStatement> createScannerReadXML = readXMLFromFile(fileName, type);
                 methodBody.addAll(createScannerReadXML);
             }
-            List<CtStatement> paramStatements = addAndParseMethodParams(paramsXML, method);
-            methodBody.addAll(paramStatements);
+            if (!testGenUtil.allMethodParametersArePrimitive(method)) {
+                List<CtStatement> paramStatements = addAndParseMethodParams(paramsXML, method);
+                methodBody.addAll(paramStatements);
+            }
         }
         if (instrumentedMethod.getVisibility().equals("private")) {
             methodBody.addAll(accessPrivateMethod(instrumentedMethod));
@@ -349,7 +377,7 @@ public class TestGenerator {
         statementsInMethodBody.forEach(methodBody::addStatement);
         generatedMethod.setBody(methodBody);
         return generatedMethod;
-}
+    }
 
     public CtClass<?> generateFullTestClass(CtType<?> type,
                                             CtMethod<?> method,
@@ -363,7 +391,7 @@ public class TestGenerator {
         System.out.println("Number of unique pairs/triples of object values: " + serializedObjects.size());
 
         if (serializedObjects.size() == 0) {
-            System.out.println("Skip generating tests for this method.");
+            System.out.println("NO OBJECTS FOUND FOR " + instrumentedMethod.getFullMethodPath() + " - SKIPPING");
             return null;
         } else {
             numberOfTestCasesGenerated += serializedObjects.size();
