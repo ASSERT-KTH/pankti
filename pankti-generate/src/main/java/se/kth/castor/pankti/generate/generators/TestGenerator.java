@@ -55,6 +55,9 @@ public class TestGenerator {
 
     public void addImportsToGeneratedClass(CtClass<?> generatedClass) {
         generatedClass.getFactory().createUnresolvedImport(XSTREAM_REFERENCE, false);
+        if (this.testFormat.equals("json")) {
+            generatedClass.getFactory().createUnresolvedImport(XSTREAM_DRIVER_REFERENCE, false);
+        }
         generatedClass.getFactory().createUnresolvedImport(JUNIT_TEST_REFERENCE, false);
         generatedClass.getFactory().createUnresolvedImport(JUNIT_BEFORE_REFERENCE, false);
         generatedClass.getFactory().createUnresolvedImport(JUNIT_ASSERT_REFERENCE, false);
