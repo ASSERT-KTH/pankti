@@ -83,6 +83,7 @@ public class ObjectXMLParser {
                 paramObjects = parseXMLInFile(paramObjectsFile);
             }
 
+            int serializedObjectCount = 0;
             for (int i = 0; i < receivingObjects.size(); i++) {
                 if (!receivingObjects.get(i).isEmpty() && !returnedObjects.get(i).isEmpty()) {
                     String params = hasParams ? paramObjects.get(i) : "";
@@ -91,8 +92,10 @@ public class ObjectXMLParser {
                             returnedObjects.get(i),
                             params);
                     serializedObjects.add(serializedObject);
+                    serializedObjectCount++;
                 }
             }
+            System.out.println("Number of pairs/triples of object values: " + serializedObjectCount);
         } catch (FileNotFoundException e) {
           System.out.println("NO OBJECT FILES FOUND FOR " + basePath + " PARAMS" + postfix + " - SKIPPING");
         } catch (Exception e) {

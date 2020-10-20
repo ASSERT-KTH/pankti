@@ -462,7 +462,8 @@ public class TestGenerator {
                         Map.Entry<CtMethod<?>, Boolean> methodAndOverload = findMethodToGenerateTestMethodsFor(methodsByName, instrumentedMethod);
                         CtMethod<?> methodToGenerateTestsFor = methodAndOverload.getKey();
                         instrumentedMethod.setOverloaded(methodAndOverload.getValue());
-                        System.out.println("Generating test method for: " + methodToGenerateTestsFor.getPath());
+                        System.out.println("Generating test method for: " +
+                                instrumentedMethod.getParentFQN() + "." + instrumentedMethod.getMethodName());
                         try {
                             CtClass<?> generatedClass = generateFullTestClass(
                                     type, methodToGenerateTestsFor, instrumentedMethod,
