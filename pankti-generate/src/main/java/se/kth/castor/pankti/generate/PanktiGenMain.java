@@ -9,6 +9,8 @@ import spoon.support.compiler.SpoonPom;
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
 
+enum TestFormat { xml, json }
+
 @CommandLine.Command(
         name = "java -jar target/<pankti-gen-version-jar-with-dependencies.jar>",
         description = "pankti-gen generates test cases from serialized objects",
@@ -31,6 +33,14 @@ public class PanktiGenMain implements Callable<Integer> {
             paramLabel = "DIRECTORY_WITH_OBJECT_XML_FILES",
             description = "Path to directory containing object XML files")
     private Path objectXMLDirectoryPath;
+
+    @CommandLine.Option(
+            names = {"--format"},
+            defaultValue = "xml",
+            paramLabel = "TEST_FORMAT",
+            description = "Specify the string format that is used in the generated tests, " +
+                    "default: ${DEFAULT-VALUE}, candidates values: ${COMPLETION-CANDIDATES}")
+    private TestFormat testFormat;
 
     @CommandLine.Option(
             names = {"-h", "--help"},
@@ -65,7 +75,7 @@ public class PanktiGenMain implements Callable<Integer> {
         System.out.println("POM found at: " + projectPom.getPath());
         System.out.println("Number of Maven modules: " + projectPom.getModel().getModules().size());
 
-        TestGenerator testGenerator = new TestGenerator();
+        TestGenerator testGenerator = new TestGenerator(testFormat.toString());
         System.out.println("Number of new test cases: " + testGenerator.process(model, launcher,
                 methodCSVFilePath.toString(), objectXMLDirectoryPath.toString()));
 

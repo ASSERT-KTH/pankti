@@ -22,7 +22,9 @@ import java.util.stream.Collectors;
 public class TestGenerator {
     private static Factory factory;
     private static final String XSTREAM_REFERENCE = "com.thoughtworks.xstream.XStream";
+    private static final String XSTREAM_DRIVER_REFERENCE = "com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver";
     private static final String XSTREAM_CONSTRUCTOR = "new XStream()";
+    private static final String XSTREAM_CONSTRUCTOR_JSON = "new XStream(new JettisonMappedXmlDriver())";
     private static final String JUNIT_TEST_REFERENCE = "org.junit.Test";
     private static final String JUNIT_BEFORE_REFERENCE = "org.junit.Before";
     private static final String JUNIT_ASSERT_REFERENCE = "org.junit.Assert";
@@ -33,8 +35,13 @@ public class TestGenerator {
     private static final String TEST_CLASS_PREFIX = "Test";
     private static final String TEST_CLASS_POSTFIX = "PanktiGen";
     private static int numberOfTestCasesGenerated;
+    private String testFormat;
 
     private final TestGeneratorUtil testGenUtil = new TestGeneratorUtil();
+
+    public TestGenerator(String testFormat) {
+        this.testFormat = testFormat;
+    }
 
     public String getGeneratedClassName(CtPackage ctPackage, String className) {
         return String.format("%s.%s%s%s", ctPackage, TEST_CLASS_PREFIX, className, TEST_CLASS_POSTFIX);
@@ -57,11 +64,21 @@ public class TestGenerator {
     }
 
     public CtField<?> addXStreamFieldToGeneratedClass() throws ClassNotFoundException {
-        CtField<?> xStreamField = factory.createCtField(
-                "xStream",
-                factory.createCtTypeReference(Class.forName(XSTREAM_REFERENCE)),
-                XSTREAM_CONSTRUCTOR
-        );
+        CtField<?> xStreamField = null;
+
+        if (this.testFormat.equals("xml")) {
+            xStreamField = factory.createCtField(
+                    "xStream",
+                    factory.createCtTypeReference(Class.forName(XSTREAM_REFERENCE)),
+                    XSTREAM_CONSTRUCTOR
+            );
+        } else {
+            xStreamField = factory.createCtField(
+                    "xStream",
+                    factory.createCtTypeReference(Class.forName(XSTREAM_REFERENCE)),
+                    XSTREAM_CONSTRUCTOR_JSON
+            );
+        }
         xStreamField.addModifier(ModifierKind.STATIC);
         return xStreamField;
     }
@@ -153,16 +170,16 @@ public class TestGenerator {
         return assertInvocation;
     }
 
-    public String createLongXMLStringFile(String methodIdentifier, String xmlType, String longXML, MavenLauncher launcher) {
+    public String createLongObjectStringFile(String methodIdentifier, String profileType, String longObjectStr, MavenLauncher launcher) {
         String fileName = "";
         try {
-            File longXMLFile = new File("./output/object-data/" + methodIdentifier + "-" + xmlType + ".xml");
-            longXMLFile.getParentFile().mkdirs();
-            FileWriter myWriter = new FileWriter(longXMLFile);
-            myWriter.write(longXML.replaceAll("\\\\\"", "\""));
+            File longObjectStrFile = new File("./output/object-data/" + methodIdentifier + "-" + profileType + "." + this.testFormat);
+            longObjectStrFile.getParentFile().mkdirs();
+            FileWriter myWriter = new FileWriter(longObjectStrFile);
+            myWriter.write(longObjectStr.replaceAll("\\\\\"", "\""));
             myWriter.close();
-            SpoonResource newResource = SpoonResourceHelper.createResource(longXMLFile);
-            launcher.addInputResource(longXMLFile.getAbsolutePath());
+            SpoonResource newResource = SpoonResourceHelper.createResource(longObjectStrFile);
+            launcher.addInputResource(longObjectStrFile.getAbsolutePath());
             fileName = newResource.getName();
         } catch (Exception e) {
             e.printStackTrace();
@@ -170,7 +187,7 @@ public class TestGenerator {
         return fileName;
     }
 
-    public List<CtStatement> readXMLFromFile(String fileName, String type) {
+    public List<CtStatement> readObjectStringFromFile(String fileName, String type) {
         List<CtStatement> createScannerReadString = new ArrayList<>();
         List<CtStatement> scannerDeclaration = testGenUtil.addScannerVariableToTestMethod(factory, fileName, type);
         CtStatement stringReadFromScanner = testGenUtil.readStringFromScanner(factory, type);
@@ -181,27 +198,27 @@ public class TestGenerator {
 
     public CtStatement parseReceivingObject(String receivingObjectType) {
         return factory.createCodeSnippetStatement(String.format(
-                "%s receivingObject = (%s) xStream.fromXML(receivingXML)",
+                "%s receivingObject = (%s) xStream.fromXML(receivingObjectStr)",
                 receivingObjectType,
                 receivingObjectType));
     }
 
     public CtStatement parseReturnedObject(String returnedObjectType, CtMethod<?> method) {
         return factory.createCodeSnippetStatement(String.format(
-                "%s expectedObject = (%s) xStream.fromXML(returnedXML)",
+                "%s expectedObject = (%s) xStream.fromXML(returnedObjectStr)",
                 returnedObjectType,
                 testGenUtil.findObjectBoxType(method.getType())));
     }
 
-    public List<CtStatement> addAndParseMethodParams(String paramsXML, CtMethod<?> method) {
+    public List<CtStatement> addAndParseMethodParams(String paramsObjectStr, CtMethod<?> method) {
         List<CtStatement> paramStatements = new ArrayList<>();
-        if (paramsXML.length() <= 10000) {
-            CtStatement paramsXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "paramsXML", paramsXML);
+        if (paramsObjectStr.length() <= 10000) {
+            CtStatement paramsXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "paramsObjectStr", paramsObjectStr);
             paramStatements.add(paramsXMLStringDeclaration);
         }
         CtStatement parseParamObjects = factory.createCodeSnippetStatement(
                 String.format(
-                        "%s paramObjects = (%s) xStream.fromXML(paramsXML)",
+                        "%s paramObjects = (%s) xStream.fromXML(paramsObjectStr)",
                         "Object[]",
                         "Object[]"));
 
@@ -262,11 +279,11 @@ public class TestGenerator {
                                                             CtMethod<?> method,
                                                             int methodCounter,
                                                             SerializedObject serializedObject,
-                                                            String receivingXML,
+                                                            String receivingObjectStr,
                                                             String receivingObjectType,
-                                                            String returnedXML,
+                                                            String returnedObjectStr,
                                                             String returnedObjectType,
-                                                            String paramsXML,
+                                                            String paramsObjectStr,
                                                             MavenLauncher launcher) throws ClassNotFoundException {
         List<CtStatement> methodBody = new ArrayList<>();
         String postfix = "";
@@ -274,43 +291,43 @@ public class TestGenerator {
             postfix = testGenUtil.getParamListPostFix(instrumentedMethod);
         }
         String methodIdentifier = instrumentedMethod.getFullMethodPath() + postfix + methodCounter;
-        if (receivingXML.length() > 10000 || returnedXML.length() > 10000 || paramsXML.length() > 10000) {
+        if (receivingObjectStr.length() > 10000 || returnedObjectStr.length() > 10000 || paramsObjectStr.length() > 10000) {
             CtStatement classLoaderDeclaration = testGenUtil.addClassLoaderVariableToTestMethod(factory);
             methodBody.add(classLoaderDeclaration);
         }
-        if (receivingXML.length() > 10000) {
+        if (receivingObjectStr.length() > 10000) {
             String type = "receiving";
-            String fileName = createLongXMLStringFile(methodIdentifier, type, receivingXML, launcher);
-            List<CtStatement> createScannerReadXML = readXMLFromFile(fileName, type);
+            String fileName = createLongObjectStringFile(methodIdentifier, type, receivingObjectStr, launcher);
+            List<CtStatement> createScannerReadXML = readObjectStringFromFile(fileName, type);
             methodBody.addAll(createScannerReadXML);
         } else {
-            CtStatement receivingXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "receivingXML", receivingXML);
+            CtStatement receivingXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "receivingObjectStr", receivingObjectStr);
             methodBody.add(receivingXMLStringDeclaration);
         }
         methodBody.add(parseReceivingObject(receivingObjectType));
-        if (returnedXML.length() > 10000) {
+        if (returnedObjectStr.length() > 10000) {
             String type = "returned";
-            String fileName = createLongXMLStringFile(methodIdentifier, type, returnedXML, launcher);
-            List<CtStatement> createScannerReadXML = readXMLFromFile(fileName, type);
+            String fileName = createLongObjectStringFile(methodIdentifier, type, returnedObjectStr, launcher);
+            List<CtStatement> createScannerReadXML = readObjectStringFromFile(fileName, type);
             methodBody.addAll(createScannerReadXML);
         } else {
-            if (!method.getType().isPrimitive() & !testGenUtil.returnedObjectIsNull(returnedXML)) {
-                CtStatement returnedXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "returnedXML", returnedXML);
+            if (!method.getType().isPrimitive() & !testGenUtil.returnedObjectIsNull(returnedObjectStr)) {
+                CtStatement returnedXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "returnedObjectStr", returnedObjectStr);
                 methodBody.add(returnedXMLStringDeclaration);
             }
         }
-        if (!method.getType().isPrimitive() & !testGenUtil.returnedObjectIsNull(returnedXML))
+        if (!method.getType().isPrimitive() & !testGenUtil.returnedObjectIsNull(returnedObjectStr))
             methodBody.add(parseReturnedObject(returnedObjectType, method));
 
-        if (!paramsXML.isEmpty()) {
-            if (paramsXML.length() > 10000) {
+        if (!paramsObjectStr.isEmpty()) {
+            if (paramsObjectStr.length() > 10000) {
                 String type = "params";
-                String fileName = createLongXMLStringFile(methodIdentifier, type, paramsXML, launcher);
-                List<CtStatement> createScannerReadXML = readXMLFromFile(fileName, type);
+                String fileName = createLongObjectStringFile(methodIdentifier, type, paramsObjectStr, launcher);
+                List<CtStatement> createScannerReadXML = readObjectStringFromFile(fileName, type);
                 methodBody.addAll(createScannerReadXML);
             }
             if (!testGenUtil.allMethodParametersArePrimitive(method)) {
-                List<CtStatement> paramStatements = addAndParseMethodParams(paramsXML, method);
+                List<CtStatement> paramStatements = addAndParseMethodParams(paramsObjectStr, method);
                 methodBody.addAll(paramStatements);
             }
         }
@@ -358,21 +375,29 @@ public class TestGenerator {
         generatedMethod.addThrownType(factory.createCtTypeReference(Exception.class));
 
         // Get serialized objects as XML strings
-        String receivingXML = serializedObject.getReceivingObject();
-        String receivingObjectType = serializedObject.getObjectType(receivingXML);
-        String returnedXML = serializedObject.getReturnedObject();
+        String receivingObjectStr = serializedObject.getReceivingObject();
+        String receivingObjectType = serializedObject.getObjectType(receivingObjectStr);
+        String returnedObjectStr = serializedObject.getReturnedObject();
         String returnedObjectType = instrumentedMethod.getReturnType();
 
-        String paramsXML = "";
+        String paramsObjectStr = "";
         if (instrumentedMethod.hasParams()) {
-            paramsXML = serializedObject.getParamObjects();
+            paramsObjectStr = serializedObject.getParamObjects();
+        }
+
+        if (this.testFormat.equals("json")) {
+            receivingObjectStr = testGenUtil.transformXML2JSON(receivingObjectStr);
+            returnedObjectStr = testGenUtil.transformXML2JSON(returnedObjectStr);
+            if (paramsObjectStr.length() > 0) {
+                paramsObjectStr = testGenUtil.transformXML2JSON(paramsObjectStr);
+            }
         }
 
         CtBlock<?> methodBody = factory.createBlock();
 
         List<CtStatement> statementsInMethodBody =
                 generateStatementsInMethodBody(instrumentedMethod, method, methodCounter, serializedObject,
-                        receivingXML, receivingObjectType, returnedXML, returnedObjectType, paramsXML, launcher);
+                        receivingObjectStr, receivingObjectType, returnedObjectStr, returnedObjectType, paramsObjectStr, launcher);
 
         statementsInMethodBody.forEach(methodBody::addStatement);
         generatedMethod.setBody(methodBody);
