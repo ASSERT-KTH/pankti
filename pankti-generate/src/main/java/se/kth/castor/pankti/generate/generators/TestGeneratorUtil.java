@@ -25,7 +25,7 @@ import java.util.Scanner;
 
 public class TestGeneratorUtil {
     public CtLocalVariable<String> addStringVariableToTestMethod(Factory factory, String fieldName, String fieldValue) {
-        fieldValue = StringEscapeUtils.escapeJava(fieldValue).replaceAll("\\n", "\" +\n\"");
+        fieldValue = StringEscapeUtils.escapeJava(fieldValue).replaceAll("\\\\n", "\" +\n\"");
         CtExpression<String> variableExpression = factory.createCodeSnippetExpression(
                 "\n\"" + fieldValue + "\""
         );
