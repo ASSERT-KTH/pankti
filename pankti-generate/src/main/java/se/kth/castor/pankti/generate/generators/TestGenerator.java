@@ -24,7 +24,6 @@ public class TestGenerator {
     private static final String XSTREAM_REFERENCE = "com.thoughtworks.xstream.XStream";
     private static final String XSTREAM_DRIVER_REFERENCE = "com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver";
     private static final String XSTREAM_CONSTRUCTOR = "new XStream()";
-    private static final String XSTREAM_CONSTRUCTOR_JSON = "new XStream(new JettisonMappedXmlDriver())";
     private static final String JUNIT_TEST_REFERENCE = "org.junit.Test";
     private static final String JUNIT_BEFORE_REFERENCE = "org.junit.Before";
     private static final String JUNIT_ASSERT_REFERENCE = "org.junit.Assert";
@@ -69,19 +68,19 @@ public class TestGenerator {
     public CtField<?> addXStreamFieldToGeneratedClass() throws ClassNotFoundException {
         CtField<?> xStreamField = null;
 
-        if (this.testFormat.equals("xml")) {
-            xStreamField = factory.createCtField(
-                    "xStream",
+        xStreamField = factory.createCtField(
+                "xStream",
+                factory.createCtTypeReference(Class.forName(XSTREAM_REFERENCE)),
+                XSTREAM_CONSTRUCTOR
+        );
+
+        if (this.testFormat.equals("json")) {
+            xStreamField.setDefaultExpression(factory.createConstructorCall(
                     factory.createCtTypeReference(Class.forName(XSTREAM_REFERENCE)),
-                    XSTREAM_CONSTRUCTOR
-            );
-        } else {
-            xStreamField = factory.createCtField(
-                    "xStream",
-                    factory.createCtTypeReference(Class.forName(XSTREAM_REFERENCE)),
-                    XSTREAM_CONSTRUCTOR_JSON
-            );
+                    factory.createConstructorCall(factory.createCtTypeReference(Class.forName(XSTREAM_DRIVER_REFERENCE)))
+            ));
         }
+
         xStreamField.addModifier(ModifierKind.STATIC);
         return xStreamField;
     }
@@ -428,7 +427,6 @@ public class TestGenerator {
             CtClass<?> generatedClass = factory.Class().get(getGeneratedClassName(type.getPackage(), type.getSimpleName()));
             if (generatedClass == null) {
                 generatedClass = generateTestClass(type.getPackage(), type.getSimpleName());
-                addImportsToGeneratedClass(generatedClass);
                 generatedClass.addField(addXStreamFieldToGeneratedClass());
             }
 
