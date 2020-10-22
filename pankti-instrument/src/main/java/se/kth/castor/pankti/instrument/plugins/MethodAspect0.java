@@ -23,11 +23,13 @@ public class MethodAspect0 {
         private static final TimerName timer = Agent.getTimerName(TargetMethodAdvice.class);
         private static final String transactionType = "Target";
         private static final int COUNT = 0;
+        private static long profileSizePre;
         private static String receivingObjectFilePath;
         private static String paramObjectsFilePath;
         private static String returnedObjectFilePath;
         private static String invocationCountFilePath;
         private static String invokedMethodsCSVFilePath;
+        private static String objectProfileSizeFilePath;
         private static Logger logger = Logger.getLogger(TargetMethodAdvice.class);
         private static String rowInCSVFile = "";
         private static final String methodParamTypesString = String.join(",", TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodParameterTypes());
@@ -44,7 +46,17 @@ public class MethodAspect0 {
             returnedObjectFilePath = fileNames[2];
             invocationCountFilePath = fileNames[3];
             invokedMethodsCSVFilePath = fileNames[4];
+            objectProfileSizeFilePath = fileNames[5];
             checkFileSizeLimit();
+        }
+
+        public static long getObjectProfileSize() {
+            long objectProfileSize = 0L;
+            File[] files = {new File(receivingObjectFilePath), new File(returnedObjectFilePath), new File(paramObjectsFilePath)};
+            for (File file : files) {
+                objectProfileSize += file.length();
+            }
+            return objectProfileSize;
         }
 
         // Limit object XML files to ~200 MB
@@ -73,6 +85,17 @@ public class MethodAspect0 {
                 writer.close();
             } catch (Exception e) {
                 logger.info("MethodAspect" + COUNT);
+                e.printStackTrace();
+            }
+        }
+
+        // Write size (in bytes) of individual object profile to file
+        public static synchronized void writeObjectProfileSizeToFile(long size) {
+            try {
+                FileWriter objectFileWriter = new FileWriter(objectProfileSizeFilePath, true);
+                objectFileWriter.write(size + "\n");
+                objectFileWriter.close();
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
@@ -130,6 +153,7 @@ public class MethodAspect0 {
                                           @BindMethodName String methodName) {
             setup();
             if (fileSizeWithinLimits) {
+                profileSizePre = getObjectProfileSize();
                 writeObjectXMLToFile(receivingObject, receivingObjectFilePath);
                 writeObjectXMLToFile(parameterObjects, paramObjectsFilePath);
             }
@@ -146,6 +170,7 @@ public class MethodAspect0 {
                                     @BindTraveler TraceEntry traceEntry) {
             if (fileSizeWithinLimits) {
                 writeObjectXMLToFile(returnedObject, returnedObjectFilePath);
+                writeObjectProfileSizeToFile(getObjectProfileSize() - profileSizePre);
                 checkFileSizeLimit();
             }
             INVOCATION_COUNT++;

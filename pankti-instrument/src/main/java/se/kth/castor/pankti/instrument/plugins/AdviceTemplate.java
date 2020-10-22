@@ -43,7 +43,8 @@ public interface AdviceTemplate {
             String paramObjectsFilePath = filePath + "-params.xml";
             String returnedObjectFilePath = filePath + "-returned.xml";
             String invocationCountFilePath = filePath + "-count.txt";
-            return new String[]{receivingObjectFilePath, paramObjectsFilePath, returnedObjectFilePath, invocationCountFilePath, invokedMethodsCSVFilePath};
+            String objectProfileSizeFilePath = filePath + "-object-profile-sizes.txt";
+            return new String[]{receivingObjectFilePath, paramObjectsFilePath, returnedObjectFilePath, invocationCountFilePath, invokedMethodsCSVFilePath, objectProfileSizeFilePath};
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(0);
