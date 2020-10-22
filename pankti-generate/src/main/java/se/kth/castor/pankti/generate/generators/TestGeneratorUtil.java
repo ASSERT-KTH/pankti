@@ -76,7 +76,7 @@ public class TestGeneratorUtil {
 
     public CtLocalVariable<String> readStringFromScanner(Factory factory, String type) {
         String scannerVariableName = "scanner" + type.substring(0, 1).toUpperCase() + type.substring(1);;
-        String xmlVariableName = type + "XML";
+        String xmlVariableName = type + "ObjectStr";
         CtExpression<String> variableExpression = factory.createCodeSnippetExpression(
                 scannerVariableName + ".useDelimiter(\"\\\\A\").next()"
         );
