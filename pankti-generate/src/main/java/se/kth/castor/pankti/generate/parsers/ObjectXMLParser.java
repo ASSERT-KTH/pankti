@@ -34,8 +34,6 @@ public class ObjectXMLParser {
 
     public String cleanUpRawObjectXML(String rawXMLForObject) {
         rawXMLForObject = rawXMLForObject.replaceAll("(\\<\\?xml version=\"1\\.0\" encoding=\"UTF-16\"\\?>)", "");
-//        rawXMLForObject = rawXMLForObject.replaceAll("\\\\", "\\\\\\\\");
-//        rawXMLForObject = rawXMLForObject.replaceAll("\"", "\\\\\"");
         rawXMLForObject = rawXMLForObject.trim();
         rawXMLForObject = rawXMLForObject.replaceAll("(&amp;#x)(\\w+;)", "&#x$2");
         return rawXMLForObject;
