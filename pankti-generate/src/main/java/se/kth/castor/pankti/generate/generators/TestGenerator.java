@@ -178,7 +178,7 @@ public class TestGenerator {
             File longObjectStrFile = new File("./output/object-data/" + methodIdentifier + "-" + profileType + "." + this.testFormat);
             longObjectStrFile.getParentFile().mkdirs();
             FileWriter myWriter = new FileWriter(longObjectStrFile);
-            myWriter.write(longObjectStr.replaceAll("\\\\\"", "\""));
+            myWriter.write(longObjectStr);
             myWriter.close();
             SpoonResource newResource = SpoonResourceHelper.createResource(longObjectStrFile);
             launcher.addInputResource(longObjectStrFile.getAbsolutePath());
