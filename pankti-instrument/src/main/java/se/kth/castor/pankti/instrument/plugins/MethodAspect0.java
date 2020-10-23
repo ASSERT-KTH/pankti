@@ -84,7 +84,7 @@ public class MethodAspect0 {
                 writer.flush();
                 writer.close();
             } catch (Exception e) {
-                logger.info("MethodAspect" + COUNT);
+                logger.info("Exception when writing XML for MethodAspect" + COUNT + " to file " + objectFilePath);
                 e.printStackTrace();
             }
         }
