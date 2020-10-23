@@ -73,4 +73,15 @@ public class TestGeneratorUtilTest {
 
         assertEquals(xStream.toXML(dummyObject), xStream.toXML(deserializedObject));
     }
+
+    @Test
+    public void testQuoteMarksInXMLString() {
+        String testXML = "<test attr=\"&quot;abcd&quot;\"></test>";
+        String expectedJsonString = "{\"test\":{\"@attr\":\"\\\"abcd\\\"\"}}";
+
+        TestGeneratorUtil util = new TestGeneratorUtil();
+        String jsonString = util.transformXML2JSON(testXML);
+
+        assertEquals(expectedJsonString, jsonString);
+    }
 }
