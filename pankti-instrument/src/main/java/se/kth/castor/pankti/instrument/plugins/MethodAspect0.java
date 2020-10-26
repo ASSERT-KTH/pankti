@@ -89,7 +89,7 @@ public class MethodAspect0 {
                 writer.flush();
                 writer.close();
             } catch (Exception e) {
-                logger.info("Exception caught when writing xml to file: " + objectFilePath);
+                logger.info("Exception when writing XML for MethodAspect" + COUNT + " to file " + objectFilePath);
                 e.printStackTrace();
                 if (e.getMessage().startsWith("No converter specified") || e.getMessage().startsWith("No converter available")) {
                     String className = extractClassNameFromTheExceptionMessage(e.getMessage());
