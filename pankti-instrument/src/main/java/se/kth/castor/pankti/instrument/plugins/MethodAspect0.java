@@ -1,5 +1,10 @@
 package se.kth.castor.pankti.instrument.plugins;
 
+import com.thoughtworks.xstream.converters.Converter;
+import com.thoughtworks.xstream.converters.MarshallingContext;
+import com.thoughtworks.xstream.converters.UnmarshallingContext;
+import com.thoughtworks.xstream.io.HierarchicalStreamReader;
+import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import org.glowroot.agent.plugin.api.*;
 import org.glowroot.agent.plugin.api.weaving.*;
 
@@ -84,8 +89,13 @@ public class MethodAspect0 {
                 writer.flush();
                 writer.close();
             } catch (Exception e) {
-                logger.info("MethodAspect" + COUNT);
+                logger.info("Exception caught when writing xml to file: " + objectFilePath);
                 e.printStackTrace();
+                if (e.getMessage().startsWith("No converter specified") || e.getMessage().startsWith("No converter available")) {
+                    String className = extractClassNameFromTheExceptionMessage(e.getMessage());
+                    registerConverterAtRuntime(className);
+                    logger.info("Automatically register a converter for: " + className);
+                }
             }
         }
 
@@ -185,6 +195,37 @@ public class MethodAspect0 {
         public static void onThrow(@BindThrowable Throwable throwable,
                                    @BindTraveler TraceEntry traceEntry) {
             traceEntry.endWithError(throwable);
+        }
+
+        public static String extractClassNameFromTheExceptionMessage(String exceptionMessage) {
+            String className = "";
+
+            String pattern = "type\\s+:\\s+(\\S*)\\n";
+            Pattern r = Pattern.compile(pattern);
+            Matcher m = r.matcher(exceptionMessage);
+            if (m.find( )) {
+                className = m.group(1);
+            }
+
+            return className;
+        }
+
+        public static void registerConverterAtRuntime(String className) {
+            xStream.registerConverter(new Converter() {
+                @Override
+                public void marshal(Object o, HierarchicalStreamWriter hierarchicalStreamWriter, MarshallingContext marshallingContext) {
+                }
+
+                @Override
+                public Object unmarshal(HierarchicalStreamReader hierarchicalStreamReader, UnmarshallingContext unmarshallingContext) {
+                    return null;
+                }
+
+                @Override
+                public boolean canConvert(Class aClass) {
+                    return aClass.getCanonicalName().equals(className);
+                }
+            });
         }
     }
 }
