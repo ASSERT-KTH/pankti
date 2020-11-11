@@ -59,5 +59,9 @@ To run **pankti-generate**,
 The output is in a directory at `/path/to/pankti/pankti-generate/output/generated/<project-name>/`. Generated test classes are placed in appropriate package directories. The naming convention followed is _Test\<ClassName\>PanktiGen.java_. Resource files for long XML strings are created at `/path/to/pankti/pankti-generate/output/generated/object-data`.
 ___
 
-:telescope: Results and data: [pankti-experiments](https://github.com/castor-software/pankti-experiments)
+<p align="center">
+  <img src="https://github.com/castor-software/pankti/blob/master/pankti-workflow.jpg">
+</p>
+
+#### :telescope: Results and data: [pankti-experiments](https://github.com/castor-software/pankti-experiments)
 ___
