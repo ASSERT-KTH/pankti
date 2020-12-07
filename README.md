@@ -30,7 +30,7 @@ To run **pankti-extract**,
 ___
 
 ### Instrument (pankti-instrument)
-pankti-instrument is a [Glowroot](https://glowroot.org/) plugin that serializes objects for instrumented methods that are invoked.
+pankti-instrument is a Glowroot ([download](https://glowroot.org/)) plugin that serializes objects for instrumented methods that are invoked. pankti-instrument uses the [Plugin API](https://glowroot.org/instrumentation.html) of Glowroot to instrument the methods extracted from pankti-extract.  
 
 To run **pankti-instrument**,
 1. `cd /path/to/pankti/pankti-instrument/`
@@ -44,7 +44,7 @@ ___
 Execute the application with a workload, using Glowroot as a javaagent.\
 `java -javaagent:/path/to/glowroot/glowroot.jar -jar <project-jar>.jar <cli-args>`\
 The serialized objects for invoked methods are saved at `/tmp/pankti-object-data/`.
-Additionally, a CSV file with a list of invoked methods is generated at `/tmp/pankti-object-data/`. 
+Additionally, a list of invoked methods is generated at `/tmp/pankti-object-data/invoked-methods.csv`. 
 ___
 
 ### Generate (pankti-generate)
