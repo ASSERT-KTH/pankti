@@ -6,10 +6,8 @@ import se.kth.castor.pankti.extract.launchers.PanktiLauncher;
 import se.kth.castor.pankti.extract.runners.PanktiMain;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
-import spoon.reflect.code.*;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.ModifierKind;
-import spoon.reflect.visitor.filter.TypeFilter;
 
 import java.net.URISyntaxException;
 import java.nio.file.Path;
@@ -25,7 +23,7 @@ public class MethodProcessorTest {
 
     @BeforeAll
     public static void setUpLauncherAndModel() throws URISyntaxException {
-        methodProcessor = new MethodProcessor();
+        methodProcessor = new MethodProcessor(true);
         panktiMain = new PanktiMain(Path.of("src/test/resources/jitsi-videobridge"), false);
         panktiLauncher = new PanktiLauncher();
         mavenLauncher = panktiLauncher.getMavenLauncher(panktiMain.getProjectPath().toString(),
@@ -161,8 +159,8 @@ public class MethodProcessorTest {
     // Test the total number of extracted methods found in the test resource
     @Test
     public void testNumberOfCandidateMethods() {
-        assertEquals(214,
+        assertEquals(408,
                 methodProcessor.candidateMethods.size(),
-                "Number of extracted methods in test resource 214");
+                "Number of extracted methods in test resource 408");
     }
 }

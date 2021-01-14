@@ -81,7 +81,7 @@ public class CandidateTagger extends AbstractProcessor<CtMethod<?>> {
 
     private Map.Entry<String, Boolean> getReturns(CtMethod<?> ctMethod) {
         boolean returnsValue = false;
-        if (ctMethod.getElements(new TypeFilter<>(CtReturn.class)).size() > 0) {
+        if (ctMethod.getElements(new TypeFilter<>(CtReturn.class)).size() > 0 & !ctMethod.getType().getSimpleName().equals("void")) {
             methodsReturningAValue.add(ctMethod);
             returnsValue = true;
         } else {
@@ -147,6 +147,7 @@ public class CandidateTagger extends AbstractProcessor<CtMethod<?>> {
     public String toString() {
         return "CandidateTagger{" +
                 "methodsReturningAValue=" + methodsReturningAValue.size() +
+                ", methodsNotReturningAValue=" + methodsNotReturningAValue.size() +
                 ", methodsReturningAPrimitive=" + methodsReturningAPrimitive.size() +
                 ", staticMethods=" + staticMethods.size() +
                 ", methodsWithParameters=" + methodsWithParameters.size() +
