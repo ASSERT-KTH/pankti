@@ -17,6 +17,7 @@ public class ObjectXMLParser {
     private static final String receivingObjectFilePostfix = "-receiving.xml";
     private static final String paramObjectsFilePostfix = "-params.xml";
     private static final String returnedObjectFilePostfix = "-returned.xml";
+    private static final String receivingPostObjectFilePostfix = "-receiving-post.xml";
 
     public InputStream addRootElementToXMLFile(File inputFile) throws FileNotFoundException {
         FileInputStream fis = new FileInputStream(inputFile);
@@ -73,8 +74,15 @@ public class ObjectXMLParser {
             }
             File receivingObjectFile = findXMLFileByObjectType(basePath, postfix + receivingObjectFilePostfix);
             List<String> receivingObjects = parseXMLInFile(receivingObjectFile);
-            File returnedObjectFile = findXMLFileByObjectType(basePath, postfix + returnedObjectFilePostfix);
-            List<String> returnedObjects = parseXMLInFile(returnedObjectFile);
+            List<String> returnedOrReceivingPostObjects;
+            if (!instrumentedMethod.getReturnType().equals("void")) {
+                File returnedObjectFile = findXMLFileByObjectType(basePath, postfix + returnedObjectFilePostfix);
+                returnedOrReceivingPostObjects = parseXMLInFile(returnedObjectFile);
+            } else {
+                File receivingPostObjectFile = findXMLFileByObjectType(basePath, postfix + receivingPostObjectFilePostfix);
+                returnedOrReceivingPostObjects = parseXMLInFile(receivingPostObjectFile);
+            }
+
             List<String> paramObjects = new ArrayList<>();
             if (hasParams) {
                 File paramObjectsFile = findXMLFileByObjectType(basePath, postfix + paramObjectsFilePostfix);
@@ -83,11 +91,12 @@ public class ObjectXMLParser {
 
             int serializedObjectCount = 0;
             for (int i = 0; i < receivingObjects.size(); i++) {
-                if (!receivingObjects.get(i).isEmpty() && !returnedObjects.get(i).isEmpty()) {
+                if (!receivingObjects.get(i).isEmpty() && !returnedOrReceivingPostObjects.get(i).isEmpty()) {
                     String params = hasParams ? paramObjects.get(i) : "";
                     SerializedObject serializedObject = new SerializedObject(
                             receivingObjects.get(i),
-                            returnedObjects.get(i),
+                            (!instrumentedMethod.getReturnType().equals("void") ? returnedOrReceivingPostObjects.get(i) : ""),
+                            (instrumentedMethod.getReturnType().equals("void") ? returnedOrReceivingPostObjects.get(i) : ""),
                             params);
                     serializedObjects.add(serializedObject);
                     serializedObjectCount++;

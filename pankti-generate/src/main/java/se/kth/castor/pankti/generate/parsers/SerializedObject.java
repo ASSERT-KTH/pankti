@@ -7,11 +7,13 @@ import java.util.Objects;
 public class SerializedObject {
     Map<String, String> receivingObject = new HashMap<>();
     Map<String, String> returnedObject = new HashMap<>();
+    Map<String, String> receivingPostObject = new HashMap<>();
     Map<String, String> paramObjects = new HashMap<>();
 
-    public SerializedObject(String receivingObject, String returnedObject, String paramObjects) {
+    public SerializedObject(String receivingObject, String returnedObject, String receivingPostObject, String paramObjects) {
         this.receivingObject.put("receivingObject", receivingObject);
         this.returnedObject.put("returnedObject", returnedObject);
+        this.receivingPostObject.put("receivingPostObject", receivingPostObject);
         this.paramObjects.put("paramObjects", paramObjects);
     }
 
@@ -25,6 +27,10 @@ public class SerializedObject {
 
     public String getReturnedObject() {
         return this.returnedObject.get("returnedObject");
+    }
+
+    public String getReceivingPostObject() {
+        return this.receivingPostObject.get("receivingPostObject");
     }
 
     public String getObjectType(String objectXML) {
@@ -41,12 +47,13 @@ public class SerializedObject {
         SerializedObject that = (SerializedObject) o;
         return receivingObject.equals(that.receivingObject) &&
                 returnedObject.equals(that.returnedObject) &&
+                receivingPostObject.equals(that.receivingPostObject) &&
                 paramObjects.equals(that.paramObjects);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(receivingObject, returnedObject, paramObjects);
+        return Objects.hash(receivingObject, returnedObject, paramObjects, receivingPostObject);
     }
 
     @Override
@@ -54,6 +61,7 @@ public class SerializedObject {
         return "SerializedObject{" +
                 "receivingObject=" + receivingObject +
                 ", returnedObject=" + returnedObject +
+                ", receivingPostObject=" + receivingPostObject +
                 ", paramObjects=" + paramObjects +
                 '}';
     }
