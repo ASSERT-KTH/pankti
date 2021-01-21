@@ -35,6 +35,15 @@ def generate_aspects(df):
               values.append(col_value)
             row_as_string = ','.join(values)
             line = re.sub(r"\"\"", "\"" + row_as_string + "\"", line)
+          # Changes needed for void methods
+          if row['return-type'] == "void":
+            if "boolean isReturnTypeVoid" in line:
+              line = line.replace("false", "true")
+            # if "@OnReturn" in line:
+            if "onReturn(@BindReturn Object returnedObject," in line:
+              line = line.replace("@BindReturn Object returnedObject", "@BindReceiver Object receivingObjectPost")
+            if "writeObjectXMLToFile(returnedObject, returnedObjectFilePath)" in line:
+              line = line.replace("returnedObject", "receivingObjectPost")
           if ("methodParameterTypes = " in line):
             if (pd.isnull(row['param-list'])):
               paramList = ""
