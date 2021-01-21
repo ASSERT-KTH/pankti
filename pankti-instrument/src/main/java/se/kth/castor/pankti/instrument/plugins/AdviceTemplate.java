@@ -7,6 +7,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 public interface AdviceTemplate {
     XStream xStream = new XStream();
@@ -33,22 +35,25 @@ public interface AdviceTemplate {
         return invokedMethodsCSVFile.getAbsolutePath();
     }
 
-    static String[] setUpFiles(String path) {
+    static Map<Type, String> setUpFiles(String path) {
+        Map<Type, String> fileNameMap = new HashMap<>();
         try {
             String storageDir = "/tmp/pankti-object-data/";
             Files.createDirectories(Paths.get(storageDir));
             String invokedMethodsCSVFilePath = setUpInvokedMethodsCSVFile(storageDir);
             String filePath = storageDir + path;
-            String receivingObjectFilePath = filePath + "-receiving.xml";
-            String paramObjectsFilePath = filePath + "-params.xml";
-            String returnedObjectFilePath = filePath + "-returned.xml";
-            String invocationCountFilePath = filePath + "-count.txt";
-            String objectProfileSizeFilePath = filePath + "-object-profile-sizes.txt";
-            return new String[]{receivingObjectFilePath, paramObjectsFilePath, returnedObjectFilePath, invocationCountFilePath, invokedMethodsCSVFilePath, objectProfileSizeFilePath};
+            fileNameMap.put(Type.RECEIVING_PRE, filePath + "-receiving.xml");
+            fileNameMap.put(Type.RECEIVING_POST, filePath + "-receiving-post.xml");
+            fileNameMap.put(Type.PARAMS, filePath + "-params.xml");
+            fileNameMap.put(Type.RETURNED, filePath + "-returned.xml");
+            fileNameMap.put(Type.INVOCATION_COUNT, filePath + "-count.txt");
+            fileNameMap.put(Type.OBJECT_PROFILE_SIZE, filePath + "-object-profile-sizes.txt");
+            fileNameMap.put(Type.INVOKED_METHODS, invokedMethodsCSVFilePath);
+            return fileNameMap;
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(0);
         }
-        return new String[]{};
+        return fileNameMap;
     }
 }

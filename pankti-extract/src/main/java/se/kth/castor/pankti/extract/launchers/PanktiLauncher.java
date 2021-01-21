@@ -81,11 +81,12 @@ public class PanktiLauncher {
         }
     }
 
-    public Set<CtMethod<?>> applyProcessor(final CtModel model) {
+    public Set<CtMethod<?>> applyProcessor(final CtModel model, final boolean includeVoidMethods) {
         // Filter out target methods and add metadata to them
-        MethodProcessor methodProcessor = new MethodProcessor();
+        MethodProcessor methodProcessor = new MethodProcessor(includeVoidMethods);
         model.processWith(methodProcessor);
         LOGGER.info(methodProcessor.toString());
+        LOGGER.info(String.format(!includeVoidMethods ? "not %s" : "%s", "including void methods"));
         Set<CtMethod<?>> candidateMethods = methodProcessor.getCandidateMethods();
         addMetaDataToCandidateMethods(candidateMethods);
 

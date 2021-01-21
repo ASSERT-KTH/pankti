@@ -28,6 +28,11 @@ public class PanktiMain implements Callable<Integer> {
     private Path projectPath;
 
     @CommandLine.Option(
+            names = {"-v", "--void"},
+            description = "Include void methods.")
+    private boolean includeVoidMethods;
+
+    @CommandLine.Option(
             names = {"-h", "--help"},
             description = "Display help/usage.",
             usageHelp = true)
@@ -42,6 +47,12 @@ public class PanktiMain implements Callable<Integer> {
 
     public PanktiMain(final Path projectPath, final boolean help) {
         this.projectPath = projectPath;
+        this.usageHelpRequested = help;
+    }
+
+    public PanktiMain(final Path projectPath, final boolean includeVoidMethods, final boolean help) {
+        this.projectPath = projectPath;
+        this.includeVoidMethods = includeVoidMethods;
         this.usageHelpRequested = help;
     }
 
@@ -71,7 +82,7 @@ public class PanktiMain implements Callable<Integer> {
 
         Instant start = Instant.now();
         // Apply processor to model
-        Set<CtMethod<?>> candidateMethods = panktiLauncher.applyProcessor(model);
+        Set<CtMethod<?>> candidateMethods = panktiLauncher.applyProcessor(model, includeVoidMethods);
         Instant finish = Instant.now();
         long timeElapsed = Duration.between(start, finish).toMillis();
         LOGGER.info("Elapsed time (ms): " + timeElapsed);

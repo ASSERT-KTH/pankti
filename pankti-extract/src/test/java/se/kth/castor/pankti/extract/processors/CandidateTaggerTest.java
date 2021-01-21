@@ -25,7 +25,7 @@ public class CandidateTaggerTest {
 
     @BeforeAll
     public static void setUpLauncherAndModel() throws URISyntaxException {
-        methodProcessor = new MethodProcessor();
+        methodProcessor = new MethodProcessor(true);
         panktiMain = new PanktiMain(Path.of("src/test/resources/jitsi-videobridge"), false);
         panktiLauncher = new PanktiLauncher();
         mavenLauncher = panktiLauncher.getMavenLauncher(panktiMain.getProjectPath().toString(),
@@ -45,11 +45,12 @@ public class CandidateTaggerTest {
     }
 
 
-    // Test that all extracted methods return a value
+    // Test that some extracted methods are void
     @Test
-    public void testAllextractedMethodsReturnAValue() {
-        assertEquals(methodProcessor.candidateMethods.size(), candidateTagger.methodsReturningAValue.size(),
-                "All extracted methods in test resource should return a value");
+    public void testSomeExtractedMethodsDoNotReturnAValue() {
+        assertEquals(methodProcessor.candidateMethods.size() - candidateTagger.methodsReturningAValue.size(),
+                candidateTagger.methodsNotReturningAValue.size(),
+                "Some extracted methods in test resource are void");
     }
 
     // Test that an extracted method found to return a value actually does so
@@ -71,11 +72,11 @@ public class CandidateTaggerTest {
                 "returns tag should be true for method");
     }
 
-    // Test that no extracted method returns nothing
+    // Test that some extracted methods are void
     @Test
     public void testNumberOfMethodsNotReturningAValue() {
-        assertTrue(candidateTagger.methodsNotReturningAValue.isEmpty(),
-                "all extracted methods in test resource return a value");
+        assertFalse(candidateTagger.methodsNotReturningAValue.isEmpty(),
+                "some extracted methods in test resource are void");
     }
 
     // Test the number of extracted methods returning a primitive
@@ -144,9 +145,9 @@ public class CandidateTaggerTest {
     // Test the number of extracted methods with if conditions
     @Test
     public void testNumberOfMethodsWithIfConditions() {
-        assertEquals(54,
+        assertEquals(160,
                 candidateTagger.methodsWithIfConditions.size(),
-                "54 extracted methods in test resource have an if condition");
+                "160 extracted methods in test resource have an if condition");
     }
 
     // Test that an extracted method found to have if condition(s) actually does so
@@ -168,9 +169,9 @@ public class CandidateTaggerTest {
     // Test the number of extracted methods with conditional operators
     @Test
     public void testNumberOfMethodsWithConditionals() {
-        assertEquals(6,
+        assertEquals(10,
                 candidateTagger.methodsWithConditionalOperators.size(),
-                "6 extracted methods in test resource use a conditional operator");
+                "10 extracted methods in test resource use a conditional operator");
     }
 
     // Test that an extracted method found to have conditional operator(s) actually does so
@@ -192,16 +193,16 @@ public class CandidateTaggerTest {
     // Test the number of extracted methods with loops
     @Test
     public void testNumberOfMethodsWithLoops() {
-        assertEquals(16, candidateTagger.methodsWithLoops.size(),
-                "16 extracted method in test resource have a loop");
+        assertEquals(28, candidateTagger.methodsWithLoops.size(),
+                "28 extracted method in test resource have a loop");
     }
 
     // Test the number of extracted methods with switch statements
     @Test
     public void testNumberOfMethodsWithSwitchStatements() {
-        assertEquals(1,
+        assertEquals(5,
                 candidateTagger.methodsWithSwitchStatements.size(),
-                "1 extracted method in test resource has switch statements");
+                "5 extracted methods in test resource have switch statements");
     }
 
     // Test that an extracted method found to have switch statement(s) actually does so
@@ -223,9 +224,9 @@ public class CandidateTaggerTest {
     // Test the number of extracted methods with parameters
     @Test
     public void testNumberOfMethodsWithParameters() {
-        assertEquals(72,
+        assertEquals(229,
                 candidateTagger.methodsWithParameters.size(),
-                "72 extracted methods in test resource have parameters");
+                "229 extracted methods in test resource have parameters");
     }
 
     // Test that an extracted method found to have parameters actually does so
@@ -247,9 +248,9 @@ public class CandidateTaggerTest {
     // Test the number of extracted methods with multiple statements
     @Test
     public void testNumberOfMethodsWithMultipleStatements() {
-        assertEquals(89,
+        assertEquals(191,
                 candidateTagger.methodsWithMultipleStatements.size(),
-                "89 extracted methods in test resource have multiple statements");
+                "191 extracted methods in test resource have multiple statements");
     }
 
     // Test that an extracted method found to have multiple statements actually does so
@@ -271,9 +272,9 @@ public class CandidateTaggerTest {
     // Test the number of methods with local variables
     @Test
     public void testNumberOfMethodsWithLocalVariables() {
-        assertEquals(76,
+        assertEquals(161,
                 candidateTagger.methodsWithLocalVariables.size(),
-                "76 extracted methods in test resource define local variables");
+                "161 extracted methods in test resource define local variables");
     }
 
     // Test that an extracted method found to have local variables actually does so

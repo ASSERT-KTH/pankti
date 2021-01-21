@@ -12,7 +12,6 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.regex.Matcher;
@@ -21,9 +20,6 @@ import java.util.regex.Pattern;
 public class MethodAspect0 {
     private static int INVOCATION_COUNT;
     private static boolean fileSizeWithinLimits = true;
-    private static Map<TraceEntry, Object> receivingObjects = new HashMap<TraceEntry, Object>();
-    private static Map<TraceEntry, Object> paramObjects = new HashMap<TraceEntry, Object>();
-    private static Map<TraceEntry, Object> returnedObjects = new HashMap<TraceEntry, Object>();
 
     @Pointcut(className = "fully.qualified.path.to.class",
             methodName = "methodToInstrument",
@@ -35,6 +31,7 @@ public class MethodAspect0 {
         private static final int COUNT = 0;
         private static long profileSizePre;
         private static String receivingObjectFilePath;
+        private static String receivingObjectPostFilePath;
         private static String paramObjectsFilePath;
         private static String returnedObjectFilePath;
         private static String invocationCountFilePath;
@@ -42,36 +39,35 @@ public class MethodAspect0 {
         private static String objectProfileSizeFilePath;
         private static Logger logger = Logger.getLogger(TargetMethodAdvice.class);
         private static String rowInCSVFile = "";
+        private static final boolean isReturnTypeVoid = false;
         private static final String methodParamTypesString = String.join(",", TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodParameterTypes());
         private static final String postfix = methodParamTypesString.isEmpty() ? "" : "_" + methodParamTypesString;
         private static final String methodFQN = TargetMethodAdvice.class.getAnnotation(Pointcut.class).className() + "."
                 + TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodName() + postfix;
         private static final String invocationString = String.format("Invocation count for %s: ", methodFQN);
+        private static File[] allObjectFiles;
 
         private static void setup() {
             AdviceTemplate.setUpXStream();
-            String[] fileNames = AdviceTemplate.setUpFiles(methodFQN);
-            receivingObjectFilePath = fileNames[0];
-            paramObjectsFilePath = fileNames[1];
-            returnedObjectFilePath = fileNames[2];
-            invocationCountFilePath = fileNames[3];
-            invokedMethodsCSVFilePath = fileNames[4];
-            objectProfileSizeFilePath = fileNames[5];
-            if (receivingObjectFilePath.contains("canCalculateCostForFulfillmentGroup")) {
-                // avoid the file name too long exception
-                receivingObjectFilePath = "/tmp/pankti-object-data/canCalculateCostForFulfillmentGroup-receiving.xml";
-                paramObjectsFilePath = "/tmp/pankti-object-data/canCalculateCostForFulfillmentGroup-params.xml";
-                returnedObjectFilePath = "/tmp/pankti-object-data/canCalculateCostForFulfillmentGroup-returned.xml";
-                invocationCountFilePath = "/tmp/pankti-object-data/canCalculateCostForFulfillmentGroup-count.txt";
-                objectProfileSizeFilePath = "/tmp/pankti-object-data/canCalculateCostForFulfillmentGroup-object-profile-sizes.txt";
-            }
+            Map<Type, String> fileNameMap = AdviceTemplate.setUpFiles(methodFQN);
+            receivingObjectFilePath = fileNameMap.get(Type.RECEIVING_PRE);
+            receivingObjectPostFilePath = fileNameMap.get(Type.RECEIVING_POST);
+            paramObjectsFilePath = fileNameMap.get(Type.PARAMS);
+            returnedObjectFilePath = fileNameMap.get(Type.RETURNED);
+            invocationCountFilePath = fileNameMap.get(Type.INVOCATION_COUNT);
+            invokedMethodsCSVFilePath = fileNameMap.get(Type.INVOKED_METHODS);
+            objectProfileSizeFilePath = fileNameMap.get(Type.OBJECT_PROFILE_SIZE);
+            allObjectFiles = new File[]{
+                    new File(receivingObjectFilePath),
+                    new File(receivingObjectPostFilePath),
+                    new File(returnedObjectFilePath),
+                    new File(paramObjectsFilePath)};
             checkFileSizeLimit();
         }
 
         public static long getObjectProfileSize() {
             long objectProfileSize = 0L;
-            File[] files = {new File(receivingObjectFilePath), new File(returnedObjectFilePath), new File(paramObjectsFilePath)};
-            for (File file : files) {
+            for (File file : allObjectFiles) {
                 objectProfileSize += file.length();
             }
             return objectProfileSize;
@@ -79,8 +75,7 @@ public class MethodAspect0 {
 
         // Limit object XML files to ~200 MB
         public static void checkFileSizeLimit() {
-            File[] files = {new File(receivingObjectFilePath), new File(returnedObjectFilePath), new File(paramObjectsFilePath)};
-            for (File file : files) {
+            for (File file : allObjectFiles) {
                 if (file.exists() && (file.length() / (1024 * 1024) >= 200)) {
                     fileSizeWithinLimits = false;
                     break;
@@ -110,13 +105,6 @@ public class MethodAspect0 {
                     logger.info("Automatically register a converter for: " + className);
                 }
             }
-        }
-
-        public static synchronized void dumpObjectXMLToFile(TraceEntry traceEntry) {
-            writeObjectXMLToFile(receivingObjects.get(traceEntry), receivingObjectFilePath);
-            writeObjectXMLToFile(paramObjects.get(traceEntry), paramObjectsFilePath);
-            writeObjectXMLToFile(returnedObjects.get(traceEntry), returnedObjectFilePath);
-            writeObjectProfileSizeToFile(getObjectProfileSize() - profileSizePre);
         }
 
         // Write size (in bytes) of individual object profile to file
@@ -182,29 +170,26 @@ public class MethodAspect0 {
                                           @BindParameterArray Object parameterObjects,
                                           @BindMethodName String methodName) {
             setup();
+            if (fileSizeWithinLimits) {
+                profileSizePre = getObjectProfileSize();
+                writeObjectXMLToFile(receivingObject, receivingObjectFilePath);
+                writeObjectXMLToFile(parameterObjects, paramObjectsFilePath);
+            }
             MessageSupplier messageSupplier = MessageSupplier.create(
                     "className: {}, methodName: {}",
                     TargetMethodAdvice.class.getAnnotation(Pointcut.class).className(),
                     methodName
             );
-
-            TraceEntry traceEntry = context.startTransaction(transactionType, methodName, messageSupplier, timer, OptionalThreadContext.AlreadyInTransactionBehavior.CAPTURE_NEW_TRANSACTION);
-
-            if (fileSizeWithinLimits) {
-                profileSizePre = getObjectProfileSize();
-                receivingObjects.put(traceEntry, receivingObject);
-                paramObjects.put(traceEntry, parameterObjects);
-            }
-
-            return traceEntry;
+            return context.startTransaction(transactionType, methodName, messageSupplier, timer, OptionalThreadContext.AlreadyInTransactionBehavior.CAPTURE_NEW_TRANSACTION);
         }
 
+        // Replaced with @BindReceiver for void methods
         @OnReturn
         public static void onReturn(@BindReturn Object returnedObject,
                                     @BindTraveler TraceEntry traceEntry) {
             if (fileSizeWithinLimits) {
-                returnedObjects.put(traceEntry, returnedObject);
-                dumpObjectXMLToFile(traceEntry);
+                writeObjectXMLToFile(returnedObject, returnedObjectFilePath);
+                writeObjectProfileSizeToFile(getObjectProfileSize() - profileSizePre);
                 checkFileSizeLimit();
             }
             INVOCATION_COUNT++;

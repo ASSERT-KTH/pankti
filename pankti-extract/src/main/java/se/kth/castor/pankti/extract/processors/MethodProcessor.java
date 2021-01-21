@@ -21,6 +21,7 @@ import spoon.reflect.visitor.filter.TypeFilter;
 )
 public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements Callable<String> {
 
+    private boolean includeVoidMethods;
     List<CtMethod<?>> publicMethods = new ArrayList<>();
     List<CtMethod<?>> privateMethods = new ArrayList<>();
     List<CtMethod<?>> protectedMethods = new ArrayList<>();
@@ -38,6 +39,10 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
     List<CtMethod<?>> methodsModifyingNonLocalVariables = new ArrayList<>();
     Set<ModifierKind> allMethodModifiers = new HashSet<>();
     Set<CtMethod<?>> candidateMethods = new HashSet<>();
+
+    public MethodProcessor(boolean includeVoidMethods) {
+        this.includeVoidMethods = includeVoidMethods;
+    }
 
     @Override
     public String call() {
@@ -256,15 +261,14 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
     public void process(CtMethod<?> ctMethod) {
         Set<ModifierKind> methodModifiers = getMethodModifiers(ctMethod);
         if (methodModifiers.contains(ModifierKind.PUBLIC) &
+                (includeVoidMethods || !isReturnTypeVoid(ctMethod)) &
                 !methodModifiers.contains(ModifierKind.ABSTRACT) &
                 !methodModifiers.contains(ModifierKind.STATIC) &
                 !isMethodEmpty(ctMethod) &
                 !isDeprecated(ctMethod) &
                 !isParentNonClass(ctMethod) &
                 !isParentPrivateStatic(ctMethod) &
-                !parentHasInterfaceAnnotation(ctMethod) &
-                !isReturnTypeVoid(ctMethod)) {
-
+                !parentHasInterfaceAnnotation(ctMethod)) {
             candidateMethods.add(ctMethod);
         }
     }
