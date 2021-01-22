@@ -19,7 +19,31 @@
       <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
       <maven.surefire.plugin.version>2.22.2</maven.surefire.plugin.version>
       <maven.jacoco.plugin.version>0.8.5</maven.jacoco.plugin.version>
+      <junit.jupiter.engine.version>5.5.2</junit.jupiter.engine.version>
+      <junit.platform.runner.version>1.5.2</junit.platform.runner.version>
+      <junit.jupiter.params.version>5.6.2</junit.jupiter.params.version>
    </properties>
+
+   <dependencies>
+      <dependency>
+         <groupId>org.junit.jupiter</groupId>
+         <artifactId>junit-jupiter-engine</artifactId>
+         <version>${junit.jupiter.engine.version}</version>
+         <scope>test</scope>
+      </dependency>
+      <dependency>
+         <groupId>org.junit.platform</groupId>
+         <artifactId>junit-platform-runner</artifactId>
+         <version>${junit.platform.runner.version}</version>
+         <scope>test</scope>
+      </dependency>
+      <dependency>
+         <groupId>org.junit.jupiter</groupId>
+         <artifactId>junit-jupiter-params</artifactId>
+         <version>${junit.jupiter.params.version}</version>
+         <scope>test</scope>
+      </dependency>
+   </dependencies>
 
    <build>
       <plugins>

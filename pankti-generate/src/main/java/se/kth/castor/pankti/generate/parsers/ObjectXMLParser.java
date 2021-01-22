@@ -64,6 +64,7 @@ public class ObjectXMLParser {
         return rawXMLObjects;
     }
 
+    // Create object profiles from object xml files
     public Set<SerializedObject> parseXML(String basePath, InstrumentedMethod instrumentedMethod) {
         String postfix = "";
         try {
@@ -72,17 +73,23 @@ public class ObjectXMLParser {
                 TestGeneratorUtil util = new TestGeneratorUtil();
                 postfix = util.getParamListPostFix(instrumentedMethod);
             }
+
+            // Get objects from xxx-receiving.xml
             File receivingObjectFile = findXMLFileByObjectType(basePath, postfix + receivingObjectFilePostfix);
             List<String> receivingObjects = parseXMLInFile(receivingObjectFile);
             List<String> returnedOrReceivingPostObjects;
+
             if (!instrumentedMethod.getReturnType().equals("void")) {
+                // Get objects from xxx-returned.xml for non-void methods
                 File returnedObjectFile = findXMLFileByObjectType(basePath, postfix + returnedObjectFilePostfix);
                 returnedOrReceivingPostObjects = parseXMLInFile(returnedObjectFile);
             } else {
+                // Get objects from xxx-receiving-post.xml for void methods
                 File receivingPostObjectFile = findXMLFileByObjectType(basePath, postfix + receivingPostObjectFilePostfix);
                 returnedOrReceivingPostObjects = parseXMLInFile(receivingPostObjectFile);
             }
 
+            // Get objects from xxx-params.xml
             List<String> paramObjects = new ArrayList<>();
             if (hasParams) {
                 File paramObjectsFile = findXMLFileByObjectType(basePath, postfix + paramObjectsFilePostfix);
@@ -93,6 +100,7 @@ public class ObjectXMLParser {
             for (int i = 0; i < receivingObjects.size(); i++) {
                 if (!receivingObjects.get(i).isEmpty() && !returnedOrReceivingPostObjects.get(i).isEmpty()) {
                     String params = hasParams ? paramObjects.get(i) : "";
+                    // Create object profiles from all serialized objects
                     SerializedObject serializedObject = new SerializedObject(
                             receivingObjects.get(i),
                             (!instrumentedMethod.getReturnType().equals("void") ? returnedOrReceivingPostObjects.get(i) : ""),
