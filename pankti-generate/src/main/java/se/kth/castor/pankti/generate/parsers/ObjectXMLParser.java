@@ -61,6 +61,7 @@ public class ObjectXMLParser {
             String rawXMLForObject = ser.writeToString(thisNode);
             rawXMLObjects.add(cleanUpRawObjectXML(rawXMLForObject));
         }
+        rawXMLObjects.removeAll(Collections.singleton(""));
         return rawXMLObjects;
     }
 
