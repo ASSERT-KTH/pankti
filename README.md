@@ -14,7 +14,6 @@ The output is a list of methods that meet the following criteria:
 - they are not abstract, and do not belong to an interface or annotation type
 - they are not deprecated and do not belong to a deprecated class
 - they are not static
-- they return a value
 
 To run **pankti-extract**,
 
@@ -22,6 +21,7 @@ To run **pankti-extract**,
 2. `cd /path/to/pankti/pankti-extract/`
 3. `mvn clean install`
 4. `java -jar target/pankti-extract-<version>-jar-with-dependencies.jar /path/to/maven/project`
+  - Available flags: `-h` (`--help`) for usage, `-v` (`--void`) to include methods that return void
 5. The output is a CSV file at `/path/to/pankti/pankti-extract/` called _extracted-methods-\<project-name\>.csv_.
 6. Generate Descartes report(s) to find pseudo-tested methods in the project (we use the `method.json` files)
   - [pitest-descartes on GitHub](https://github.com/STAMP-project/pitest-descartes)
