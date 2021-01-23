@@ -29,20 +29,19 @@ class DummyClass {
     }
 }
 
-public class TestGeneratorUtilTest {
+public class GeneratorUtilTest {
+    static DummyClass dummyObject = new DummyClass();
+    static XStream xStream = new XStream();
+
+    /*
+     * Here we need to turn off XStream's hints for collections and arrays.
+     * Because this step seems to be done by XStream during the serialization.
+     * Only using TestGeneratorUtil.transformXML2JSON seems not be able to do that.
+     * I will double-check if we could transform XML to JSON directly in a fully equal manner.
+     * But I think TestGeneratorUtil.transformXML2JSON works fine, based on the next test case.
+     */
     @Test
     public void testTransformXML2JsonDirectly() {
-        DummyClass dummyObject = new DummyClass();
-
-        XStream xStream = new XStream();
-
-        /*
-         * Here we need to turn off XStream's hints for collections and arrays.
-         * Because this step seems to be done by XStream during the serialization.
-         * Only using TestGeneratorUtil.transformXML2JSON seems not be able to do that.
-         * I will double-check if we could transform XML to JSON directly in a fully equal manner.
-         * But I think TestGeneratorUtil.transformXML2JSON works fine, based on the next test case.
-         */
         XStream xStreamJson = new XStream(new JettisonMappedXmlDriver(null, false));
 
         String expectedJsonString = xStreamJson.toXML(dummyObject);
@@ -61,9 +60,6 @@ public class TestGeneratorUtilTest {
      */
     @Test
     public void testDeserializeTheTransformedJsonString() {
-        DummyClass dummyObject = new DummyClass();
-
-        XStream xStream = new XStream();
         XStream xStreamJson = new XStream(new JettisonMappedXmlDriver());
 
         TestGeneratorUtil util = new TestGeneratorUtil();
