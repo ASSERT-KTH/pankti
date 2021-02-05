@@ -1,6 +1,6 @@
 # pankti ![Build](https://github.com/castor-software/pankti//workflows/build-on-push/badge.svg)
 
-Pankti transforms production workload into test cases. The test generation pipeline consists of four phases:
+Pankti transforms production workloads into test cases ([**arXiv**](https://arxiv.org/abs/2012.01198)). The test generation pipeline consists of four phases:
 1. Extract
 2. Instrument
 3. Execute
@@ -10,6 +10,7 @@ ___
 ### Extract (pankti-extract)
 pankti-extract leverages [Spoon](http://spoon.gforge.inria.fr/index.html) to statically analyze Java applications in order to find relevant methods for test generation.
 The output is a list of methods that meet the following criteria: 
+- they are public
 - they are not empty
 - they are not abstract, and do not belong to an interface or annotation type
 - they are not deprecated and do not belong to a deprecated class
