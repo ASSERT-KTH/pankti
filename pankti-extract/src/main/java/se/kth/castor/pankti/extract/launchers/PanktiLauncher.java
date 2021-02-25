@@ -69,7 +69,7 @@ public class PanktiLauncher {
                     }
                 }
                 // Find nested method invocations that can be mocked
-                Map<String, String> nestedMethodInvocations = MethodUtil.findNestedMethodCalls(method);
+                Set<String> nestedMethodInvocations = MethodUtil.findNestedMethodCalls(method);
                 Map<String, Boolean> tags = entry.getValue();
                 csvPrinter.printRecord(
                         method.getVisibility(),

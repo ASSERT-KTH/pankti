@@ -8,9 +8,8 @@ import spoon.reflect.reference.CtExecutableReference;
 import spoon.reflect.reference.CtTypeReference;
 import spoon.reflect.visitor.filter.TypeFilter;
 
-import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -19,7 +18,7 @@ public class MethodUtil {
      * Returns the type signature representation for method parameters.
      *
      * @param paramType A parameter passed to a method
-     * @return the signature representation for the parameter
+     * @return The signature representation for the parameter
      */
     public static String findMethodParamSignature(final String paramType) {
         StringBuilder paramSignature = new StringBuilder();
@@ -64,7 +63,7 @@ public class MethodUtil {
 
     /**
      * @param invocation The method invocation
-     * @return the executable
+     * @return The executable
      */
     private static CtExecutableReference<?> getExecutable(final CtInvocation<?> invocation) {
         return invocation.getExecutable();
@@ -72,7 +71,7 @@ public class MethodUtil {
 
     /**
      * @param executable The executable corresponding to the method invocation
-     * @return the declaring type of the executable
+     * @return The declaring type of the executable
      */
     private static CtTypeReference<?> getDeclaringType(final CtExecutableReference<?> executable) {
         return executable.getDeclaringType();
@@ -85,11 +84,11 @@ public class MethodUtil {
      * <p>This field must be non-final and non-static.
      * <p>The declaring type of this field should also be non-final and non-static.
      *
-     * @param method in which to find nested method invocations
-     * @return a map with nested method invocations that meet all criteria for mocking
+     * @param method Method in which to find nested method invocations
+     * @return Nested method invocations that meet all criteria for mocking
      */
-    public static Map<String, String> findNestedMethodCalls(final CtMethod<?> method) {
-        Map<String, String> methodInvocationMap = new LinkedHashMap<>();
+    public static Set<String> findNestedMethodCalls(final CtMethod<?> method) {
+        Set<String> methodInvocationMap = new LinkedHashSet<>();
         Optional<List<CtInvocation<?>>> invocationList =
                 Optional.ofNullable(method.getElements(new TypeFilter<>(CtInvocation.class)));
 
@@ -105,10 +104,9 @@ public class MethodUtil {
                                 declaringType.getModifiers();
                         if (!(invocationClassModifiers.contains(ModifierKind.FINAL)
                                 || invocationClassModifiers.contains(ModifierKind.STATIC))) {
-                            methodInvocationMap.put(
-                                    declaringType.getQualifiedName(),
-                                    executable.getSignature()
-                            );
+                            methodInvocationMap.add(
+                                    declaringType.getQualifiedName() + "." + executable.getSignature());
+
                         }
                     }
                 }
