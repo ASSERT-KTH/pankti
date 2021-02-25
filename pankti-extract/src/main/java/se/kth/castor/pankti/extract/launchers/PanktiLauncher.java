@@ -51,7 +51,7 @@ public class PanktiLauncher {
     }
 
     public void createCSVFile(Map<CtMethod<?>, Map<String, Boolean>> allMethodTags) throws IOException {
-        String[] HEADERS = {"visibility", "parent-FQN", "method-name", "param-list", "return-type", "param-signature", "tags"};
+        String[] HEADERS = {"visibility", "parent-FQN", "method-name", "param-list", "return-type", "param-signature", "nested-invocations", "tags"};
         List<String> paramList;
         try (FileWriter out = new FileWriter("./extracted-methods-" + projectName + ".csv");
              CSVPrinter csvPrinter = new CSVPrinter(out, CSVFormat.DEFAULT
@@ -68,6 +68,8 @@ public class PanktiLauncher {
                         paramSignature.append(MethodUtil.findMethodParamSignature(paramType));
                     }
                 }
+                // Find nested method invocations that can be mocked
+                Map<String, String> nestedMethodInvocations = MethodUtil.findNestedMethodCalls(method);
                 Map<String, Boolean> tags = entry.getValue();
                 csvPrinter.printRecord(
                         method.getVisibility(),
@@ -76,6 +78,7 @@ public class PanktiLauncher {
                         paramList,
                         method.getType().getQualifiedName(),
                         paramSignature.toString(),
+                        nestedMethodInvocations,
                         tags);
             }
         }
