@@ -8,7 +8,9 @@ import se.kth.castor.pankti.extract.processors.MethodProcessor;
 import se.kth.castor.pankti.extract.runners.PanktiMain;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
+import spoon.reflect.code.CtInvocation;
 import spoon.reflect.declaration.CtMethod;
+import spoon.reflect.declaration.ModifierKind;
 
 import java.net.URISyntaxException;
 import java.nio.file.Path;
@@ -18,6 +20,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class MethodUtilTest {
     static PanktiMain panktiMain;
@@ -30,7 +33,7 @@ public class MethodUtilTest {
             "#subPackage[name=org]#subPackage[name=jitsi]#subPackage[name=videobridge]#containedType[name=Conference]#method[signature=getDebugState(boolean,java.lang.String)]";
     static final String methodPath2 =
             "#subPackage[name=org]#subPackage[name=jitsi]#subPackage[name=videobridge]#containedType[name=Endpoint]#method[signature=getDebugState()]";
-    static List <CtMethod<?>> allMethods;
+    static List<CtMethod<?>> allMethods;
 
     @BeforeAll
     public static void setUpLauncherAndModel() throws URISyntaxException {
@@ -91,5 +94,64 @@ public class MethodUtilTest {
         assertEquals(2, MethodUtil.getNestedMethodInvocationMap(method).size(),
                 String.format("%s has two nested method invocations that may be mocked",
                         method.getSignature()));
+    }
+
+    @Test
+    public void testThatMethodsWithMockingCandidatesAreNotDeclaredInAnAbstractClass() {
+        for (CtMethod<?> method : allMethods) {
+            if (!MethodUtil.findNestedMethodCalls(method).isEmpty()) {
+                assertFalse(method.getDeclaringType().getModifiers().contains(ModifierKind.ABSTRACT),
+                        String.format("The declaring type for %s should not be an abstract class to allow mock injections",
+                                method.getSignature()));
+            }
+        }
+    }
+
+    @Test
+    public void testThatMockingCandidatesAreNotDeclaredInAStaticClass() {
+        for (CtMethod<?> thisMethod : allMethods) {
+            List<CtInvocation<?>> methodInvocations = MethodUtil.findNestedMethodCalls(thisMethod);
+            for (CtInvocation<?> thisInvocation : methodInvocations) {
+                assertFalse(thisInvocation.getExecutable().getDeclaringType().getModifiers().contains(ModifierKind.STATIC),
+                        String.format("The declaring type for %s should not be static for it to be mocked",
+                                thisInvocation));
+            }
+        }
+    }
+
+    @Test
+    public void testThatMockingCandidatesAreNotDeclaredInAFinalClass() {
+        for (CtMethod<?> thisMethod : allMethods) {
+            List<CtInvocation<?>> methodInvocations = MethodUtil.findNestedMethodCalls(thisMethod);
+            for (CtInvocation<?> thisInvocation : methodInvocations) {
+                assertFalse(thisInvocation.getExecutable().getDeclaringType().getModifiers().contains(ModifierKind.FINAL),
+                        String.format("The declaring type for %s should not be final for it to be mocked",
+                                thisInvocation));
+            }
+        }
+    }
+
+    @Test
+    public void testThatAllInvocationExecutablesAreNonStatic() {
+        for (CtMethod<?> thisMethod : allMethods) {
+            List<CtInvocation<?>> methodInvocations = MethodUtil.findNestedMethodCalls(thisMethod);
+            for (CtInvocation<?> thisInvocation : methodInvocations) {
+                assertFalse(thisInvocation.getExecutable().isStatic(),
+                        String.format("The executable for %s should not be static for it to be mocked",
+                                thisInvocation));
+            }
+        }
+    }
+
+    @Test
+    public void testThatAllInvocationExecutablesAreNonFinal() {
+        for (CtMethod<?> thisMethod : allMethods) {
+            List<CtInvocation<?>> methodInvocations = MethodUtil.findNestedMethodCalls(thisMethod);
+            for (CtInvocation<?> thisInvocation : methodInvocations) {
+                assertFalse(thisInvocation.getExecutable().isFinal(),
+                        String.format("The executable for %s should not be final for it to be mocked",
+                                thisInvocation));
+            }
+        }
     }
 }
