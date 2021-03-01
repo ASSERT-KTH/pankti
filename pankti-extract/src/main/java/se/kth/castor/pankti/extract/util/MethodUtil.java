@@ -4,14 +4,18 @@ import spoon.reflect.code.CtInvocation;
 import spoon.reflect.declaration.CtField;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.ModifierKind;
+import spoon.reflect.path.CtPath;
 import spoon.reflect.reference.CtExecutableReference;
 import spoon.reflect.reference.CtTypeReference;
 import spoon.reflect.visitor.filter.TypeFilter;
+import spoon.support.reflect.reference.CtFieldReferenceImpl;
 
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Map;
 
 public class MethodUtil {
     /**
@@ -53,8 +57,11 @@ public class MethodUtil {
      */
     private static boolean isInvocationTargetAFinalStaticField(final CtMethod<?> method,
                                                                final CtInvocation<?> invocation) {
+
         CtField<?> field = method.getDeclaringType().getField(String.valueOf(invocation.getTarget()));
-        if (field != null) {
+        // Invocation target is a field and not a local variable
+        if (field != null
+                && invocation.getTarget().getElements(new TypeFilter<>(CtFieldReferenceImpl.class)).size() == 1) {
             return field.getModifiers().contains(ModifierKind.STATIC)
                     || field.getModifiers().contains(ModifierKind.FINAL);
         }
@@ -78,17 +85,17 @@ public class MethodUtil {
     }
 
     /**
-     * Finds methods with nested method calls that can be mocked.
+     * Finds invocations within a method that can be mocked.
      *
      * <p>For a nested method call to be mocked, it should be invoked on a field in the declaring type of the method.
      * <p>This field must be non-final and non-static.
      * <p>The declaring type of this field should also be non-final and non-static.
      *
-     * @param method Method in which to find nested method invocations
+     * @param method The method in which to find nested method invocations
      * @return Nested method invocations that meet all criteria for mocking
      */
-    public static Set<String> findNestedMethodCalls(final CtMethod<?> method) {
-        Set<String> methodInvocationMap = new LinkedHashSet<>();
+    static List<CtInvocation<?>> findNestedMethodCalls(final CtMethod<?> method) {
+        List<CtInvocation<?>> nestedInvocations = new ArrayList<>();
         Optional<List<CtInvocation<?>>> invocationList =
                 Optional.ofNullable(method.getElements(new TypeFilter<>(CtInvocation.class)));
 
@@ -97,21 +104,40 @@ public class MethodUtil {
                 CtInvocation<?> thisInvocation = invocationList.get().get(i);
                 CtExecutableReference<?> executable = getExecutable(thisInvocation);
                 CtTypeReference<?> declaringType = getDeclaringType(executable);
-                if (!method.getDeclaringType().getQualifiedName().equals(
+                if (!executable.isFinal()
+                        && !method.getDeclaringType().getModifiers().contains(ModifierKind.ABSTRACT)
+                        && !method.getDeclaringType().getQualifiedName().equals(
                         declaringType.getQualifiedName())) {
                     if (!isInvocationTargetAFinalStaticField(method, thisInvocation)) {
                         Set<ModifierKind> invocationClassModifiers =
                                 declaringType.getModifiers();
                         if (!(invocationClassModifiers.contains(ModifierKind.FINAL)
                                 || invocationClassModifiers.contains(ModifierKind.STATIC))) {
-                            methodInvocationMap.add(
-                                    declaringType.getQualifiedName() + "." + executable.getSignature());
-
+                            nestedInvocations.add(thisInvocation);
                         }
                     }
                 }
             }
         }
-        return methodInvocationMap;
+        return nestedInvocations;
+    }
+
+    /**
+     * Finds nested method invocations within a method that can be mocked.
+     *
+     * @param method The method to check for nested invocations
+     * @return A map with the path of nested invocations and a string of the form "declaring.type.fqn.signature"
+     */
+    public static Map<CtPath, String> getNestedMethodInvocationMap(final CtMethod<?> method) {
+        List<CtInvocation<?>> nestedMethodInvocations = findNestedMethodCalls(method);
+        Map<CtPath, String> nestedMethodInvocationMap = new LinkedHashMap<>();
+        for (CtInvocation<?> invocation : nestedMethodInvocations) {
+            CtExecutableReference<?> executable = getExecutable(invocation);
+            nestedMethodInvocationMap.put(
+                    invocation.getPath(),
+                    getDeclaringType(executable).getQualifiedName()
+                            + "." + executable.getSignature());
+        }
+        return nestedMethodInvocationMap;
     }
 }

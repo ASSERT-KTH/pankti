@@ -12,6 +12,7 @@ import spoon.reflect.declaration.CtClass;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.CtParameter;
 import spoon.reflect.declaration.CtType;
+import spoon.reflect.path.CtPath;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -69,7 +70,7 @@ public class PanktiLauncher {
                     }
                 }
                 // Find nested method invocations that can be mocked
-                Set<String> nestedMethodInvocations = MethodUtil.findNestedMethodCalls(method);
+                Map<CtPath, String> nestedMethodInvocationMap = MethodUtil.getNestedMethodInvocationMap(method);
                 Map<String, Boolean> tags = entry.getValue();
                 csvPrinter.printRecord(
                         method.getVisibility(),
@@ -78,7 +79,7 @@ public class PanktiLauncher {
                         paramList,
                         method.getType().getQualifiedName(),
                         paramSignature.toString(),
-                        nestedMethodInvocations,
+                        nestedMethodInvocationMap,
                         tags);
             }
         }
