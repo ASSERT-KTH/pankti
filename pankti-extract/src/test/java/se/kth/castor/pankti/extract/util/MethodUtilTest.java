@@ -10,6 +10,7 @@ import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.code.CtInvocation;
 import spoon.reflect.declaration.CtMethod;
+import spoon.reflect.declaration.CtParameter;
 import spoon.reflect.declaration.ModifierKind;
 
 import java.net.URISyntaxException;
@@ -30,9 +31,11 @@ public class MethodUtilTest {
     static MethodProcessor methodProcessor;
     static CandidateTagger candidateTagger;
     static final String methodPath1 =
-            "#subPackage[name=org]#subPackage[name=jitsi]#subPackage[name=videobridge]#containedType[name=Conference]#method[signature=getDebugState(boolean,java.lang.String)]";
+            "#subPackage[name=org]#subPackage[name=jitsi]#subPackage[name=videobridge]#containedType[name=Conference]" +
+                    "#method[signature=getDebugState(boolean,java.lang.String)]";
     static final String methodPath2 =
-            "#subPackage[name=org]#subPackage[name=jitsi]#subPackage[name=videobridge]#containedType[name=Endpoint]#method[signature=getDebugState()]";
+            "#subPackage[name=org]#subPackage[name=jitsi]#subPackage[name=videobridge]#containedType[name=Endpoint]" +
+                    "#method[signature=getDebugState()]";
     static List<CtMethod<?>> allMethods;
 
     @BeforeAll
@@ -76,6 +79,22 @@ public class MethodUtilTest {
             allMethods.add(findMethodByPath(methodPath));
         }
         return allMethods;
+    }
+
+    // Test that the correct type signature representation is generated
+    @Test
+    public void testMethodParameterSignature() {
+        String methodPath =
+                "#subPackage[name=org]#subPackage[name=jitsi]#subPackage[name=videobridge]#containedType[name=Videobridge]" +
+                        "#method[signature=createConference(org.jxmpp.jid.Jid,org.jxmpp.jid.parts.Localpart,boolean,java.lang.String)]";
+        CtMethod<?> method = findMethodByPath(methodPath);
+        StringBuilder paramSignature = new StringBuilder();
+        for (CtParameter<?> parameter : method.getParameters()) {
+            String paramType = parameter.getType().getQualifiedName();
+            paramSignature.append(MethodUtil.findMethodParamSignature(paramType));
+        }
+        assertEquals("Lorg/jxmpp/jid/Jid;Lorg/jxmpp/jid/parts/Localpart;ZLjava/lang/String;",
+                paramSignature.toString());
     }
 
     // Test that nested method invocations in methodPath1 that can be mocked are identified
