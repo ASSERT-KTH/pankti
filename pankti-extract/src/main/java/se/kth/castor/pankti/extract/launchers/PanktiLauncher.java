@@ -25,6 +25,9 @@ import java.util.logging.Logger;
 public class PanktiLauncher {
     private static final Logger LOGGER = CustomLogger.log(PanktiLauncher.class.getName());
     private static String projectName;
+    private static String[] HEADERS =
+            {"visibility", "parent-FQN", "method-name", "param-list", "return-type",
+                    "param-signature", "nested-invocations", "tags"};
 
     public MavenLauncher getMavenLauncher(final String projectPath, final String projectName) {
         PanktiLauncher.projectName = projectName;
@@ -52,7 +55,6 @@ public class PanktiLauncher {
     }
 
     public void createCSVFile(Map<CtMethod<?>, Map<String, Boolean>> allMethodTags) throws IOException {
-        String[] HEADERS = {"visibility", "parent-FQN", "method-name", "param-list", "return-type", "param-signature", "nested-invocations", "tags"};
         List<String> paramList;
         try (FileWriter out = new FileWriter("./extracted-methods-" + projectName + ".csv");
              CSVPrinter csvPrinter = new CSVPrinter(out, CSVFormat.DEFAULT

@@ -21,8 +21,8 @@ def create_final_df(df, cols):
     final_df.loc[index, 'method-name'] = row['method-name']
     final_df.loc[index, 'param-list'] = row['param-list'].lstrip('[').rsplit(']', 1)[0]
     final_df.loc[index, 'return-type'] = row['return-type']
-    final_df.loc[index, 'nested-invocations'] = row['nested-invocations']
     final_df.loc[index, 'param-signature'] = row['param-signature']
+    final_df.loc[index, 'nested-invocations'] = row['nested-invocations']
     final_df.loc[index, 'local-variables'] = extract_from_tags("local_variables", str(row['tags']))
     final_df.loc[index, 'conditionals'] = extract_from_tags("conditionals", str(row['tags']))
     final_df.loc[index, 'multiple-statements'] = extract_from_tags("multiple_statements", str(row['tags']))
@@ -65,7 +65,7 @@ def main(argv):
     name = argv[1]
     json_files = list(argv[2:])
     cols = ["visibility", "parent-FQN", "method-name", "param-list", "return-type",
-            "nested-invocations", "param-signature", "local-variables", "conditionals",
+            "param-signature", "nested-invocations", "local-variables", "conditionals",
             "multiple-statements", "loops", "parameters", "returns","switches",
             "ifs", "static", "returns-primitives"]
     df = pd.read_csv(name)
