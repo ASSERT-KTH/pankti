@@ -30,12 +30,6 @@ public class MethodUtilTest {
     static CtModel testModel;
     static MethodProcessor methodProcessor;
     static CandidateTagger candidateTagger;
-    static final String methodPath1 =
-            "#subPackage[name=org]#subPackage[name=jitsi]#subPackage[name=videobridge]#containedType[name=Conference]" +
-                    "#method[signature=getDebugState(boolean,java.lang.String)]";
-    static final String methodPath2 =
-            "#subPackage[name=org]#subPackage[name=jitsi]#subPackage[name=videobridge]#containedType[name=Endpoint]" +
-                    "#method[signature=getDebugState()]";
     static List<CtMethod<?>> allMethods;
 
     @BeforeAll
@@ -97,19 +91,23 @@ public class MethodUtilTest {
                 paramSignature.toString());
     }
 
-    // Test that nested method invocations in methodPath1 that can be mocked are identified
     @Test
-    public void testMockCandidatesAreMarked1() {
-        CtMethod<?> method = findMethodByPath(methodPath1);
+    public void testNoMockCandidatesFoundInMethodWithoutCandidates() {
+        String methodPath =
+                "#subPackage[name=org]#subPackage[name=jitsi]#subPackage[name=videobridge]#containedType[name=Conference]" +
+                        "#method[signature=getDebugState(boolean,java.lang.String)]";
+        CtMethod<?> method = findMethodByPath(methodPath);
         assertEquals(0, MethodUtil.getNestedMethodInvocationMap(method).size(),
                 String.format("%s has no nested method invocations that may be mocked",
                         method.getSignature()));
     }
 
-    // Test that nested method invocations in methodPath2 that can be mocked are identified
     @Test
-    public void testMockCandidatesAreMarked2() {
-        CtMethod<?> method = findMethodByPath(methodPath2);
+    public void testCorrectAmountOfMockCandidatesAreFound() {
+        String methodPath =
+                "#subPackage[name=org]#subPackage[name=jitsi]#subPackage[name=videobridge]#containedType[name=Endpoint]" +
+                        "#method[signature=getDebugState()]";
+        CtMethod<?> method = findMethodByPath(methodPath);
         assertEquals(2, MethodUtil.getNestedMethodInvocationMap(method).size(),
                 String.format("%s has two nested method invocations that may be mocked",
                         method.getSignature()));

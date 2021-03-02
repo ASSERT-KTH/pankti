@@ -12,10 +12,9 @@ import spoon.support.reflect.reference.CtFieldReferenceImpl;
 
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.ArrayList;
-import java.util.Optional;
 import java.util.Set;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class MethodUtil {
     /**
@@ -53,19 +52,19 @@ public class MethodUtil {
      *
      * @param method     The method with the nested method invocation
      * @param invocation The nested method invocation
-     * @return true if the invocation target is a final or static field in the declaring type of the method
+     * @return true if the invocation target is a non-final, non-static field in the declaring type of the method
      */
-    private static boolean isInvocationTargetAFinalStaticField(final CtMethod<?> method,
-                                                               final CtInvocation<?> invocation) {
+    private static boolean isInvocationTargetANonFinalNonStaticField(final CtMethod<?> method,
+                                                                     final CtInvocation<?> invocation) {
 
         CtField<?> field = method.getDeclaringType().getField(String.valueOf(invocation.getTarget()));
         // Invocation target is a field and not a local variable
         if (field != null
                 && invocation.getTarget().getElements(new TypeFilter<>(CtFieldReferenceImpl.class)).size() == 1) {
-            return field.getModifiers().contains(ModifierKind.STATIC)
-                    || field.getModifiers().contains(ModifierKind.FINAL);
+            return !(field.getModifiers().contains(ModifierKind.STATIC)
+                    || field.getModifiers().contains(ModifierKind.FINAL));
         }
-        return true;
+        return false;
     }
 
     /**
@@ -95,31 +94,28 @@ public class MethodUtil {
      * @return Nested method invocations that meet all criteria for mocking
      */
     static List<CtInvocation<?>> findNestedMethodCalls(final CtMethod<?> method) {
-        List<CtInvocation<?>> nestedInvocations = new ArrayList<>();
-        Optional<List<CtInvocation<?>>> invocationList =
-                Optional.ofNullable(method.getElements(new TypeFilter<>(CtInvocation.class)));
+        List<CtInvocation<?>> invocationList = method.getElements(new TypeFilter<>(CtInvocation.class));
+        return invocationList.stream()
+                .filter(invocation -> isNestedInvocationMockable(method, invocation))
+                .collect(Collectors.toList());
+    }
 
-        if (invocationList.isPresent()) {
-            for (int i = 0; i < invocationList.get().size(); i++) {
-                CtInvocation<?> thisInvocation = invocationList.get().get(i);
-                CtExecutableReference<?> executable = getExecutable(thisInvocation);
-                CtTypeReference<?> declaringType = getDeclaringType(executable);
-                if (!executable.isFinal()
-                        && !method.getDeclaringType().getModifiers().contains(ModifierKind.ABSTRACT)
-                        && !method.getDeclaringType().getQualifiedName().equals(
-                        declaringType.getQualifiedName())) {
-                    if (!isInvocationTargetAFinalStaticField(method, thisInvocation)) {
-                        Set<ModifierKind> invocationClassModifiers =
-                                declaringType.getModifiers();
-                        if (!(invocationClassModifiers.contains(ModifierKind.FINAL)
-                                || invocationClassModifiers.contains(ModifierKind.STATIC))) {
-                            nestedInvocations.add(thisInvocation);
-                        }
-                    }
-                }
+    private static boolean isNestedInvocationMockable(final CtMethod<?> method,
+                                                      final CtInvocation<?> invocation) {
+        CtExecutableReference<?> executable = getExecutable(invocation);
+        CtTypeReference<?> declaringType = getDeclaringType(executable);
+        if (!executable.isFinal()
+                && !method.getDeclaringType().getModifiers().contains(ModifierKind.ABSTRACT)
+                && !method.getDeclaringType().getQualifiedName().equals(
+                declaringType.getQualifiedName())) {
+            if (isInvocationTargetANonFinalNonStaticField(method, invocation)) {
+                Set<ModifierKind> invocationClassModifiers =
+                        declaringType.getModifiers();
+                return !(invocationClassModifiers.contains(ModifierKind.FINAL)
+                        || invocationClassModifiers.contains(ModifierKind.STATIC));
             }
         }
-        return nestedInvocations;
+        return false;
     }
 
     /**
