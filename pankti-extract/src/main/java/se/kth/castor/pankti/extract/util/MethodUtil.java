@@ -84,6 +84,10 @@ public class MethodUtil {
         return executable.getDeclaringType();
     }
 
+    private static boolean isExecutableNonFinalNonStatic(final CtExecutableReference<?> executable) {
+        return !(executable.isFinal() || executable.isStatic());
+    }
+
     /**
      * Finds invocations within a method that can be mocked.
      *
@@ -105,7 +109,7 @@ public class MethodUtil {
                                                       final CtInvocation<?> invocation) {
         CtExecutableReference<?> executable = getExecutable(invocation);
         CtTypeReference<?> declaringType = getDeclaringType(executable);
-        if (!executable.isFinal()
+        if (isExecutableNonFinalNonStatic(executable)
                 && !method.getDeclaringType().getModifiers().contains(ModifierKind.ABSTRACT)
                 && !method.getDeclaringType().getQualifiedName().equals(
                 declaringType.getQualifiedName())) {
