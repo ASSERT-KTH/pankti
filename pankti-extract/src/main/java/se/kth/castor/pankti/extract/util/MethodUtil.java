@@ -1,6 +1,7 @@
 package se.kth.castor.pankti.extract.util;
 
 import spoon.reflect.code.CtInvocation;
+import spoon.reflect.declaration.CtConstructor;
 import spoon.reflect.declaration.CtField;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.ModifierKind;
@@ -135,5 +136,17 @@ public class MethodUtil {
                             + "." + executable.getSignature());
         }
         return nestedMethodInvocationMap;
+    }
+
+    /**
+     * Checks if the declaring type of a method has a default constructor.
+     *
+     * @param method The method
+     * @return true if the declaring type has a default constructor
+     */
+    public static boolean declaringTypeHasDefaultConstructor(final CtMethod<?> method) {
+        return method.getDeclaringType()
+                .getElements(new TypeFilter<>(CtConstructor.class))
+                .stream().anyMatch(c -> c.getParameters().isEmpty());
     }
 }
