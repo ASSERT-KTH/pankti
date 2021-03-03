@@ -12,6 +12,7 @@ import spoon.reflect.declaration.CtClass;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.CtParameter;
 import spoon.reflect.declaration.CtType;
+import spoon.reflect.path.CtPath;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -24,6 +25,9 @@ import java.util.logging.Logger;
 public class PanktiLauncher {
     private static final Logger LOGGER = CustomLogger.log(PanktiLauncher.class.getName());
     private static String projectName;
+    private static String[] HEADERS =
+            {"visibility", "parent-FQN", "method-name", "param-list", "return-type",
+                    "param-signature", "nested-invocations", "tags"};
 
     public MavenLauncher getMavenLauncher(final String projectPath, final String projectName) {
         PanktiLauncher.projectName = projectName;
@@ -51,7 +55,6 @@ public class PanktiLauncher {
     }
 
     public void createCSVFile(Map<CtMethod<?>, Map<String, Boolean>> allMethodTags) throws IOException {
-        String[] HEADERS = {"visibility", "parent-FQN", "method-name", "param-list", "return-type", "param-signature", "tags"};
         List<String> paramList;
         try (FileWriter out = new FileWriter("./extracted-methods-" + projectName + ".csv");
              CSVPrinter csvPrinter = new CSVPrinter(out, CSVFormat.DEFAULT
@@ -68,6 +71,8 @@ public class PanktiLauncher {
                         paramSignature.append(MethodUtil.findMethodParamSignature(paramType));
                     }
                 }
+                // Find nested method invocations that can be mocked
+                Map<CtPath, String> nestedMethodInvocationMap = MethodUtil.getNestedMethodInvocationMap(method);
                 Map<String, Boolean> tags = entry.getValue();
                 csvPrinter.printRecord(
                         method.getVisibility(),
@@ -76,6 +81,7 @@ public class PanktiLauncher {
                         paramList,
                         method.getType().getQualifiedName(),
                         paramSignature.toString(),
+                        nestedMethodInvocationMap,
                         tags);
             }
         }
