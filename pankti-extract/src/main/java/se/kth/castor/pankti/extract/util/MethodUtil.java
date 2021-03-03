@@ -139,12 +139,12 @@ public class MethodUtil {
     }
 
     /**
-     * Checks if the declaring type of a method has a default constructor.
+     * Checks if the declaring type of a method has a non-parameterized constructor.
      *
      * @param method The method
-     * @return true if the declaring type has a default constructor
+     * @return true if the declaring type has a non-parameterized constructor
      */
-    public static boolean declaringTypeHasDefaultConstructor(final CtMethod<?> method) {
+    public static boolean declaringTypeHasNoParamConstructor(final CtMethod<?> method) {
         return method.getDeclaringType()
                 .getElements(new TypeFilter<>(CtConstructor.class))
                 .stream().anyMatch(c -> c.getParameters().isEmpty());

@@ -174,22 +174,22 @@ public class MethodUtilTest {
     }
 
     @Test
-    public void testThatADefaultConstructorIsFoundWhereItExists() {
+    public void testThatANoParamConstructorIsFoundWhereItExists() {
         String path = "#subPackage[name=org]#subPackage[name=jitsi]#subPackage[name=videobridge]#containedType[name=Videobridge]" +
                 "#method[signature=isXmppApiEnabled()]";
         CtMethod<?> method = findMethodByPath(path);
-        assertTrue(MethodUtil.declaringTypeHasDefaultConstructor(method),
-                String.format("%s has a default constructor",
+        assertTrue(MethodUtil.declaringTypeHasNoParamConstructor(method),
+                String.format("%s has a non-parameterized constructor",
                         method.getDeclaringType().getQualifiedName()));
     }
 
     @Test
-    public void testThatNoDefaultConstructorsAreFoundWhereThereArentAny() {
+    public void testThatNoParamConstructorsAreNotFoundWhereThereArentAny() {
         String path = "#subPackage[name=org]#subPackage[name=jitsi]#subPackage[name=videobridge]#containedType[name=IceTransport]" +
                 "#method[signature=isConnected()]";
         CtMethod<?> method = findMethodByPath(path);
-        assertFalse(MethodUtil.declaringTypeHasDefaultConstructor(method),
-                String.format("%s does not have a default constructor",
+        assertFalse(MethodUtil.declaringTypeHasNoParamConstructor(method),
+                String.format("%s does not have a non-parameterized constructor",
                         method.getDeclaringType().getQualifiedName()));
     }
 }

@@ -82,7 +82,7 @@ public class PanktiLauncher {
                         method.getType().getQualifiedName(),
                         paramSignature.toString(),
                         nestedMethodInvocationMap,
-                        MethodUtil.declaringTypeHasDefaultConstructor(method),
+                        MethodUtil.declaringTypeHasNoParamConstructor(method),
                         tags);
             }
         }
