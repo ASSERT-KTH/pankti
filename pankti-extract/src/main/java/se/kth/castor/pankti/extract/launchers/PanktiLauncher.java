@@ -27,7 +27,7 @@ public class PanktiLauncher {
     private static String projectName;
     private static String[] HEADERS =
             {"visibility", "parent-FQN", "method-name", "param-list", "return-type",
-                    "param-signature", "nested-invocations", "default-constructor", "tags"};
+                    "param-signature", "nested-invocations", "noparam-constructor", "tags"};
 
     public MavenLauncher getMavenLauncher(final String projectPath, final String projectName) {
         PanktiLauncher.projectName = projectName;
