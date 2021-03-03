@@ -20,8 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class MethodUtilTest {
     static PanktiMain panktiMain;
@@ -170,5 +169,21 @@ public class MethodUtilTest {
                                 thisInvocation));
             }
         }
+    }
+
+    @Test
+    public void testThatADefaultConstructorIsFoundWhereItExists() {
+        String path = "#subPackage[name=org]#subPackage[name=jitsi]#subPackage[name=videobridge]#containedType[name=Videobridge]" +
+                "#method[signature=isXmppApiEnabled()]";
+        CtMethod<?> method = findMethodByPath(path);
+        assertTrue(MethodUtil.declaringTypeHasDefaultConstructor(method));
+    }
+
+    @Test
+    public void testThatNoDefaultConstructorsAreFoundWhereThereArentAny() {
+        String path = "#subPackage[name=org]#subPackage[name=jitsi]#subPackage[name=videobridge]#containedType[name=IceTransport]" +
+                "#method[signature=isConnected()]";
+        CtMethod<?> method = findMethodByPath(path);
+        assertFalse(MethodUtil.declaringTypeHasDefaultConstructor(method));
     }
 }
