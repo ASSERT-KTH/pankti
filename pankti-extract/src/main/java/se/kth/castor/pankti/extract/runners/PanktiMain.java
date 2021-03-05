@@ -19,8 +19,9 @@ import java.util.logging.Logger;
         name = "java -jar target/<pankti-version-jar-with-dependencies.jar>",
         description = "pankti converts application traces to tests",
         usageHelpWidth = 100)
-public class PanktiMain implements Callable<Integer> {
-    private static final Logger LOGGER = CustomLogger.log(PanktiMain.class.getName());
+public final class PanktiMain implements Callable<Integer> {
+    private static final Logger LOGGER =
+            CustomLogger.log(PanktiMain.class.getName());
 
     @CommandLine.Parameters(
             paramLabel = "PATH",
@@ -50,7 +51,9 @@ public class PanktiMain implements Callable<Integer> {
         this.usageHelpRequested = help;
     }
 
-    public PanktiMain(final Path projectPath, final boolean includeVoidMethods, final boolean help) {
+    public PanktiMain(final Path projectPath,
+                      final boolean includeVoidMethods,
+                      final boolean help) {
         this.projectPath = projectPath;
         this.includeVoidMethods = includeVoidMethods;
         this.usageHelpRequested = help;
@@ -68,26 +71,30 @@ public class PanktiMain implements Callable<Integer> {
         PanktiLauncher panktiLauncher = new PanktiLauncher();
 
         // Process project
-        LOGGER.info("Processing project: " + name);
-        MavenLauncher launcher = panktiLauncher.getMavenLauncher(path, name);
+        LOGGER.info(String.format("Processing project: %s", name));
+        MavenLauncher launcher =
+                panktiLauncher.getMavenLauncher(path, name);
         SpoonPom projectPom = launcher.getPomFile();
-        LOGGER.info("POM found at: " + projectPom.getPath());
-        LOGGER.info("Number of Maven modules: " + projectPom.getModel().getModules().size());
+        LOGGER.info(String.format("POM found at: %s", projectPom.getPath()));
+        LOGGER.info(String.format("Number of Maven modules: %s",
+                projectPom.getModel().getModules().size()));
 
         // Build Spoon model
         CtModel model = panktiLauncher.buildSpoonModel(launcher);
 
         // Find number of methods in project
-        LOGGER.info("Total number of methods: " + panktiLauncher.countMethods(model));
+        LOGGER.info(String.format("Total number of methods: %s",
+                panktiLauncher.countMethods(model)));
 
         Instant start = Instant.now();
         // Apply processor to model
-        Set<CtMethod<?>> candidateMethods = panktiLauncher.applyProcessor(model, includeVoidMethods);
+        Set<CtMethod<?>> candidateMethods =
+                panktiLauncher.applyProcessor(model, includeVoidMethods);
         Instant finish = Instant.now();
         long timeElapsed = Duration.between(start, finish).toMillis();
-        LOGGER.info("Elapsed time (ms): " + timeElapsed);
-        LOGGER.info("Number of extracted methods: " +
-                candidateMethods.size());
+        LOGGER.info(String.format("Elapsed time (ms): %s", timeElapsed));
+        LOGGER.info(String.format("Number of extracted methods: %s",
+                candidateMethods.size()));
 
         // Save model in spooned/
         // launcher.prettyprint();
@@ -95,8 +102,9 @@ public class PanktiMain implements Callable<Integer> {
         return 0;
     }
 
-    public static void main(String[] args) {
-        int exitCode = new CommandLine(new PanktiMain()).execute(args);
+    public static void main(final String[] args) {
+        int exitCode =
+                new CommandLine(new PanktiMain()).execute(args);
         System.exit(exitCode);
     }
 }

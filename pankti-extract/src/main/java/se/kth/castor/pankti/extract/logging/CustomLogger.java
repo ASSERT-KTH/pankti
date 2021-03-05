@@ -6,10 +6,9 @@ import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 public class CustomLogger {
-
     private static Logger LOGGER = null;
 
-    public static Logger log(String className) {
+    public static Logger log(final String className) {
         InputStream stream = CustomLogger.class.getClassLoader().
             getResourceAsStream("logging.properties");
         try {
