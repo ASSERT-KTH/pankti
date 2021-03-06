@@ -103,6 +103,18 @@ public class MethodUtilTest {
                         method.getSignature()));
     }
 
+    // Test that the correct type signature for parameters is generated for corner cases
+    @Test
+    public void testMethodParameterSignatureForCornerCases() {
+        String[] params = {"float", "org.example.floaty.McFloatFace", "short[]", "org.example.interesting.booleany.Thing[]", "E"};
+        StringBuilder paramSignature = new StringBuilder();
+        for (String param : params) {
+            paramSignature.append(MethodUtil.findMethodParamSignature(param));
+        }
+        assertEquals("FLorg/example/floaty/McFloatFace;[S[Lorg/example/interesting/booleany/Thing;Ljava/lang/Object;",
+                paramSignature.toString());
+    }
+
     @Test
     public void testCorrectAmountOfMockCandidatesAreFound() {
         String methodPath =
