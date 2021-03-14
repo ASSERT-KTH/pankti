@@ -148,6 +148,7 @@ public class MethodUtil {
      * @return A map with the path of nested invocations and a string of the form "declaring.type.fqn.signature"
      */
     public static Map<CtPath, String> getNestedMethodInvocationMap(final CtMethod<?> method) {
+        assert !method.isAbstract();
         List<CtInvocation<?>> nestedMethodInvocations = findNestedMethodCalls(method);
         Map<CtPath, String> nestedMethodInvocationMap = new LinkedHashMap<>();
         for (CtInvocation<?> invocation : nestedMethodInvocations) {
