@@ -126,14 +126,14 @@ public class MethodUtil {
     private static boolean isNestedInvocationMockable(final CtMethod<?> method,
                                                       final CtInvocation<?> invocation) {
         CtExecutableReference<?> executable = getExecutable(invocation);
-        CtTypeReference<?> declaringType = getDeclaringType(executable);
+        CtTypeReference<?> executableDeclaringType = getDeclaringType(executable);
         CtType<?> methodDeclaringType = method.getDeclaringType();
         if (isExecutableNonFinalNonStatic(executable)
                 && !isMethodDeclaringTypeAbstract(methodDeclaringType)
-                && !isMethodDeclaringTypeSameAsExecutableDeclaringType(methodDeclaringType, declaringType)) {
+                && !isMethodDeclaringTypeSameAsExecutableDeclaringType(methodDeclaringType, executableDeclaringType)) {
             if (isInvocationTargetANonFinalNonStaticField(method, invocation)) {
                 Set<ModifierKind> invocationClassModifiers =
-                        declaringType.getModifiers();
+                        executableDeclaringType.getModifiers();
                 return !(invocationClassModifiers.contains(ModifierKind.FINAL)
                         || invocationClassModifiers.contains(ModifierKind.STATIC));
             }
