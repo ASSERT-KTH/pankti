@@ -13,7 +13,6 @@ import spoon.reflect.code.*;
 import spoon.reflect.declaration.*;
 import spoon.reflect.visitor.filter.AnnotationFilter;
 import spoon.reflect.visitor.filter.ReferenceTypeFilter;
-import spoon.reflect.visitor.filter.TypeFilter;
 
 @CommandLine.Command(
         name = "methodsDescription",
@@ -28,15 +27,9 @@ public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements C
     List<CtMethod<?>> abstractMethods = new ArrayList<>();
     List<CtMethod<?>> staticMethods = new ArrayList<>();
     List<CtMethod<?>> methodsWithSynchronization = new ArrayList<>();
-    List<CtMethod<?>> methodsThrowingExceptions = new ArrayList<>();
     List<CtMethod<?>> emptyMethods = new ArrayList<>();
     List<CtMethod<?>> deprecatedMethods = new ArrayList<>();
     List<CtMethod<?>> methodsInAnnotationType = new ArrayList<>();
-    List<CtMethod<?>> methodsWithInvocations = new ArrayList<>();
-    List<CtMethod<?>> methodsWithConstructorCalls = new ArrayList<>();
-    List<CtMethod<?>> methodsWithFieldAssignments = new ArrayList<>();
-    List<CtMethod<?>> methodsModifyingArrayArguments = new ArrayList<>();
-    List<CtMethod<?>> methodsModifyingNonLocalVariables = new ArrayList<>();
     Set<ModifierKind> allMethodModifiers = new HashSet<>();
     Set<CtMethod<?>> candidateMethods = new HashSet<>();
 
