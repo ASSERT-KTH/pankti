@@ -4,6 +4,7 @@ import spoon.reflect.code.CtInvocation;
 import spoon.reflect.declaration.CtConstructor;
 import spoon.reflect.declaration.CtField;
 import spoon.reflect.declaration.CtMethod;
+import spoon.reflect.declaration.CtType;
 import spoon.reflect.declaration.ModifierKind;
 import spoon.reflect.path.CtPath;
 import spoon.reflect.reference.CtExecutableReference;
@@ -112,14 +113,24 @@ public class MethodUtil {
                 .collect(Collectors.toList());
     }
 
+    private static boolean isMethodDeclaringTypeAbstract(final CtType<?> methodDeclaringType) {
+        return methodDeclaringType.getModifiers().contains(ModifierKind.ABSTRACT);
+    }
+
+    private static boolean isMethodDeclaringTypeSameAsExecutableDeclaringType(final CtType<?> methodDeclaringType,
+                                                                              final CtTypeReference<?> executableDeclaringType) {
+        return methodDeclaringType.getQualifiedName().equals(executableDeclaringType.getQualifiedName());
+    }
+
+
     private static boolean isNestedInvocationMockable(final CtMethod<?> method,
                                                       final CtInvocation<?> invocation) {
         CtExecutableReference<?> executable = getExecutable(invocation);
         CtTypeReference<?> declaringType = getDeclaringType(executable);
+        CtType<?> methodDeclaringType = method.getDeclaringType();
         if (isExecutableNonFinalNonStatic(executable)
-                && !method.getDeclaringType().getModifiers().contains(ModifierKind.ABSTRACT)
-                && !method.getDeclaringType().getQualifiedName().equals(
-                declaringType.getQualifiedName())) {
+                && !isMethodDeclaringTypeAbstract(methodDeclaringType)
+                && !isMethodDeclaringTypeSameAsExecutableDeclaringType(methodDeclaringType, declaringType)) {
             if (isInvocationTargetANonFinalNonStaticField(method, invocation)) {
                 Set<ModifierKind> invocationClassModifiers =
                         declaringType.getModifiers();
