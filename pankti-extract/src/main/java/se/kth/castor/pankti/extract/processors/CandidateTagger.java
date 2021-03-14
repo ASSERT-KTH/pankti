@@ -118,6 +118,7 @@ public class CandidateTagger extends AbstractProcessor<CtMethod<?>> {
     }
 
     public Map<CtMethod<?>, Map<String, Boolean>> tagMethod(CtMethod<?> method) {
+        assert !(method.hasAnnotation(Deprecated.class) | method.isAbstract());
         Map<CtMethod<?>, Map<String, Boolean>> methodTags = new HashMap<>();
 
         Map<String, Boolean> tagMap = Map.ofEntries(
