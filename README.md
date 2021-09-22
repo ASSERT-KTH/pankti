@@ -1,10 +1,23 @@
 # pankti ![Build](https://github.com/castor-software/pankti//workflows/build-on-push/badge.svg)
 
-Pankti transforms production workloads into test cases ([**arXiv**](https://arxiv.org/abs/2012.01198)). The test generation pipeline consists of four phases:
+Pankti transforms production workloads into test cases. The test generation pipeline consists of four phases:
 1. Extract
 2. Instrument
 3. Execute
 4. Generate
+
+If you use this code for academic research, please cite: "[Production Monitoring to Improve Test Suites](http://arxiv.org/pdf/2012.01198)", In IEEE Transactions on Reliability, 2021. 
+
+```bibtex
+@article{arXiv-2012.01198,
+ title = {Production Monitoring to Improve Test Suites},
+ journal = {IEEE Transactions on Reliability},
+ year = {2021},
+ doi = {10.1109/TR.2021.3101318},
+ author = {Deepika Tiwari and Long Zhang and Martin Monperrus and Benoit Baudry},
+}
+```
+
 ___
 
 ### Extract (pankti-extract)
