@@ -6,6 +6,8 @@ import se.kth.castor.pankti.extract.logging.CustomLogger;
 import se.kth.castor.pankti.extract.processors.CandidateTagger;
 import se.kth.castor.pankti.extract.processors.MethodProcessor;
 import se.kth.castor.pankti.extract.util.MethodUtil;
+import spoon.JarLauncher;
+import spoon.Launcher;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtClass;
@@ -27,7 +29,7 @@ public class PanktiLauncher {
     private static String projectName;
     private static String[] HEADERS =
             {"visibility", "parent-FQN", "method-name", "param-list", "return-type",
-                    "param-signature", "nested-invocations", "noparam-constructor", "tags"};
+                    "param-signature", "has-mockable-invocations", "nested-invocations", "noparam-constructor", "tags"};
 
     public MavenLauncher getMavenLauncher(final String projectPath, final String projectName) {
         PanktiLauncher.projectName = projectName;
@@ -37,7 +39,15 @@ public class PanktiLauncher {
         return launcher;
     }
 
-    public CtModel buildSpoonModel(final MavenLauncher launcher) {
+    public JarLauncher getJarLauncher(final String projectPath, final String projectName) {
+        PanktiLauncher.projectName = projectName;
+        JarLauncher launcher = new JarLauncher(projectPath);
+        launcher.getEnvironment().setAutoImports(true);
+        launcher.getEnvironment().setCommentEnabled(false);
+        return launcher;
+    }
+
+    public CtModel buildSpoonModel(final Launcher launcher) {
         launcher.buildModel();
         return launcher.getModel();
     }
@@ -73,6 +83,7 @@ public class PanktiLauncher {
                 }
                 // Find nested method invocations that can be mocked
                 Map<CtPath, String> nestedMethodInvocationMap = MethodUtil.getNestedMethodInvocationMap(method);
+                boolean methodDeclaringTypeHasNoParamConstructor = MethodUtil.declaringTypeHasNoParamConstructor(method);
                 Map<String, Boolean> tags = entry.getValue();
                 csvPrinter.printRecord(
                         method.getVisibility(),
@@ -81,8 +92,9 @@ public class PanktiLauncher {
                         paramList,
                         method.getType().getQualifiedName(),
                         paramSignature.toString(),
+                        !nestedMethodInvocationMap.isEmpty() & methodDeclaringTypeHasNoParamConstructor,
                         nestedMethodInvocationMap,
-                        MethodUtil.declaringTypeHasNoParamConstructor(method),
+                        methodDeclaringTypeHasNoParamConstructor,
                         tags);
             }
         }

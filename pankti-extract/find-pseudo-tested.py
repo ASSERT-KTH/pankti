@@ -22,8 +22,9 @@ def create_final_df(df, cols):
     final_df.loc[index, 'param-list'] = row['param-list'].lstrip('[').rsplit(']', 1)[0]
     final_df.loc[index, 'return-type'] = row['return-type']
     final_df.loc[index, 'param-signature'] = row['param-signature']
+    final_df.loc[index, 'has-mockable-invocations'] = row['has-mockable-invocations']
     final_df.loc[index, 'nested-invocations'] = row['nested-invocations']
-    final_df.loc[index, 'noparam-constructor'] = row['default-constructor']
+    final_df.loc[index, 'noparam-constructor'] = row['noparam-constructor']
     final_df.loc[index, 'local-variables'] = extract_from_tags("local_variables", str(row['tags']))
     final_df.loc[index, 'conditionals'] = extract_from_tags("conditionals", str(row['tags']))
     final_df.loc[index, 'multiple-statements'] = extract_from_tags("multiple_statements", str(row['tags']))

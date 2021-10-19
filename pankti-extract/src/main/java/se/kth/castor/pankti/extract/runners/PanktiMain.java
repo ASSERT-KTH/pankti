@@ -3,6 +3,7 @@ package se.kth.castor.pankti.extract.runners;
 import picocli.CommandLine;
 import se.kth.castor.pankti.extract.launchers.PanktiLauncher;
 import se.kth.castor.pankti.extract.logging.CustomLogger;
+import spoon.Launcher;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtMethod;
@@ -25,7 +26,7 @@ public final class PanktiMain implements Callable<Integer> {
 
     @CommandLine.Parameters(
             paramLabel = "PATH",
-            description = "Path of the Maven project")
+            description = "Path of the Maven project or project JAR")
     private Path projectPath;
 
     @CommandLine.Option(
@@ -72,12 +73,16 @@ public final class PanktiMain implements Callable<Integer> {
 
         // Process project
         LOGGER.info(String.format("Processing project: %s", name));
-        MavenLauncher launcher =
-                panktiLauncher.getMavenLauncher(path, name);
-        SpoonPom projectPom = launcher.getPomFile();
-        LOGGER.info(String.format("POM found at: %s", projectPom.getPath()));
-        LOGGER.info(String.format("Number of Maven modules: %s",
-                projectPom.getModel().getModules().size()));
+        Launcher launcher;
+        if (path.endsWith(".jar")) {
+            launcher = panktiLauncher.getJarLauncher(path, name);
+        } else {
+            launcher = panktiLauncher.getMavenLauncher(path, name);
+            SpoonPom projectPom = ((MavenLauncher) launcher).getPomFile();
+            LOGGER.info(String.format("POM found at: %s", projectPom.getPath()));
+            LOGGER.info(String.format("Number of Maven modules: %s",
+                    projectPom.getModel().getModules().size()));
+        }
 
         // Build Spoon model
         CtModel model = panktiLauncher.buildSpoonModel(launcher);
