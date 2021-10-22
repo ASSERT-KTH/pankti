@@ -26,13 +26,10 @@ def get_parameters_from_invocation_string(invocation):
   return re.sub(r"(.+)(\(.+)", r"\2", method_and_args)
 
 def sanitize_parameter_list(param_list):
-  if param_list.startswith("[") and param_list.endswith("]"):
-    param_list = re.sub(r"^\[", "", param_list)
-    param_list = re.sub(r"\]$", "", param_list)
   parameters = param_list.replace("(", "").replace(")", "")
   parameters = re.sub(r"([a-zA-Z0-9\$\.\[\]]+)", "\"" + r"\1" + "\"", parameters)
-  parameters = re.sub("\"T\"", "\"java.lang.Object\"", parameters)
-  parameters = re.sub("\"T\[\]\"", "\"java.lang.Object[]\"", parameters)
+  parameters = re.sub("\"[EKNTV]\"", "\"java.lang.Object\"", parameters)
+  parameters = re.sub("\"[EKNTV]\[\]\"", "\"java.lang.Object[]\"", parameters)
   return parameters
 
 # Generate aspect classes based on the MethodAspect0Nested0 template
@@ -117,11 +114,14 @@ def generate_aspects(df):
   mock_template_file_path = base_path + "0Nested0.java" 
   df.replace(np.nan, '', regex=True, inplace=True)
   for index, row in df.iterrows():
-  # temporarily, instrument classes with mockable invocations, with non-Java library nested invocations
-    if row['has-mockable-invocations'] and "java." not in row['nested-invocations']:
+  # temporarily, instrument classes with mockable invocations
+    if row['has-mockable-invocations']:
       count += 1
       aspects.append(float(count))
       new_file_path = base_path + str(count) + ".java"
+      if (row['param-list'].startswith('[') and row['param-list'].endswith(']')):
+        row['param-list'] = re.sub(r"^\[", "", row['param-list'])
+        row['param-list'] = re.sub(r"\]$", "", row['param-list'])
       generate_aspect_class(template_file_path, new_file_path, count, row, df)
       if (row['has-mockable-invocations']):
         nested_invocations = extract_from_nested_invocation_map(row['nested-invocations'])
