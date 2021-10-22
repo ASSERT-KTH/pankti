@@ -117,6 +117,16 @@ public class MethodUtil {
         return methodDeclaringType.getModifiers().contains(ModifierKind.ABSTRACT);
     }
 
+    /**
+     * Exclude nested invocations on methods of Java library classes
+     *
+     * @param executableDeclaringType The declaring type of the nested invocation executable
+     * @return true if the declaring type is a java.* class
+     */
+    private static boolean isExecutableDeclaringTypeAJavaLibraryClass(final CtTypeReference<?> executableDeclaringType) {
+        return executableDeclaringType.getQualifiedName().contains("java");
+    }
+
     private static boolean isMethodDeclaringTypeSameAsExecutableDeclaringType(final CtType<?> methodDeclaringType,
                                                                               final CtTypeReference<?> executableDeclaringType) {
         return methodDeclaringType.getQualifiedName().equals(executableDeclaringType.getQualifiedName());
@@ -130,6 +140,7 @@ public class MethodUtil {
         CtType<?> methodDeclaringType = method.getDeclaringType();
         if (isExecutableNonFinalNonStatic(executable)
                 && !isMethodDeclaringTypeAbstract(methodDeclaringType)
+                && !isExecutableDeclaringTypeAJavaLibraryClass(executableDeclaringType)
                 && !isMethodDeclaringTypeSameAsExecutableDeclaringType(methodDeclaringType, executableDeclaringType)) {
             if (isInvocationTargetANonFinalNonStaticField(method, invocation)) {
                 Set<ModifierKind> invocationClassModifiers =

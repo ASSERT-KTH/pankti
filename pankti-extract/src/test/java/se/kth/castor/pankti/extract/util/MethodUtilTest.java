@@ -117,13 +117,32 @@ public class MethodUtilTest {
 
     @Test
     public void testCorrectAmountOfMockCandidatesAreFound() {
-        String methodPath =
+        String methodPath1 =
                 "#subPackage[name=org]#subPackage[name=jitsi]#subPackage[name=videobridge]#containedType[name=Endpoint]" +
                         "#method[signature=getDebugState()]";
-        CtMethod<?> method = findMethodByPath(methodPath);
-        assertEquals(2, MethodUtil.getNestedMethodInvocationMap(method).size(),
-                String.format("%s has two nested method invocations that may be mocked",
-                        method.getSignature()));
+        String methodPath2 =
+                "#subPackage[name=org]#subPackage[name=jitsi]#subPackage[name=videobridge]#containedType[name=Conference]" +
+                        "#method[signature=getTentacle()]";
+        CtMethod<?> method1 = findMethodByPath(methodPath1);
+        CtMethod<?> method2 = findMethodByPath(methodPath2);
+        assertEquals(0, MethodUtil.getNestedMethodInvocationMap(method1).size(),
+                String.format("%s has zero nested method invocations that may be mocked",
+                        method1.getSignature()));
+        assertEquals(1, MethodUtil.getNestedMethodInvocationMap(method2).size(),
+                String.format("%s has one nested method invocation that may be mocked",
+                        method2.getSignature()));
+    }
+
+    @Test
+    public void testThatMethodsWithMockingCandidatesDoNotHaveNestedInvocationsOnJavaLibraryClassMethods() {
+        for (CtMethod<?> thisMethod : allMethods) {
+            List<CtInvocation<?>> methodInvocations = MethodUtil.findNestedMethodCalls(thisMethod);
+            for (CtInvocation<?> thisInvocation : methodInvocations) {
+                assertFalse(thisInvocation.getExecutable().getDeclaringType().getQualifiedName().contains("java"),
+                        String.format("The declaring type for %s should not be a Java library class for it to be mocked",
+                                thisInvocation));
+            }
+        }
     }
 
     @Test
