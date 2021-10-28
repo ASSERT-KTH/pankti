@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,11 +36,14 @@ public class MethodAspect0Nested0 {
         private static String invocationCountFilePath;
         private static String invokedMethodsCSVFilePath;
         private static String objectProfileSizeFilePath;
+        private static String parentInvocationClassName = MethodAspect0.TargetMethodAdvice.class.getAnnotation(Pointcut.class).className();
+        private static String parentInvocationMethodName = MethodAspect0.TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodName();
         private static Logger logger = Logger.getLogger(TargetMethodAdvice.class);
         private static final String methodParamTypesString = String.join(",", TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodParameterTypes());
         private static final String postfix = methodParamTypesString.isEmpty() ? "" : "_" + methodParamTypesString;
         private static final String methodFQN = TargetMethodAdvice.class.getAnnotation(Pointcut.class).className() + "."
                 + TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodName() + postfix;
+        static UUID invocationUuid = null;
         private static final String invocationString = String.format("Invocation count for %s: ", methodFQN);
         private static File[] allObjectFiles;
 
@@ -80,6 +84,12 @@ public class MethodAspect0Nested0 {
                 FileWriter objectFileWriter = new FileWriter(objectFilePath, true);
                 String xml = xStream.toXML(objectToWrite);
                 xml = xml.replaceAll("(&#x)(\\w+;)", "&amp;#x$2");
+                // Add attributes if XML is non-empty
+                if (xml.charAt(xml.indexOf('>') - 1) != '/') {
+                    xml = xml.replaceFirst(">",
+                            " parent-invocation=\"" + parentInvocationClassName + "." + parentInvocationMethodName + "\""
+                                    + " parent-uuid=\"" + invocationUuid + "\">");
+                }
                 BufferedReader reader = new BufferedReader(new StringReader(xml));
                 BufferedWriter writer = new BufferedWriter(objectFileWriter);
                 while ((xml = reader.readLine()) != null) {
@@ -136,8 +146,6 @@ public class MethodAspect0Nested0 {
         // For mocking: instrument and collect parameters and returned values if this invocation is nested
         @IsEnabled
         public static boolean isNestedInvocation() {
-            String parentInvocationClassName = MethodAspect0.TargetMethodAdvice.class.getAnnotation(Pointcut.class).className();
-            String parentInvocationMethodName = MethodAspect0.TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodName();
             boolean isNestedInvocation = Arrays.stream(Thread.currentThread().getStackTrace()).anyMatch(s ->
                     s.getClassName().equals(parentInvocationClassName) &
                             s.getMethodName().equals(parentInvocationMethodName));
@@ -152,6 +160,8 @@ public class MethodAspect0Nested0 {
                                           @BindMethodName String methodName) {
             setup();
             if (fileSizeWithinLimits) {
+                invocationUuid = null;
+                invocationUuid = MethodAspect0.TargetMethodAdvice.invocationUuid;
                 profileSizePre = getObjectProfileSize();
                 writeObjectXMLToFile(parameterObjects, paramObjectsFilePath);
             }

@@ -92,6 +92,10 @@ def generate_aspect_class(template_file_path, new_file_path, count, row, df):
             line = line.replace("@BindReturn Object returnedObject", "@BindReceiver Object receivingObjectPost")
           if "writeObjectXMLToFile(returnedObject, returnedObjectFilePath)" in line:
             line = line.replace("returnedObject", "receivingObjectPost")
+        # if method has mockable invocations
+        if row['has-mockable-invocations']:
+          if "boolean hasMockableInvocations" in line:
+            line = line.replace("false", "true")
         if ("methodParameterTypes = " in line):
           if (pd.isnull(row['param-list'])):
             param_list = ""
