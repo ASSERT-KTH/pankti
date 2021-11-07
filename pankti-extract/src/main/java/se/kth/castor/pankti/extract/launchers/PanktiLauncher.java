@@ -31,8 +31,17 @@ public class PanktiLauncher {
             {"visibility", "parent-FQN", "method-name", "param-list", "return-type",
                     "param-signature", "has-mockable-invocations", "nested-invocations", "noparam-constructor", "tags"};
 
+    public Launcher getLauncher(final String projectPath, final String projectName) {
+        PanktiLauncher.projectName = projectName;
+        LOGGER.info("Invoking launcher for source directory");
+        Launcher launcher = new Launcher();
+        launcher.addInputResource(projectPath);
+        return launcher;
+    }
+
     public MavenLauncher getMavenLauncher(final String projectPath, final String projectName) {
         PanktiLauncher.projectName = projectName;
+        LOGGER.info("Invoking launcher for Maven project");
         MavenLauncher launcher = new MavenLauncher(projectPath, MavenLauncher.SOURCE_TYPE.APP_SOURCE);
         launcher.getEnvironment().setAutoImports(true);
         launcher.getEnvironment().setCommentEnabled(false);
@@ -41,6 +50,7 @@ public class PanktiLauncher {
 
     public JarLauncher getJarLauncher(final String projectPath, final String projectName) {
         PanktiLauncher.projectName = projectName;
+        LOGGER.info("Invoking launcher for JAR");
         JarLauncher launcher = new JarLauncher(projectPath);
         launcher.getEnvironment().setAutoImports(true);
         launcher.getEnvironment().setCommentEnabled(false);

@@ -31,12 +31,17 @@ public final class PanktiMain implements Callable<Integer> {
 
     @CommandLine.Option(
             names = {"-v", "--void"},
-            description = "Include void methods.")
+            description = "Include void methods")
     private boolean includeVoidMethods;
 
     @CommandLine.Option(
+            names = {"-s", "--source"},
+            description = "Directory with source files")
+    private boolean sourceDirectory;
+
+    @CommandLine.Option(
             names = {"-h", "--help"},
-            description = "Display help/usage.",
+            description = "Display help/usage",
             usageHelp = true)
     private boolean usageHelpRequested;
 
@@ -54,9 +59,11 @@ public final class PanktiMain implements Callable<Integer> {
 
     public PanktiMain(final Path projectPath,
                       final boolean includeVoidMethods,
+                      final boolean sourceDirectory,
                       final boolean help) {
         this.projectPath = projectPath;
         this.includeVoidMethods = includeVoidMethods;
+        this.sourceDirectory = sourceDirectory;
         this.usageHelpRequested = help;
     }
 
@@ -74,14 +81,19 @@ public final class PanktiMain implements Callable<Integer> {
         // Process project
         LOGGER.info(String.format("Processing project: %s", name));
         Launcher launcher;
-        if (path.endsWith(".jar")) {
-            launcher = panktiLauncher.getJarLauncher(path, name);
-        } else {
-            launcher = panktiLauncher.getMavenLauncher(path, name);
-            SpoonPom projectPom = ((MavenLauncher) launcher).getPomFile();
-            LOGGER.info(String.format("POM found at: %s", projectPom.getPath()));
-            LOGGER.info(String.format("Number of Maven modules: %s",
-                    projectPom.getModel().getModules().size()));
+        if (sourceDirectory) {
+            launcher = panktiLauncher.getLauncher(path, name);
+        }
+        else {
+            if (path.endsWith(".jar")) {
+                launcher = panktiLauncher.getJarLauncher(path, name);
+            } else {
+                launcher = panktiLauncher.getMavenLauncher(path, name);
+                SpoonPom projectPom = ((MavenLauncher) launcher).getPomFile();
+                LOGGER.info(String.format("POM found at: %s", projectPom.getPath()));
+                LOGGER.info(String.format("Number of Maven modules: %s",
+                        projectPom.getModel().getModules().size()));
+            }
         }
 
         // Build Spoon model

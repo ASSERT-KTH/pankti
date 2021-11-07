@@ -1,5 +1,6 @@
 package se.kth.castor.pankti.extract.util;
 
+import se.kth.castor.pankti.extract.logging.CustomLogger;
 import spoon.reflect.code.CtInvocation;
 import spoon.reflect.declaration.CtConstructor;
 import spoon.reflect.declaration.CtField;
@@ -16,9 +17,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class MethodUtil {
+    private static final Logger LOGGER =
+            CustomLogger.log(MethodUtil.class.getName());
+
     /**
      * Returns the type signature representation for method parameters.
      *
@@ -93,7 +98,13 @@ public class MethodUtil {
     }
 
     private static boolean isExecutableNonFinalNonStatic(final CtExecutableReference<?> executable) {
-        return !(executable.isFinal() || executable.isStatic());
+        boolean isExecutableNonFinalNonStatic = false;
+        try {
+            isExecutableNonFinalNonStatic = !(executable.isFinal() || executable.isStatic());
+        } catch (Throwable throwable) {
+            LOGGER.info(String.format("Skipping executable %s because %s", executable, throwable.getMessage()));
+        }
+        return isExecutableNonFinalNonStatic;
     }
 
     /**
