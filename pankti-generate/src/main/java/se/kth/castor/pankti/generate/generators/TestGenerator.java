@@ -25,9 +25,9 @@ public class TestGenerator {
     private static final String XSTREAM_DRIVER_REFERENCE = "com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver";
     private static final String XSTREAM_CONSTRUCTOR = "new XStream()";
     private static final String XSTREAM_VARIABLE = "xStream";
-    private static final String JUNIT_TEST_REFERENCE = "org.junit.Test";
+    private static final String JUNIT_JUPITER_TEST_REFERENCE = "org.junit.jupiter.api.Test";
     private static final String JUNIT_BEFORE_REFERENCE = "org.junit.Before";
-    private static final String JUNIT_ASSERT_REFERENCE = "org.junit.Assert";
+    private static final String JUNIT_ASSERT_REFERENCE = "org.junit.jupiter.api.Assertions";
     private static final String JAVA_UTIL_ARRAYS_REFERENCE = "java.util.Arrays";
     private static final String JAVA_UTIL_SCANNER_REFERENCE = "java.util.Scanner";
     private static final String JAVA_IO_FILE_REFERENCE = "java.io.File";
@@ -47,25 +47,41 @@ public class TestGenerator {
         return String.format("%s.%s%s%s", ctPackage, TEST_CLASS_PREFIX, className, TEST_CLASS_POSTFIX);
     }
 
+    /**
+     * Generates a test class within the specified package
+     *
+     * @param ctPackage for the generated test class
+     * @param className the name of the class that defines the target method
+     * @return a new test class for the target method
+     */
     public CtClass<?> generateTestClass(CtPackage ctPackage, String className) {
         CtClass<?> generatedClass = factory.createClass(ctPackage, TEST_CLASS_PREFIX + className + TEST_CLASS_POSTFIX);
         generatedClass.addModifier(ModifierKind.PUBLIC);
         return generatedClass;
     }
 
+    /**
+     * Adds all imports to a class
+     *
+     * @param generatedClass the test class to add imports to
+     */
     public void addImportsToGeneratedClass(CtClass<?> generatedClass) {
         generatedClass.getFactory().createUnresolvedImport(XSTREAM_REFERENCE, false);
         if (this.testFormat.equals("json")) {
             generatedClass.getFactory().createUnresolvedImport(XSTREAM_DRIVER_REFERENCE, false);
         }
-        generatedClass.getFactory().createUnresolvedImport(JUNIT_TEST_REFERENCE, false);
+        generatedClass.getFactory().createUnresolvedImport(JUNIT_JUPITER_TEST_REFERENCE, false);
         generatedClass.getFactory().createUnresolvedImport(JUNIT_BEFORE_REFERENCE, false);
-        generatedClass.getFactory().createUnresolvedImport(JUNIT_ASSERT_REFERENCE, false);
         generatedClass.getFactory().createUnresolvedImport(JAVA_UTIL_ARRAYS_REFERENCE, false);
         generatedClass.getFactory().createUnresolvedImport(JAVA_UTIL_SCANNER_REFERENCE, false);
         generatedClass.getFactory().createUnresolvedImport(JAVA_IO_FILE_REFERENCE, false);
     }
 
+    /**
+     * Adds and sets up XStream for deserialization
+     *
+     * @return the generated xStream field
+     */
     public CtField<?> addXStreamFieldToGeneratedClass() throws ClassNotFoundException {
         CtField<?> xStreamField = null;
 
@@ -111,11 +127,19 @@ public class TestGenerator {
         return deserializationMethods;
     }
 
+    /**
+     * Generates assertions in a generated test method
+     *
+     * @param method           target for test generation
+     * @param serializedObject a single object profile
+     * @return a list of statements for profile deserialization and the assertion itself
+     */
     @SuppressWarnings("unchecked")
     public List<CtStatement> generateAssertionInTestMethod(CtMethod<?> method, SerializedObject serializedObject) throws ClassNotFoundException {
         List<CtStatement> assertionStatements = new ArrayList<>();
         CtExpression<?> assertExpectedObject;
         if (method.getType().getSimpleName().equals("void")) {
+            // for void methods, assertion on post receiving object
             assertExpectedObject = factory.createCodeSnippetExpression(String.format("%s.toXML(receivingObjectPost)", XSTREAM_VARIABLE));
         } else if (method.getType().isPrimitive()) {
             String value = serializedObject.getReturnedObject().replaceAll("</?\\w+>", "");
@@ -134,6 +158,7 @@ public class TestGenerator {
 
         boolean hasOnlyPrimitiveParams = testGenUtil.allMethodParametersArePrimitive(method);
 
+        // If parameters are primitives
         List<String> primitiveParams = new ArrayList<>();
         if (parameters.size() > 0 & hasOnlyPrimitiveParams) {
             primitiveParams = Arrays.asList(
@@ -171,15 +196,17 @@ public class TestGenerator {
             assertActualObject = factory.createCodeSnippetExpression(assertionStatement);
         }
 
+        // Reflection for private methods
         if (method.getVisibility().equals(ModifierKind.PRIVATE)) {
             assertActualObject = factory.createCodeSnippetExpression(
                     String.format("%s%s.invoke(%s, %s)",
                             method.getType().isArray() ? "(" + method.getType() + ") " : "",
                             method.getSimpleName(),
                             "receivingObject",
-                            arguments.toString()));
+                            arguments));
         }
 
+        // Generate JUnit assert invocation
         CtExecutableReference<?> executableReferenceForAssertion = factory.createExecutableReference();
         executableReferenceForAssertion.setStatic(true);
         executableReferenceForAssertion.setDeclaringType(factory.createCtTypeReference(Class.forName(JUNIT_ASSERT_REFERENCE)));
@@ -210,6 +237,9 @@ public class TestGenerator {
         return assertionStatements;
     }
 
+    /**
+     * Creates a resource file for long serialized XML profiles
+     */
     public String createLongObjectStringFile(String methodIdentifier, String profileType, String longObjectStr, MavenLauncher launcher) {
         String fileName = "";
         try {
@@ -328,7 +358,7 @@ public class TestGenerator {
         List<CtStatement> methodBody = new ArrayList<>();
         String postfix = "";
         if (instrumentedMethod.isOverloaded()) {
-            postfix = testGenUtil.getParamListPostFix(instrumentedMethod);
+            postfix = testGenUtil.getParamListPostFix(instrumentedMethod.getParamList());
         }
         String methodIdentifier = instrumentedMethod.getFullMethodPath() + postfix + methodCounter;
         if (receivingObjectStr.length() > 10000 || returnedObjectStr.length() > 10000 || receivingObjectPostStr.length() > 10000 || paramsObjectStr.length() > 10000) {
@@ -430,10 +460,10 @@ public class TestGenerator {
         CtMethod<?> generatedMethod = factory.createMethod();
         String postfix = "";
         if (instrumentedMethod.isOverloaded()) {
-            postfix = testGenUtil.getParamListPostFix(instrumentedMethod).replaceAll("[.,]", "_");
+            postfix = testGenUtil.getParamListPostFix(instrumentedMethod.getParamList()).replaceAll("[.,]", "_");
         }
         generatedMethod.setSimpleName("test" + method.getSimpleName().substring(0, 1).toUpperCase() + method.getSimpleName().substring(1) + postfix + methodCounter);
-        CtAnnotation<?> testAnnotation = factory.createAnnotation(factory.createCtTypeReference(Class.forName(JUNIT_TEST_REFERENCE)));
+        CtAnnotation<?> testAnnotation = factory.createAnnotation(factory.createCtTypeReference(Class.forName(JUNIT_JUPITER_TEST_REFERENCE)));
         generatedMethod.addAnnotation(testAnnotation);
         generatedMethod.setModifiers(Collections.singleton(ModifierKind.PUBLIC));
         generatedMethod.setType(factory.createCtTypeReference(void.class));
@@ -471,6 +501,27 @@ public class TestGenerator {
         return generatedMethod;
     }
 
+    public void generateMockMethod(InstrumentedMethod instrumentedMethod,
+                                   CtMethod<?> mockMethod,
+                                   CtClass<?> generatedClass) throws ClassNotFoundException {
+        // If mocks can be used to test this method
+        if (instrumentedMethod.hasMockableInvocations()) {
+            assert instrumentedMethod.hasNoParamConstructor() & !instrumentedMethod.getNestedMethodMap().equals("{}");
+            MockGenerator mockGenerator = new MockGenerator(factory);
+
+            // Annotate generated class with @ExtendWith(MockitoExtension.class)
+            if (generatedClass.getAnnotations()
+                    .stream().noneMatch(ctAnnotation -> ctAnnotation.toString().contains("ExtendWith")))
+                mockGenerator.addAnnotationToGeneratedClass(generatedClass);
+
+            // Add @Mock, @InjectMocks fields, generate tests that use mocks
+            List<CtMethod<?>> generatedTestsWithMocks = mockGenerator.generateMockInfrastructure(mockMethod, generatedClass, instrumentedMethod);
+            for (CtMethod<?> generatedTestWithMock : generatedTestsWithMocks) {
+                generatedClass.addMethod(generatedTestWithMock);
+            }
+        }
+    }
+
     public CtClass<?> generateFullTestClass(CtType<?> type,
                                             CtMethod<?> method,
                                             InstrumentedMethod instrumentedMethod,
@@ -479,7 +530,7 @@ public class TestGenerator {
         String methodPath = instrumentedMethod.getFullMethodPath();
         ObjectXMLParser objectXMLParser = new ObjectXMLParser();
         Set<SerializedObject> serializedObjects = objectXMLParser.parseXML(
-                objectXMLDirectoryPath + File.separatorChar + methodPath, instrumentedMethod);
+                objectXMLDirectoryPath + File.separatorChar, methodPath, instrumentedMethod);
         System.out.println("Number of unique pairs/triples of object values: " + serializedObjects.size());
 
         if (serializedObjects.size() == 0) {
@@ -504,6 +555,9 @@ public class TestGenerator {
             for (SerializedObject serializedObject : serializedObjects) {
                 CtMethod<?> generatedMethod = generateTestMethod(method, methodCounter, instrumentedMethod, serializedObject, launcher);
                 generatedClass.addMethod(generatedMethod);
+                // If mocks can be used to test this method
+                CtMethod<?> baseMethod = generatedMethod.clone();
+                generateMockMethod(instrumentedMethod, baseMethod, generatedClass);
                 methodCounter++;
             }
             return generatedClass;

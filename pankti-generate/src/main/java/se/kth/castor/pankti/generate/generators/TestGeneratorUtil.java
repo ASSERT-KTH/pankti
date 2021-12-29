@@ -7,7 +7,6 @@ import com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver;
 import com.thoughtworks.xstream.io.xml.XppReader;
 import org.apache.commons.text.StringEscapeUtils;
 import org.xmlpull.mxp1.MXParser;
-import se.kth.castor.pankti.generate.parsers.InstrumentedMethod;
 import spoon.reflect.code.*;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.CtParameter;
@@ -155,8 +154,9 @@ public class TestGeneratorUtil {
     }
 
     // Gets method param list as _param1,param2,param3
-    public String getParamListPostFix(InstrumentedMethod instrumentedMethod) {
-        return "_" + String.join(",", instrumentedMethod.getParamList());
+    public String getParamListPostFix(List<String> paramList) {
+        return (paramList.size() == 1 & paramList.get(0).isEmpty())
+                ? "" : "_" + String.join(",", paramList);
     }
 
     public boolean allMethodParametersArePrimitive(CtMethod<?> method) {

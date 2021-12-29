@@ -15,6 +15,9 @@ public class CSVFileParser {
     static final String csvParamListField = "param-list";
     static final String csvReturnTypeField = "return-type";
     static final String csvVisibilityField = "visibility";
+    static final String csvMockableInvocationsField = "has-mockable-invocations";
+    static final String csvNoParamConstructorField = "noparam-constructor";
+    static final String csvNestedMethodInvocationsField = "nested-invocations";
 
     public static List<InstrumentedMethod> parseCSVFile(String filePath) {
         List<InstrumentedMethod> instrumentedMethods = new ArrayList<>();
@@ -27,6 +30,9 @@ public class CSVFileParser {
                 String params = record.get(csvParamListField);
                 String returnType = record.get(csvReturnTypeField);
                 String visibility = record.get(csvVisibilityField);
+                boolean hasMockableInvocations = record.get(csvMockableInvocationsField).equalsIgnoreCase("true");
+                boolean hasNoParamConstructor = record.get(csvNoParamConstructorField).equalsIgnoreCase("true");
+                String nestedMethodMap = record.get(csvNestedMethodInvocationsField);
 
                 List<String> paramList = new ArrayList<>();
                 if (!params.isEmpty()) {
@@ -34,7 +40,8 @@ public class CSVFileParser {
                     paramList = new ArrayList<>(Arrays.asList(params.split(",")));
                 }
 
-                instrumentedMethods.add(new InstrumentedMethod(parentFQN, methodName, paramList, returnType, visibility));
+                instrumentedMethods.add(new InstrumentedMethod(parentFQN, methodName, paramList, returnType,
+                        visibility, hasMockableInvocations, hasNoParamConstructor, nestedMethodMap));
             }
         } catch (Exception e) {
             e.printStackTrace();
