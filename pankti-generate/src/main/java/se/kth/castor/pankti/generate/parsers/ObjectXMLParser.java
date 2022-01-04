@@ -44,16 +44,16 @@ public class ObjectXMLParser {
     }
 
     private void removeAddedAttributes(Node thisNode) {
-        List<String> attributesToRemove = List.of("uuid", "parent-uuid", "parent-invocation");
+        List<String> attributesToRemove = List.of("uuid", "parent-uuid");
         for (String attributeToRemove : attributesToRemove) {
-            if (thisNode.getAttributes().getNamedItem(attributeToRemove)!= null)
+            if (thisNode.getAttributes().getNamedItem(attributeToRemove) != null)
                 thisNode.getAttributes().removeNamedItem(attributeToRemove);
         }
     }
 
     public Map<String, String> parseXMLInFile(File inputFile) throws Exception {
         List<String> rawXMLObjects = new ArrayList<>();
-        Map<String, String> rawXMLObjectAndAttributes = new LinkedHashMap<>();
+        Map<String, String> uuidRawXMLObjectMap = new LinkedHashMap<>();
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
 
@@ -68,26 +68,28 @@ public class ObjectXMLParser {
         rootNode.normalize();
         NodeList childNodes = rootNode.getChildNodes();
 
-        StringBuilder attributes = new StringBuilder();
+        List<String> attributes = new ArrayList<>();
         for (int i = 0; i < childNodes.getLength(); i++) {
             Node thisNode = childNodes.item(i);
             if (thisNode.hasAttributes()) {
-                if (thisNode.getAttributes().getNamedItem("parent-invocation")!= null)
-                    thisNode.getAttributes().removeNamedItem("parent-invocation");
-
                 for (int j = 0; j < thisNode.getAttributes().getLength(); j++) {
-                    attributes.append(thisNode.getAttributes().item(j).getNodeValue());
+                    attributes.add(thisNode.getAttributes().item(j).getNodeValue());
                 }
                 removeAddedAttributes(thisNode);
+            } else {
+                // if no nested invocations, add a random attribute since we have to return a map
+                // TODO: can be improved
+                attributes.add(UUID.randomUUID().toString());
             }
             String rawXMLForObject = ser.writeToString(thisNode);
             rawXMLObjects.add(cleanUpRawObjectXML(rawXMLForObject));
         }
         rawXMLObjects.removeAll(Collections.singleton(""));
+        // Map <uuid, rawXML>
         for (int i = 0; i < rawXMLObjects.size(); i++) {
-            rawXMLObjectAndAttributes.put(rawXMLObjects.get(i), attributes.toString());
+            uuidRawXMLObjectMap.put(attributes.get(i), rawXMLObjects.get(i));
         }
-        return rawXMLObjectAndAttributes;
+        return uuidRawXMLObjectMap;
     }
 
     // Create object profiles from object xml files
@@ -104,26 +106,26 @@ public class ObjectXMLParser {
 
             // Get objects from xxx-receiving.xml
             File receivingObjectFile = findXMLFileByObjectType(basePath, postfix + receivingObjectFilePostfix);
-            Map<String, String> receivingObjectsAndAttributes = parseXMLInFile(receivingObjectFile);
-            List<String> receivingObjects = new ArrayList<>(receivingObjectsAndAttributes.keySet());
-            List<String> uuids = new ArrayList<>(receivingObjectsAndAttributes.values());
+            Map<String, String> uuidReceivingObjectsMap = parseXMLInFile(receivingObjectFile);
+            List<String> uuids = new ArrayList<>(uuidReceivingObjectsMap.keySet());
+            List<String> receivingObjects = new ArrayList<>(uuidReceivingObjectsMap.values());
             List<String> returnedOrReceivingPostObjects;
 
             if (!instrumentedMethod.getReturnType().equals("void")) {
                 // Get objects from xxx-returned.xml for non-void methods
                 File returnedObjectFile = findXMLFileByObjectType(basePath, postfix + returnedObjectFilePostfix);
-                returnedOrReceivingPostObjects = new ArrayList<>(parseXMLInFile(returnedObjectFile).keySet());
+                returnedOrReceivingPostObjects = new ArrayList<>(parseXMLInFile(returnedObjectFile).values());
             } else {
                 // Get objects from xxx-receiving-post.xml for void methods
                 File receivingPostObjectFile = findXMLFileByObjectType(basePath, postfix + receivingPostObjectFilePostfix);
-                returnedOrReceivingPostObjects = new ArrayList<>(parseXMLInFile(receivingPostObjectFile).keySet());
+                returnedOrReceivingPostObjects = new ArrayList<>(parseXMLInFile(receivingPostObjectFile).values());
             }
 
             // Get objects from xxx-params.xml
             List<String> paramObjects = new ArrayList<>();
             if (hasParams) {
                 File paramObjectsFile = findXMLFileByObjectType(basePath, postfix + paramObjectsFilePostfix);
-                paramObjects = new ArrayList<>(parseXMLInFile(paramObjectsFile).keySet());
+                paramObjects = new ArrayList<>(parseXMLInFile(paramObjectsFile).values());
             }
 
             List<SerializedObject> nestedSerializedObjects = new ArrayList<>();
@@ -131,10 +133,11 @@ public class ObjectXMLParser {
             // Get objects from nested-xxx-params.xml and nested-xxx-returned.xml
             if (instrumentedMethod.hasMockableInvocations()) {
                 List<String> nestedInvocations = MockGeneratorUtil.getListOfInvocationsFromNestedMethodMap(instrumentedMethod.getNestedMethodMap());
-                System.out.println("List of invocations to mock: " + nestedInvocations);
+                System.out.println("List of nested invocations to mock: " + nestedInvocations);
                 List<String> nestedParamObjects = new ArrayList<>();
                 List<String> nestedUuids = new ArrayList<>();
                 List<String> nestedReturnedObjects = new ArrayList<>();
+                List<String> nestedInvocationFQNs = new ArrayList<>();
                 for (String invocation : nestedInvocations) {
                     String declaringType = MockGeneratorUtil.getDeclaringTypeToMock(invocation);
                     String mockedMethodWithParams = MockGeneratorUtil.getMockedMethodWithParams(invocation);
@@ -143,14 +146,22 @@ public class ObjectXMLParser {
                     String nestedInvocationPostfix = util.getParamListPostFix(params);
                     String filePathNestedParams = directory + nestedInvocationObjectFilePrefix + declaringType + "." + methodName +
                             nestedInvocationPostfix + paramObjectsFilePostfix;
-                    System.out.println("Looking for nested params in file: " + filePathNestedParams);
-                    Map<String, String> nestedParamObjectsAndAttributes = parseXMLInFile(new File(filePathNestedParams));
-                    nestedParamObjects.addAll(nestedParamObjectsAndAttributes.keySet());
-                    nestedUuids.addAll(nestedParamObjectsAndAttributes.values());
+                    Map<String, String> uuidNestedParamObjectsMap = parseXMLInFile(new File(filePathNestedParams));
+                    for (Map.Entry<String, String> uuidObjectXML : uuidNestedParamObjectsMap.entrySet()) {
+                        if (uuids.contains(uuidObjectXML.getKey())) {
+                            nestedUuids.add(uuidObjectXML.getKey());
+                            nestedParamObjects.add(uuidObjectXML.getValue());
+                            nestedInvocationFQNs.add(declaringType + "." + mockedMethodWithParams);
+                        }
+                    }
                     String filePathNestedReturned = directory + nestedInvocationObjectFilePrefix + declaringType + "." + methodName +
                             nestedInvocationPostfix + returnedObjectFilePostfix;
-                    System.out.println("Looking for nested returned in file: " + filePathNestedReturned);
-                    nestedReturnedObjects.addAll(parseXMLInFile(new File(filePathNestedReturned)).keySet());
+                    Map<String, String> uuidNestedReturnedObjectsMap = parseXMLInFile(new File(filePathNestedReturned));
+                    for (Map.Entry<String, String> objectXMLUUID : uuidNestedReturnedObjectsMap.entrySet()) {
+                        if (uuids.contains(objectXMLUUID.getKey())) {
+                            nestedReturnedObjects.add(objectXMLUUID.getValue());
+                        }
+                    }
                 }
 
                 for (int i = 0; i < nestedParamObjects.size(); i++) {
@@ -160,7 +171,8 @@ public class ObjectXMLParser {
                             null,
                             nestedParamObjects.get(i),
                             nestedUuids.get(i),
-                            null
+                            null,
+                            nestedInvocationFQNs.get(i)
                     ));
                 }
 
@@ -181,7 +193,8 @@ public class ObjectXMLParser {
                             uuids.get(i),
                             nestedSerializedObjects.stream()
                                     .filter(nestedSerializedObject -> nestedSerializedObject.getUUID().equals(uuids.get(finalI)))
-                                    .collect(Collectors.toList()));
+                                    .collect(Collectors.toList()),
+                            null);
                     serializedObjects.add(serializedObject);
                     serializedObjectCount++;
                 }

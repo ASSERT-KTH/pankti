@@ -187,7 +187,7 @@ public class TestGenerator {
 
         String assertionStatement = String.format("receivingObject.%s(%s)",
                 method.getSimpleName(),
-                arguments.toString());
+                arguments);
         if (method.getType().getSimpleName().equals("void")) {
             CtStatement methodInvocation = factory.createCodeSnippetStatement(assertionStatement);
             assertionStatements.add(methodInvocation);
@@ -502,6 +502,7 @@ public class TestGenerator {
     }
 
     public void generateMockMethod(InstrumentedMethod instrumentedMethod,
+                                   SerializedObject serializedObject,
                                    CtMethod<?> mockMethod,
                                    CtClass<?> generatedClass) throws ClassNotFoundException {
         // If mocks can be used to test this method
@@ -515,7 +516,8 @@ public class TestGenerator {
                 mockGenerator.addAnnotationToGeneratedClass(generatedClass);
 
             // Add @Mock, @InjectMocks fields, generate tests that use mocks
-            List<CtMethod<?>> generatedTestsWithMocks = mockGenerator.generateMockInfrastructure(mockMethod, generatedClass, instrumentedMethod);
+            List<CtMethod<?>> generatedTestsWithMocks = mockGenerator.generateMockInfrastructure(
+                    mockMethod, serializedObject, generatedClass, instrumentedMethod);
             for (CtMethod<?> generatedTestWithMock : generatedTestsWithMocks) {
                 generatedClass.addMethod(generatedTestWithMock);
             }
@@ -557,7 +559,7 @@ public class TestGenerator {
                 generatedClass.addMethod(generatedMethod);
                 // If mocks can be used to test this method
                 CtMethod<?> baseMethod = generatedMethod.clone();
-                generateMockMethod(instrumentedMethod, baseMethod, generatedClass);
+                generateMockMethod(instrumentedMethod, serializedObject, baseMethod, generatedClass);
                 methodCounter++;
             }
             return generatedClass;

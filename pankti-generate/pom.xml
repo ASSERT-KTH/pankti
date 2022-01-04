@@ -26,7 +26,6 @@
     <mockito.core.version>4.0.0</mockito.core.version>
     <mockito.junit.jupiter.version>2.23.0</mockito.junit.jupiter.version>
     <info.picocli.picocli.version>4.2.0</info.picocli.picocli.version>
-    <sl4j.version>1.7.30</sl4j.version>
     <commons.csv.version>1.8</commons.csv.version>
     <xstream.version>1.4.12</xstream.version>
     <jettison.version>1.4.1</jettison.version>

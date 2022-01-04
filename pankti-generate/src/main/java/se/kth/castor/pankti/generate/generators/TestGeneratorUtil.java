@@ -147,6 +147,12 @@ public class TestGeneratorUtil {
         );
     }
 
+    public CtStatement parseParamObjectsFromFileOrString(Factory factory, String fileOrString) {
+        return factory.createCodeSnippetStatement(String.format(
+                "Object[] paramObjects = deserializeObject(%s)",
+                fileOrString));
+    }
+
     public String findObjectBoxType(CtTypeReference typeReference) {
         if (typeReference.isPrimitive())
             return typeReference.box().getSimpleName();
