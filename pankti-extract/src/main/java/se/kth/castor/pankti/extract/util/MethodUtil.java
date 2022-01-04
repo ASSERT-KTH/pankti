@@ -7,7 +7,6 @@ import spoon.reflect.declaration.CtField;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.CtType;
 import spoon.reflect.declaration.ModifierKind;
-import spoon.reflect.path.CtPath;
 import spoon.reflect.reference.CtExecutableReference;
 import spoon.reflect.reference.CtTypeReference;
 import spoon.reflect.visitor.filter.TypeFilter;
@@ -169,14 +168,14 @@ public class MethodUtil {
      * @param method The method to check for nested invocations
      * @return A map with the path of nested invocations and a string of the form "declaring.type.fqn.signature"
      */
-    public static Map<CtPath, String> getNestedMethodInvocationMap(final CtMethod<?> method) {
+    public static Map<String, String> getNestedMethodInvocationMap(final CtMethod<?> method) {
         assert !method.isAbstract();
         List<CtInvocation<?>> nestedMethodInvocations = findNestedMethodCalls(method);
-        Map<CtPath, String> nestedMethodInvocationMap = new LinkedHashMap<>();
+        Map<String, String> nestedMethodInvocationMap = new LinkedHashMap<>();
         for (CtInvocation<?> invocation : nestedMethodInvocations) {
             CtExecutableReference<?> executable = getExecutable(invocation);
             nestedMethodInvocationMap.put(
-                    invocation.getPath(),
+                    invocation.getPath() + ":" + executable.getType().getQualifiedName(),
                     getDeclaringType(executable).getQualifiedName()
                             + "." + executable.getSignature());
         }

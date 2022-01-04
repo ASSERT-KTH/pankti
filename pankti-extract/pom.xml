@@ -48,6 +48,7 @@
       <artifactId>slf4j-api</artifactId>
       <version>${sl4j.version}</version>
     </dependency>
+    <!-- https://www.slf4j.org/log4shell.html -->
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-log4j12</artifactId>

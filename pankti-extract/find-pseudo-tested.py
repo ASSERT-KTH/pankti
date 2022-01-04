@@ -45,7 +45,7 @@ def find_instrumentation_candidates(final_df, cols, name, json_files):
       descartes_output = json.load(f)
       for i in range(len(descartes_output['methods'])):
         method = descartes_output['methods'][i]
-        if (method['classification'] == "pseudo-tested"):
+        if (method['classification'] == "not-covered") or (method['classification'] == "pseudo-tested"):
           parent_fqn = method['package'].replace('/', '.') + '.' + method['class']
           method_name = method['name']
           param_signature = re.search('\((.*)\)', method['description']).group(1)
@@ -67,7 +67,7 @@ def main(argv):
     name = argv[1]
     json_files = list(argv[2:])
     cols = ["visibility", "parent-FQN", "method-name", "param-list", "return-type",
-            "param-signature", "nested-invocations", "noparam-constructor",
+            "param-signature", "has-mockable-invocations", "nested-invocations", "noparam-constructor",
             "local-variables", "conditionals", "multiple-statements", "loops",
             "parameters", "returns","switches", "ifs", "static", "returns-primitives"]
     df = pd.read_csv(name)
