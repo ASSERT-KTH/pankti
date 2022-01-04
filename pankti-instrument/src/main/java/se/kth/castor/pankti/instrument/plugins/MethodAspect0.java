@@ -91,10 +91,9 @@ public class MethodAspect0 {
                 FileWriter objectFileWriter = new FileWriter(objectFilePath, true);
                 String xml = xStream.toXML(objectToWrite);
                 xml = xml.replaceAll("(&#x)(\\w+;)", "&amp;#x$2");
-                // Add attributes if method has mockable invocations and XML is non-empty
-                if (hasMockableInvocations & (xml.charAt(xml.indexOf('>') - 1) != '/')) {
-                    xml = xml.replaceFirst(">",
-                            " uuid=\"" + invocationUuid + "\">");
+                // Add attributes if method has mockable invocations
+                if (hasMockableInvocations) {
+                    xml = xml.replaceFirst("(\\/*)>", " uuid=\"" + invocationUuid + "\"$1>");
                 }
                 BufferedReader reader = new BufferedReader(new StringReader(xml));
                 BufferedWriter writer = new BufferedWriter(objectFileWriter);

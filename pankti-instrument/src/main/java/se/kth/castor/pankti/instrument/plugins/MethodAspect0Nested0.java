@@ -84,12 +84,7 @@ public class MethodAspect0Nested0 {
                 FileWriter objectFileWriter = new FileWriter(objectFilePath, true);
                 String xml = xStream.toXML(objectToWrite);
                 xml = xml.replaceAll("(&#x)(\\w+;)", "&amp;#x$2");
-                // Add attributes if XML is non-empty
-                if (xml.charAt(xml.indexOf('>') - 1) != '/') {
-                    xml = xml.replaceFirst(">",
-                            " parent-invocation=\"" + parentInvocationClassName + "." + parentInvocationMethodName + "\""
-                                    + " parent-uuid=\"" + invocationUuid + "\">");
-                }
+                xml = xml.replaceFirst("(\\/*)>", " parent-uuid=\"" + invocationUuid + "\"$1>");
                 BufferedReader reader = new BufferedReader(new StringReader(xml));
                 BufferedWriter writer = new BufferedWriter(objectFileWriter);
                 while ((xml = reader.readLine()) != null) {
