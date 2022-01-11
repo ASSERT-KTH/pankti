@@ -9,13 +9,12 @@ import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.factory.Factory;
 import spoon.reflect.reference.CtExecutableReference;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class MockGeneratorUtil {
     static Factory factory;
+
+    static TestGeneratorUtil testGenUtil = new TestGeneratorUtil();
 
     private static final String MOCKITO_ARGUMENT_MATCHER_REFERENCE = "org.mockito.ArgumentMatchers";
     private static final String invocationRegex = "(.+?)(\\.[a-zA-Z0-9]+\\(.*\\))";
@@ -26,9 +25,10 @@ public class MockGeneratorUtil {
         CtMethod<?> updatedBaseMethod = baseMethod.clone();
         List<CtStatement> statements = baseMethod.getBody().getStatements();
         for (int i = 0; i < statements.size(); i++) {
-            if (statements.get(i).toString().contains("receivingObjectStr"))
+            // Add classloader variable at the top of the method, later
+            if (statements.get(i).toString().contains("getClass().getClassLoader()"))
                 updatedBaseMethod.getBody().removeStatement(statements.get(i));
-            if (statements.get(i).toString().contains("fileReceiving") | statements.get(i).toString().contains("classLoader"))
+            if (statements.get(i).toString().contains("receivingObjectStr") | statements.get(i).toString().contains("fileReceiving"))
                 updatedBaseMethod.getBody().removeStatement(statements.get(i));
             if (statements.get(i).toString().contains("assert")) {
                 CtStatement updatedAssertStatement = factory.createCodeSnippetStatement(
@@ -38,6 +38,10 @@ public class MockGeneratorUtil {
             }
         }
         return updatedBaseMethod;
+    }
+
+    public static CtStatement delegateClassLoaderVariableCreation() {
+        return testGenUtil.addClassLoaderVariableToTestMethod(factory);
     }
 
     public static List<String> getListOfInvocationsFromNestedMethodMap(String nestedMethodMap) {
@@ -134,15 +138,11 @@ public class MockGeneratorUtil {
         return arguments.toString();
     }
 
-    public static CtStatementList createParamVariableAndParse(List<String> paramTypes, String nestedParams) {
+    public static CtStatementList parseNestedParamObjectFromFileOrString(List<String> paramTypes, String fileOrStringVar) {
         CtStatementList statements = factory.createStatementList();
-        TestGeneratorUtil testGenUtil = new TestGeneratorUtil();
-        CtLocalVariable<String> nestedParamsVariable = testGenUtil.addStringVariableToTestMethod(
-                factory, "nestedParamObjectStr", nestedParams);
-        statements.addStatement(nestedParamsVariable);
         CtStatement parseNestedParams = factory.createCodeSnippetStatement(
                 String.format("Object[] nestedParamObjects = deserializeObject(%s)",
-                        "nestedParamObjectStr"));
+                        fileOrStringVar));
         statements.addStatement(parseNestedParams);
 
         for (int i = 0; i < paramTypes.size(); i++) {
@@ -157,6 +157,32 @@ public class MockGeneratorUtil {
         return statements;
     }
 
+    public static CtStatementList createParamVariableAndParse(List<String> paramTypes, String nestedParams) {
+        CtStatementList statements = factory.createStatementList();
+        CtLocalVariable<String> nestedParamsVariable = testGenUtil.addStringVariableToTestMethod(
+                factory, "nestedParamObjectStr", nestedParams);
+        statements.addStatement(nestedParamsVariable);
+        CtStatementList parsingParamsStatements = parseNestedParamObjectFromFileOrString(paramTypes, "nestedParamObjectStr");
+        for (CtStatement statement : parsingParamsStatements) {
+            statements.addStatement(statement);
+        }
+        return statements;
+    }
+
+    public static CtStatementList createParamFileAndParse(List<String> paramTypes, String nestedParams, String nestedParamIdentifier) {
+        CtStatementList statements = factory.createStatementList();
+        String type = "nestedParams";
+        String fileName = testGenUtil.createLongObjectStringFile(nestedParamIdentifier, type, nestedParams);
+        CtStatement fileVariableDeclaration = testGenUtil.addFileVariableToTestMethod(factory, fileName, type);
+        statements.addStatement(fileVariableDeclaration);
+        CtStatementList parsingParamsStatements = parseNestedParamObjectFromFileOrString(paramTypes, "fileNestedParams");
+        for (CtStatement statement : parsingParamsStatements) {
+            statements.addStatement(statement);
+        }
+        return statements;
+    }
+
+
     public static String extractReturnedValueOfNestedInvocation(SerializedObject serializedObject,
                                                                 String returnType) {
         String returnedObject = serializedObject.getReturnedObject();
@@ -168,22 +194,37 @@ public class MockGeneratorUtil {
                     .replaceAll("<string>(.+)<\\/string>", "<string>\"$1\"</string>")
                     .replaceAll("<\\w+>(.+)<\\/\\w+>", "$1")
                     .replaceAll("\\s", "");
-        } else {
-            returnedObject = serializedObject.getReturnedObject();
         }
         return returnedObject;
     }
 
-    public static CtStatementList createReturnedVariableAndParse(String returnType, String nestedReturned) {
-        CtStatementList statements = factory.createStatementList();
-        TestGeneratorUtil testGenUtil = new TestGeneratorUtil();
-        CtLocalVariable<String> nestedReturnedVariable = testGenUtil.addStringVariableToTestMethod(
-                factory, "nestedReturnedObjectStr", nestedReturned);
-        statements.addStatement(nestedReturnedVariable);
-        CtStatement parseNestedReturned = factory.createCodeSnippetStatement(
+    public static CtStatement parseNestedReturnedObjectFromFileOrString(String returnType, String fileOrStringVar) {
+        return factory.createCodeSnippetStatement(
                 String.format("%s nestedReturnedObject = deserializeObject(%s)",
                         returnType,
-                        "nestedReturnedObjectStr"));
+                        fileOrStringVar));
+    }
+
+    public static CtStatementList createReturnedVariableAndParse(String returnType, String nestedReturned) {
+        String fieldName = "nestedReturnedObjectStr";
+        CtStatementList statements = factory.createStatementList();
+        CtLocalVariable<String> nestedReturnedVariable = testGenUtil.addStringVariableToTestMethod(
+                factory, fieldName, nestedReturned);
+        statements.addStatement(nestedReturnedVariable);
+        CtStatement parseNestedReturned = parseNestedReturnedObjectFromFileOrString(returnType, fieldName);
+        statements.addStatement(parseNestedReturned);
+        return statements;
+    }
+
+    public static CtStatementList createReturnedFileAndParse(String returnType,
+                                                             String nestedReturned,
+                                                             String nestedReturnedIdentifier) {
+        CtStatementList statements = factory.createStatementList();
+        String type = "nestedReturned";
+        String fileName = testGenUtil.createLongObjectStringFile(nestedReturnedIdentifier, type, nestedReturned);
+        CtStatement fileVariableDeclaration = testGenUtil.addFileVariableToTestMethod(factory, fileName, type);
+        statements.addStatement(fileVariableDeclaration);
+        CtStatement parseNestedReturned = parseNestedReturnedObjectFromFileOrString(returnType, "fileNestedReturned");
         statements.addStatement(parseNestedReturned);
         return statements;
     }

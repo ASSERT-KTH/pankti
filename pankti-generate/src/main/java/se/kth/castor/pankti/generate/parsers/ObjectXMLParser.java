@@ -1,5 +1,7 @@
 package se.kth.castor.pankti.generate.parsers;
 
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -51,9 +53,9 @@ public class ObjectXMLParser {
         }
     }
 
-    public Map<String, String> parseXMLInFile(File inputFile) throws Exception {
+    public MultiValuedMap<String, String> parseXMLInFile(File inputFile) throws Exception {
         List<String> rawXMLObjects = new ArrayList<>();
-        Map<String, String> uuidRawXMLObjectMap = new LinkedHashMap<>();
+        MultiValuedMap<String, String> uuidRawXMLObjectMap = new ArrayListValuedHashMap<>();
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
 
@@ -71,15 +73,19 @@ public class ObjectXMLParser {
         List<String> attributes = new ArrayList<>();
         for (int i = 0; i < childNodes.getLength(); i++) {
             Node thisNode = childNodes.item(i);
-            if (thisNode.hasAttributes()) {
+
+            // ignore newline xml elements => !thisNode.toString().equals("[#text: \n]")
+            if (!thisNode.hasAttributes() & !thisNode.toString().equals("[#text: \n]")) {
+                // if no nested invocations, add a random attribute since we have to return a map
+                attributes.add(UUID.randomUUID().toString());
+            }
+            if (thisNode.hasAttributes() & !thisNode.toString().equals("[#text: \n]")) {
                 for (int j = 0; j < thisNode.getAttributes().getLength(); j++) {
-                    attributes.add(thisNode.getAttributes().item(j).getNodeValue());
+                    if (thisNode.getAttributes().item(j).getNodeName().contains("uuid")) {
+                        attributes.add(thisNode.getAttributes().item(j).getNodeValue());
+                    }
                 }
                 removeAddedAttributes(thisNode);
-            } else {
-                // if no nested invocations, add a random attribute since we have to return a map
-                // TODO: can be improved
-                attributes.add(UUID.randomUUID().toString());
             }
             String rawXMLForObject = ser.writeToString(thisNode);
             rawXMLObjects.add(cleanUpRawObjectXML(rawXMLForObject));
@@ -106,7 +112,7 @@ public class ObjectXMLParser {
 
             // Get objects from xxx-receiving.xml
             File receivingObjectFile = findXMLFileByObjectType(basePath, postfix + receivingObjectFilePostfix);
-            Map<String, String> uuidReceivingObjectsMap = parseXMLInFile(receivingObjectFile);
+            MultiValuedMap<String, String> uuidReceivingObjectsMap = parseXMLInFile(receivingObjectFile);
             List<String> uuids = new ArrayList<>(uuidReceivingObjectsMap.keySet());
             List<String> receivingObjects = new ArrayList<>(uuidReceivingObjectsMap.values());
             List<String> returnedOrReceivingPostObjects;
@@ -146,19 +152,19 @@ public class ObjectXMLParser {
                     String nestedInvocationPostfix = util.getParamListPostFix(params);
                     String filePathNestedParams = directory + nestedInvocationObjectFilePrefix + declaringType + "." + methodName +
                             nestedInvocationPostfix + paramObjectsFilePostfix;
-                    Map<String, String> uuidNestedParamObjectsMap = parseXMLInFile(new File(filePathNestedParams));
-                    for (Map.Entry<String, String> uuidObjectXML : uuidNestedParamObjectsMap.entrySet()) {
+                    MultiValuedMap<String, String> uuidNestedParamObjectsMap = parseXMLInFile(new File(filePathNestedParams));
+                    for (Map.Entry<String, String> uuidObjectXML : uuidNestedParamObjectsMap.entries()) {
                         if (uuids.contains(uuidObjectXML.getKey())) {
-                            nestedUuids.add(uuidObjectXML.getKey());
                             nestedParamObjects.add(uuidObjectXML.getValue());
                             nestedInvocationFQNs.add(declaringType + "." + mockedMethodWithParams);
                         }
                     }
                     String filePathNestedReturned = directory + nestedInvocationObjectFilePrefix + declaringType + "." + methodName +
                             nestedInvocationPostfix + returnedObjectFilePostfix;
-                    Map<String, String> uuidNestedReturnedObjectsMap = parseXMLInFile(new File(filePathNestedReturned));
-                    for (Map.Entry<String, String> objectXMLUUID : uuidNestedReturnedObjectsMap.entrySet()) {
+                    MultiValuedMap<String, String> uuidNestedReturnedObjectsMap = parseXMLInFile(new File(filePathNestedReturned));
+                    for (Map.Entry<String, String> objectXMLUUID : uuidNestedReturnedObjectsMap.entries()) {
                         if (uuids.contains(objectXMLUUID.getKey())) {
+                            nestedUuids.add(objectXMLUUID.getKey());
                             nestedReturnedObjects.add(objectXMLUUID.getValue());
                         }
                     }

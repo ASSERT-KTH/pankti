@@ -30,6 +30,7 @@
     <xstream.version>1.4.12</xstream.version>
     <jettison.version>1.4.1</jettison.version>
     <commons-text.version>1.8</commons-text.version>
+    <commons-collections.version>4.4</commons-collections.version>
   </properties>
 
   <dependencies>
@@ -104,6 +105,11 @@
       <artifactId>mockito-junit-jupiter</artifactId>
       <version>${mockito.junit.jupiter.version}</version>
       <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-collections4</artifactId>
+      <version>${commons-collections.version}</version>
     </dependency>
   </dependencies>
 

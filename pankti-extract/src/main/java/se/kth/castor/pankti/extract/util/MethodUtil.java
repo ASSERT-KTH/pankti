@@ -2,20 +2,13 @@ package se.kth.castor.pankti.extract.util;
 
 import se.kth.castor.pankti.extract.logging.CustomLogger;
 import spoon.reflect.code.CtInvocation;
-import spoon.reflect.declaration.CtConstructor;
-import spoon.reflect.declaration.CtField;
-import spoon.reflect.declaration.CtMethod;
-import spoon.reflect.declaration.CtType;
-import spoon.reflect.declaration.ModifierKind;
+import spoon.reflect.declaration.*;
 import spoon.reflect.reference.CtExecutableReference;
 import spoon.reflect.reference.CtTypeReference;
 import spoon.reflect.visitor.filter.TypeFilter;
 import spoon.support.reflect.reference.CtFieldReferenceImpl;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Set;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -192,5 +185,23 @@ public class MethodUtil {
         return method.getDeclaringType()
                 .getElements(new TypeFilter<>(CtConstructor.class))
                 .stream().anyMatch(c -> c.getParameters().isEmpty());
+    }
+
+    public static String getDeclaringTypeSmallestConstructor(CtType<?> declaringType) {
+        String smallestNonDefaultConstructorParams = "";
+        List<CtConstructor<?>> constructors = declaringType.getElements(new TypeFilter<>(CtConstructor.class));
+        int i = 0;
+        int smallestIndex = 0;
+        do {
+            if (constructors.get(i).getParameters().size() < constructors.get(smallestIndex).getParameters().size()) {
+                smallestIndex = i;
+            }
+            i++;
+        } while (i < constructors.size());
+        smallestNonDefaultConstructorParams = constructors.get(smallestIndex).getSignature()
+                .replaceAll("(.+)(\\(.+\\))", "$2")
+                .replaceAll("\\(", "")
+                .replaceAll("\\)", "");
+        return smallestNonDefaultConstructorParams;
     }
 }

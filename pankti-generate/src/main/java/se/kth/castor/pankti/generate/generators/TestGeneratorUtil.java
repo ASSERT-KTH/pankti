@@ -7,6 +7,9 @@ import com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver;
 import com.thoughtworks.xstream.io.xml.XppReader;
 import org.apache.commons.text.StringEscapeUtils;
 import org.xmlpull.mxp1.MXParser;
+import spoon.MavenLauncher;
+import spoon.compiler.SpoonResource;
+import spoon.compiler.SpoonResourceHelper;
 import spoon.reflect.code.*;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.CtParameter;
@@ -16,6 +19,7 @@ import spoon.reflect.factory.Factory;
 import spoon.reflect.reference.CtTypeReference;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -24,6 +28,9 @@ import java.util.List;
 import java.util.Scanner;
 
 public class TestGeneratorUtil {
+    static String testFormat = "xml";
+    static MavenLauncher launcher;
+
     public CtMethod<?> generateDeserializationMethod(Factory factory) {
         String methodName = "deserializeObject";
         CtTypeParameter typeParameter = factory.createTypeParameter().setSimpleName("T");
@@ -37,6 +44,27 @@ public class TestGeneratorUtil {
         methodBody.addStatement(returnStatement);
         deserializationMethod.setBody(methodBody);
         return deserializationMethod;
+    }
+
+
+    /**
+     * Creates a resource file for long serialized XML profiles
+     */
+    public String createLongObjectStringFile(String methodIdentifier, String profileType, String longObjectStr) {
+        String fileName = "";
+        try {
+            File longObjectStrFile = new File("./output/object-data/" + methodIdentifier + "-" + profileType + "." + testFormat);
+            longObjectStrFile.getParentFile().mkdirs();
+            FileWriter myWriter = new FileWriter(longObjectStrFile);
+            myWriter.write(longObjectStr);
+            myWriter.close();
+            SpoonResource newResource = SpoonResourceHelper.createResource(longObjectStrFile);
+            launcher.addInputResource(longObjectStrFile.getAbsolutePath());
+            fileName = newResource.getName();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return fileName;
     }
 
     public CtLocalVariable<String> addStringVariableToTestMethod(Factory factory, String fieldName, String fieldValue) {

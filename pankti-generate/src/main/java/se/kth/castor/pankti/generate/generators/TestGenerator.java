@@ -5,8 +5,6 @@ import se.kth.castor.pankti.generate.parsers.InstrumentedMethod;
 import se.kth.castor.pankti.generate.parsers.ObjectXMLParser;
 import se.kth.castor.pankti.generate.parsers.SerializedObject;
 import spoon.MavenLauncher;
-import spoon.compiler.SpoonResource;
-import spoon.compiler.SpoonResourceHelper;
 import spoon.reflect.CtModel;
 import spoon.reflect.code.*;
 import spoon.reflect.declaration.*;
@@ -14,7 +12,6 @@ import spoon.reflect.factory.Factory;
 import spoon.reflect.reference.CtExecutableReference;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -35,12 +32,16 @@ public class TestGenerator {
     private static final String TEST_CLASS_PREFIX = "Test";
     private static final String TEST_CLASS_POSTFIX = "PanktiGen";
     private static int numberOfTestCasesGenerated;
-    private String testFormat;
+    private final String testFormat;
 
     private final TestGeneratorUtil testGenUtil = new TestGeneratorUtil();
 
-    public TestGenerator(String testFormat) {
+    public TestGenerator(String testFormat, MavenLauncher launcher) {
         this.testFormat = testFormat;
+        TestGeneratorUtil.launcher = launcher;
+        if (!testFormat.equals("xml")) {
+            TestGeneratorUtil.testFormat = testFormat;
+        }
     }
 
     public String getGeneratedClassName(CtPackage ctPackage, String className) {
@@ -237,26 +238,6 @@ public class TestGenerator {
         return assertionStatements;
     }
 
-    /**
-     * Creates a resource file for long serialized XML profiles
-     */
-    public String createLongObjectStringFile(String methodIdentifier, String profileType, String longObjectStr, MavenLauncher launcher) {
-        String fileName = "";
-        try {
-            File longObjectStrFile = new File("./output/object-data/" + methodIdentifier + "-" + profileType + "." + this.testFormat);
-            longObjectStrFile.getParentFile().mkdirs();
-            FileWriter myWriter = new FileWriter(longObjectStrFile);
-            myWriter.write(longObjectStr);
-            myWriter.close();
-            SpoonResource newResource = SpoonResourceHelper.createResource(longObjectStrFile);
-            launcher.addInputResource(longObjectStrFile.getAbsolutePath());
-            fileName = newResource.getName();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return fileName;
-    }
-
     public CtStatement parseReceivingObjectFromFileOrString(String receivingObjectType, String fileOrString) {
         return factory.createCodeSnippetStatement(String.format(
                 "%s receivingObject = deserializeObject(%s)",
@@ -353,8 +334,7 @@ public class TestGenerator {
                                                             String returnedObjectStr,
                                                             String returnedObjectType,
                                                             String receivingObjectPostStr,
-                                                            String paramsObjectStr,
-                                                            MavenLauncher launcher) throws ClassNotFoundException {
+                                                            String paramsObjectStr) throws ClassNotFoundException {
         List<CtStatement> methodBody = new ArrayList<>();
         String postfix = "";
         if (instrumentedMethod.isOverloaded()) {
@@ -368,7 +348,7 @@ public class TestGenerator {
 
         if (receivingObjectStr.length() > 10000) {
             String type = "receiving";
-            String fileName = createLongObjectStringFile(methodIdentifier, type, receivingObjectStr, launcher);
+            String fileName = testGenUtil.createLongObjectStringFile(methodIdentifier, type, receivingObjectStr);
             CtStatement fileVariableDeclaration = testGenUtil.addFileVariableToTestMethod(factory, fileName, type);
             CtStatement parseReceivingObjectFromFile = parseReceivingObjectFromFileOrString(receivingObjectType, "file" + testGenUtil.getObjectProfileType(type));
             methodBody.add(fileVariableDeclaration);
@@ -383,7 +363,7 @@ public class TestGenerator {
         if (method.getType().getSimpleName().equals("void")) {
             if (receivingObjectPostStr.length() > 10000) {
                 String type = "receivingpost";
-                String fileName = createLongObjectStringFile(methodIdentifier, type, receivingObjectPostStr, launcher);
+                String fileName = testGenUtil.createLongObjectStringFile(methodIdentifier, type, receivingObjectPostStr);
                 CtStatement fileVariableDeclaration = testGenUtil.addFileVariableToTestMethod(factory, fileName, type);
                 CtStatement parseReceivingPostObjectPostFromFile = parseReceivingObjectPostFromFileOrString(receivingObjectType, "file" + testGenUtil.getObjectProfileType(type));
                 methodBody.add(fileVariableDeclaration);
@@ -397,7 +377,7 @@ public class TestGenerator {
         } else {
             if (returnedObjectStr.length() > 10000) {
                 String type = "returned";
-                String fileName = createLongObjectStringFile(methodIdentifier, type, returnedObjectStr, launcher);
+                String fileName = testGenUtil.createLongObjectStringFile(methodIdentifier, type, returnedObjectStr);
                 CtStatement fileVariableDeclaration = testGenUtil.addFileVariableToTestMethod(factory, fileName, type);
                 CtStatement parseReturnedObjectFromFile = parseReturnedObjectFromFileOrString(returnedObjectType, "file" + testGenUtil.getObjectProfileType(type));
                 methodBody.add(fileVariableDeclaration);
@@ -415,7 +395,7 @@ public class TestGenerator {
         if (!paramsObjectStr.isEmpty()) {
             if (paramsObjectStr.length() > 10000) {
                 String type = "params";
-                String fileName = createLongObjectStringFile(methodIdentifier, type, paramsObjectStr, launcher);
+                String fileName = testGenUtil.createLongObjectStringFile(methodIdentifier, type, paramsObjectStr);
                 CtStatement fileVariableDeclaration = testGenUtil.addFileVariableToTestMethod(factory, fileName, type);
                 CtStatement parseParamObjectsFromFile = parseParamObjectsFromFileOrString("file" + testGenUtil.getObjectProfileType(type));
                 methodBody.add(fileVariableDeclaration);
@@ -455,8 +435,7 @@ public class TestGenerator {
     public CtMethod<?> generateTestMethod(CtMethod<?> method,
                                           int methodCounter,
                                           InstrumentedMethod instrumentedMethod,
-                                          SerializedObject serializedObject,
-                                          MavenLauncher launcher) throws ClassNotFoundException {
+                                          SerializedObject serializedObject) throws ClassNotFoundException {
         CtMethod<?> generatedMethod = factory.createMethod();
         String postfix = "";
         if (instrumentedMethod.isOverloaded()) {
@@ -494,7 +473,7 @@ public class TestGenerator {
         List<CtStatement> statementsInMethodBody =
                 generateStatementsInMethodBody(instrumentedMethod, method, methodCounter, serializedObject,
                         receivingObjectStr, receivingObjectType, returnedObjectStr, returnedObjectType, receivingPostObjectStr,
-                        paramsObjectStr, launcher);
+                        paramsObjectStr);
 
         statementsInMethodBody.forEach(methodBody::addStatement);
         generatedMethod.setBody(methodBody);
@@ -507,7 +486,6 @@ public class TestGenerator {
                                    CtClass<?> generatedClass) throws ClassNotFoundException {
         // If mocks can be used to test this method
         if (instrumentedMethod.hasMockableInvocations()) {
-            assert instrumentedMethod.hasNoParamConstructor() & !instrumentedMethod.getNestedMethodMap().equals("{}");
             MockGenerator mockGenerator = new MockGenerator(factory);
 
             // Annotate generated class with @ExtendWith(MockitoExtension.class)
@@ -527,7 +505,6 @@ public class TestGenerator {
     public CtClass<?> generateFullTestClass(CtType<?> type,
                                             CtMethod<?> method,
                                             InstrumentedMethod instrumentedMethod,
-                                            MavenLauncher launcher,
                                             String objectXMLDirectoryPath) throws ClassNotFoundException {
         String methodPath = instrumentedMethod.getFullMethodPath();
         ObjectXMLParser objectXMLParser = new ObjectXMLParser();
@@ -555,7 +532,7 @@ public class TestGenerator {
             // Create @Test method
             int methodCounter = 1;
             for (SerializedObject serializedObject : serializedObjects) {
-                CtMethod<?> generatedMethod = generateTestMethod(method, methodCounter, instrumentedMethod, serializedObject, launcher);
+                CtMethod<?> generatedMethod = generateTestMethod(method, methodCounter, instrumentedMethod, serializedObject);
                 generatedClass.addMethod(generatedMethod);
                 // If mocks can be used to test this method
                 CtMethod<?> baseMethod = generatedMethod.clone();
@@ -595,7 +572,7 @@ public class TestGenerator {
         return new AbstractMap.SimpleEntry<>(methodsByName.get(0), false);
     }
 
-    public int process(CtModel ctModel, MavenLauncher launcher, String methodCSVFilePath, String objectXMLDirectoryPath) {
+    public int process(CtModel ctModel, String methodCSVFilePath, String objectXMLDirectoryPath) {
         // Get list of instrumented methods from CSV file
         List<InstrumentedMethod> instrumentedMethods = CSVFileParser.parseCSVFile(methodCSVFilePath);
         System.out.println("Number of instrumented methods: " + instrumentedMethods.size());
@@ -614,8 +591,7 @@ public class TestGenerator {
                                 instrumentedMethod.getParentFQN() + "." + instrumentedMethod.getMethodName());
                         try {
                             CtClass<?> generatedClass = generateFullTestClass(
-                                    type, methodToGenerateTestsFor, instrumentedMethod,
-                                    launcher, objectXMLDirectoryPath);
+                                    type, methodToGenerateTestsFor, instrumentedMethod, objectXMLDirectoryPath);
                             if (generatedClass != null) {
                                 System.out.println("Generated test class: " + generatedClass.getQualifiedName());
                             }

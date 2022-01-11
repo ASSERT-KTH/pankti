@@ -28,7 +28,8 @@ public class PanktiLauncher {
     private static String projectName;
     private static String[] HEADERS =
             {"visibility", "parent-FQN", "method-name", "param-list", "return-type",
-                    "param-signature", "has-mockable-invocations", "nested-invocations", "noparam-constructor", "tags"};
+                    "param-signature", "has-mockable-invocations", "nested-invocations",
+                    "noparam-constructor", "constructor", "tags"};
 
     public Launcher getLauncher(final String projectPath, final String projectName) {
         PanktiLauncher.projectName = projectName;
@@ -93,6 +94,10 @@ public class PanktiLauncher {
                 // Find nested method invocations that can be mocked
                 Map<String, String> nestedMethodInvocationMap = MethodUtil.getNestedMethodInvocationMap(method);
                 boolean methodDeclaringTypeHasNoParamConstructor = MethodUtil.declaringTypeHasNoParamConstructor(method);
+                String smallestParamConstructor = "";
+                if (!nestedMethodInvocationMap.isEmpty() && !methodDeclaringTypeHasNoParamConstructor) {
+                    smallestParamConstructor = MethodUtil.getDeclaringTypeSmallestConstructor(method.getDeclaringType());
+                }
                 Map<String, Boolean> tags = entry.getValue();
                 csvPrinter.printRecord(
                         method.getVisibility(),
@@ -101,9 +106,10 @@ public class PanktiLauncher {
                         paramList,
                         method.getType().getQualifiedName(),
                         paramSignature.toString(),
-                        !nestedMethodInvocationMap.isEmpty() & methodDeclaringTypeHasNoParamConstructor,
+                        !nestedMethodInvocationMap.isEmpty(),
                         nestedMethodInvocationMap,
                         methodDeclaringTypeHasNoParamConstructor,
+                        smallestParamConstructor,
                         tags);
             }
         }
