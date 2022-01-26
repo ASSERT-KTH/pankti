@@ -1,5 +1,7 @@
-package se.kth.castor.pankti.generate.parsers;
+package se.kth.castor.pankti.generate.data;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,18 +14,20 @@ public class SerializedObject {
     Map<String, String> paramObjects = new HashMap<>();
     Map<String, String> invocationUUID = new HashMap<>();
     List<SerializedObject> nestedSerializedObjects;
+    Instant invocationTimestamp;
     String invocationFQN;
 
     public SerializedObject(String receivingObject, String returnedObject,
                             String receivingPostObject, String paramObjects,
                             String uuid, List<SerializedObject> nested,
-                            String invocationFQN) {
+                            Instant invocationTimestamp, String invocationFQN) {
         this.receivingObject.put("receivingObject", receivingObject);
         this.returnedObject.put("returnedObject", returnedObject);
         this.receivingPostObject.put("receivingPostObject", receivingPostObject);
         this.paramObjects.put("paramObjects", paramObjects);
         this.invocationUUID.put("invocationUUID", uuid);
         this.nestedSerializedObjects = nested;
+        this.invocationTimestamp = invocationTimestamp;
         this.invocationFQN = invocationFQN;
     }
 
@@ -49,6 +53,10 @@ public class SerializedObject {
 
     public String getInvocationFQN() {
         return invocationFQN;
+    }
+
+    public Instant getInvocationTimestamp() {
+        return invocationTimestamp;
     }
 
     public List<SerializedObject> getNestedSerializedObjects() {
@@ -86,6 +94,7 @@ public class SerializedObject {
                 ", receivingPostObject=" + receivingPostObject +
                 ", paramObjects=" + paramObjects +
                 ", invocationUUID=" + invocationUUID +
+                ", invocationTimestamp=" + invocationTimestamp +
                 ", invocationFQN=" + invocationFQN +
                 ", nestedSerializedObjects=" + nestedSerializedObjects +
                 '}';

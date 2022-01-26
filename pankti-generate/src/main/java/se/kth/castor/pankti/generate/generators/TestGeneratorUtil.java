@@ -189,6 +189,8 @@ public class TestGeneratorUtil {
 
     // Gets method param list as _param1,param2,param3
     public String getParamListPostFix(List<String> paramList) {
+        if (paramList.size() == 0)
+            return "";
         return (paramList.size() == 1 & paramList.get(0).isEmpty())
                 ? "" : "_" + String.join(",", paramList);
     }

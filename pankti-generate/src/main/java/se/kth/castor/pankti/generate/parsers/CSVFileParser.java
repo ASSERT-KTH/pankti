@@ -2,6 +2,7 @@ package se.kth.castor.pankti.generate.parsers;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
+import se.kth.castor.pankti.generate.data.InstrumentedMethod;
 
 import java.io.FileReader;
 import java.io.Reader;

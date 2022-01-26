@@ -1,9 +1,9 @@
 package se.kth.castor.pankti.generate.generators;
 
 import se.kth.castor.pankti.generate.parsers.CSVFileParser;
-import se.kth.castor.pankti.generate.parsers.InstrumentedMethod;
+import se.kth.castor.pankti.generate.data.InstrumentedMethod;
 import se.kth.castor.pankti.generate.parsers.ObjectXMLParser;
-import se.kth.castor.pankti.generate.parsers.SerializedObject;
+import se.kth.castor.pankti.generate.data.SerializedObject;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.code.*;
@@ -498,6 +498,21 @@ public class TestGenerator {
                     mockMethod, serializedObject, generatedClass, instrumentedMethod);
             for (CtMethod<?> generatedTestWithMock : generatedTestsWithMocks) {
                 generatedClass.addMethod(generatedTestWithMock);
+            }
+
+            for (CtMethod<?> testWithMock : generatedTestsWithMocks) {
+                if (generatedClass.getMethodsByName("testVerifyMethodSeq_" + instrumentedMethod.getMethodName()).size() == 0) {
+                    // Verify nested method call sequence
+                    MethodSequenceGenerator sequenceGenerator = new MethodSequenceGenerator(factory);
+                    CtMethod<?> testForMethodSequence = sequenceGenerator.cleanUpGeneratedMockMethod(testWithMock.clone());
+                    testForMethodSequence.setSimpleName("testVerifyMethodSeq_" + instrumentedMethod.getMethodName());
+                    List<CtStatement> verificationStatements = sequenceGenerator.verifyMethodCallSequence(serializedObject);
+                    for (CtStatement statement : verificationStatements) {
+                        testForMethodSequence.getBody().insertEnd(statement);
+                    }
+                    generatedClass.addMethod(testForMethodSequence);
+                    System.out.println("Generated 1 test to verify sequence of nested method calls within " + instrumentedMethod.getFullMethodPath());
+                }
             }
         }
     }

@@ -25,16 +25,6 @@ def create_final_df(df, cols):
     final_df.loc[index, 'has-mockable-invocations'] = row['has-mockable-invocations']
     final_df.loc[index, 'nested-invocations'] = row['nested-invocations']
     final_df.loc[index, 'noparam-constructor'] = row['noparam-constructor']
-    final_df.loc[index, 'local-variables'] = extract_from_tags("local_variables", str(row['tags']))
-    final_df.loc[index, 'conditionals'] = extract_from_tags("conditionals", str(row['tags']))
-    final_df.loc[index, 'multiple-statements'] = extract_from_tags("multiple_statements", str(row['tags']))
-    final_df.loc[index, 'loops'] = extract_from_tags("loops", str(row['tags']))
-    final_df.loc[index, 'parameters'] = extract_from_tags("parameters", str(row['tags']))
-    final_df.loc[index, 'returns'] = extract_from_tags("returns", str(row['tags']))
-    final_df.loc[index, 'switches'] = extract_from_tags("switches", str(row['tags']))
-    final_df.loc[index, 'ifs'] = extract_from_tags("ifs", str(row['tags']))
-    final_df.loc[index, 'static'] = extract_from_tags("static", str(row['tags']))
-    final_df.loc[index, 'returns-primitives'] = extract_from_tags("returns_primitives", str(row['tags']))
   return final_df.sort_values(by=['parent-FQN', 'method-name'])
 
 def find_instrumentation_candidates(final_df, cols, name, json_files):
@@ -68,8 +58,7 @@ def main(argv):
     json_files = list(argv[2:])
     cols = ["visibility", "parent-FQN", "method-name", "param-list", "return-type",
             "param-signature", "has-mockable-invocations", "nested-invocations", "noparam-constructor",
-            "local-variables", "conditionals", "multiple-statements", "loops",
-            "parameters", "returns","switches", "ifs", "static", "returns-primitives"]
+            "constructor"]
     df = pd.read_csv(name)
     print("input (rows, columns):", df.shape)
     final_df = create_final_df(df, cols)

@@ -1,9 +1,10 @@
 package se.kth.castor.pankti.generate.parsers;
 
-import org.apache.commons.collections4.MultiValuedMap;
 import org.junit.jupiter.api.Test;
+import se.kth.castor.pankti.generate.data.ObjectProfileElement;
 
 import java.io.File;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -13,7 +14,7 @@ public class ObjectXMLParserTest {
     public void testObjectExtractionFromXMLFile() throws Exception {
         ObjectXMLParser objectXMLParser = new ObjectXMLParser();
         File objectXMLFile = new File("src/test/resources/param-objects.xml");
-        MultiValuedMap<String, String> xmlParams = objectXMLParser.parseXMLInFile(objectXMLFile);
+        List<ObjectProfileElement> xmlParams = objectXMLParser.parseXMLInFile(objectXMLFile);
         assertEquals(11, xmlParams.size());
     }
 }

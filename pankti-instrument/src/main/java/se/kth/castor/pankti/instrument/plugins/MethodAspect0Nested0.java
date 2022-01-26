@@ -12,6 +12,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
@@ -44,6 +45,7 @@ public class MethodAspect0Nested0 {
         private static final String methodFQN = TargetMethodAdvice.class.getAnnotation(Pointcut.class).className() + "."
                 + TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodName() + postfix;
         static UUID invocationUuid = null;
+        static long invocationTimestamp;
         private static final String invocationString = String.format("Invocation count for %s: ", methodFQN);
         private static File[] allObjectFiles;
 
@@ -84,7 +86,9 @@ public class MethodAspect0Nested0 {
                 FileWriter objectFileWriter = new FileWriter(objectFilePath, true);
                 String xml = xStream.toXML(objectToWrite);
                 xml = xml.replaceAll("(&#x)(\\w+;)", "&amp;#x$2");
-                xml = xml.replaceFirst("(\\/*)>", " parent-uuid=\"" + invocationUuid + "\"$1>");
+                xml = xml.replaceFirst("(\\/*)>",
+                        " parent-uuid=\"" + invocationUuid +
+                                "\" timestamp=\"" + invocationTimestamp + "\"$1>");
                 BufferedReader reader = new BufferedReader(new StringReader(xml));
                 BufferedWriter writer = new BufferedWriter(objectFileWriter);
                 while ((xml = reader.readLine()) != null) {
@@ -154,9 +158,10 @@ public class MethodAspect0Nested0 {
                                           @BindParameterArray Object parameterObjects,
                                           @BindMethodName String methodName) {
             setup();
-            if (fileSizeWithinLimits) {
+            if (fileSizeWithinLimits & INVOCATION_COUNT <= 1) {
                 invocationUuid = null;
                 invocationUuid = MethodAspect0.TargetMethodAdvice.invocationUuid;
+                invocationTimestamp = Instant.now().toEpochMilli();
                 profileSizePre = getObjectProfileSize();
                 writeObjectXMLToFile(parameterObjects, paramObjectsFilePath);
             }
@@ -171,7 +176,7 @@ public class MethodAspect0Nested0 {
         @OnReturn
         public static void onReturn(@BindReturn Object returnedObject,
                                     @BindTraveler TraceEntry traceEntry) {
-            if (fileSizeWithinLimits) {
+            if (fileSizeWithinLimits & INVOCATION_COUNT <= 1) {
                 writeObjectXMLToFile(returnedObject, returnedObjectFilePath);
                 writeObjectProfileSizeToFile(getObjectProfileSize() - profileSizePre);
                 checkFileSizeLimit();

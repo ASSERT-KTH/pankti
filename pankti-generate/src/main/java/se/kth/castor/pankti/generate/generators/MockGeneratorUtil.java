@@ -1,15 +1,20 @@
 package se.kth.castor.pankti.generate.generators;
 
-import se.kth.castor.pankti.generate.parsers.SerializedObject;
+import se.kth.castor.pankti.generate.data.SerializedObject;
 import spoon.reflect.code.CtLocalVariable;
 import spoon.reflect.code.CtStatement;
 import spoon.reflect.code.CtStatementList;
 import spoon.reflect.declaration.CtField;
 import spoon.reflect.declaration.CtMethod;
+import spoon.reflect.declaration.CtType;
 import spoon.reflect.factory.Factory;
 import spoon.reflect.reference.CtExecutableReference;
+import spoon.reflect.reference.CtTypeReference;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class MockGeneratorUtil {
     static Factory factory;
@@ -40,18 +45,62 @@ public class MockGeneratorUtil {
         return updatedBaseMethod;
     }
 
+    public static CtMethod<?> updateAssertionForInvocationOnParameters(List<String> paramList,
+                                                                       CtMethod<?> baseMethod,
+                                                                       String mockFieldFQN,
+                                                                       String mockFieldName) {
+        CtMethod<?> updatedBaseMethod = baseMethod.clone();
+        List<CtStatement> statements = baseMethod.getBody().getStatements();
+        int assertStatementIndex = 0;
+        for (int i = 0; i < statements.size(); i++) {
+            if (statements.get(i).toString().contains("assert")) {
+                assertStatementIndex = i;
+                break;
+            }
+        }
+
+        for (int i = 0; i < paramList.size(); i++) {
+            if (paramList.get(i).equals(mockFieldFQN)) {
+                String paramBeingReplaced = "paramObject" + (i+1);
+                CtStatement updatedAssertStatement = factory.createCodeSnippetStatement(
+                        statements.get(assertStatementIndex).toString().replace(paramBeingReplaced, mockFieldName));
+                System.out.println("UPDATED ASSERT STATEMENT: " + updatedAssertStatement);
+                updatedBaseMethod.getBody().addStatement(assertStatementIndex, updatedAssertStatement);
+                updatedBaseMethod.getBody().removeStatement(updatedBaseMethod.getBody().getLastStatement());
+                break;
+            }
+        }
+        return updatedBaseMethod;
+    }
+
     public static CtStatement delegateClassLoaderVariableCreation() {
         return testGenUtil.addClassLoaderVariableToTestMethod(factory);
     }
 
     public static List<String> getListOfInvocationsFromNestedMethodMap(String nestedMethodMap) {
-        List<String> methodInvocations = List.of(nestedMethodMap.split(",#"));
+        List<String> methodInvocations = List.of(nestedMethodMap.split(",[A-Z]+#"));
         List<String> sanitizedInvocations = new ArrayList<>();
         for (String invocation : methodInvocations) {
             sanitizedInvocations.add(invocation.replaceAll("(.+=)(.+)", "$2")
                     .replaceAll("}", ""));
         }
         return sanitizedInvocations;
+    }
+
+    /**
+     * Finds if nested invocation is made on a field of the declaring type of the target method,
+     * or a parameter of the target method
+     *
+     * @param nestedMethodMap
+     * @return FIELD or PARAMETER
+     */
+    public static List<String> getNestedInvocationTargetTypes(String nestedMethodMap) {
+        List<String> targetTypes = new ArrayList<>();
+        Pattern pattern = Pattern.compile("[A-Z]+#");
+        Matcher matcher = pattern.matcher(nestedMethodMap);
+        while (matcher.find())
+            targetTypes.add(matcher.group().replace("#", ""));
+        return targetTypes;
     }
 
     /**
@@ -62,6 +111,21 @@ public class MockGeneratorUtil {
      */
     public static String getDeclaringTypeToMock(String invocation) {
         return invocation.replaceAll(invocationRegex, "$1");
+    }
+
+    /**
+     * Finds a list of types from the project model, given a name
+     *
+     * @param typeToFind
+     * @return a list of types found for the given name
+     */
+    public static List<CtTypeReference> findTypeFromModel(final String typeToFind) {
+        return factory.getModel()
+                .getAllTypes()
+                .stream()
+                .filter(ctType -> ctType.getQualifiedName().equals(typeToFind))
+                .map(CtType::getReference)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -98,10 +162,10 @@ public class MockGeneratorUtil {
         for (String param : params) {
             if (param.isEmpty())
                 break;
-            if (primitives.contains(param)) {
-                mockitoArgumentMatchers.add(createArgumentMatcher("any" + param.substring(0, 1).toUpperCase() + param.substring(1)));
-            } else if (param.equals("java.lang.String")) {
+            if (param.equals("java.lang.String")) {
                 mockitoArgumentMatchers.add(createArgumentMatcher("anyString"));
+            } else if (primitives.contains(param)) {
+                mockitoArgumentMatchers.add(createArgumentMatcher("any" + param.substring(0, 1).toUpperCase() + param.substring(1)));
             } else {
                 mockitoArgumentMatchers.add(createArgumentMatcher("any"));
             }
@@ -129,6 +193,8 @@ public class MockGeneratorUtil {
             arguments.append(primitiveParams.get(i - 1)
                     .replaceAll("<char>(.{1})<\\/char>", "<char>'$1'</char>")
                     .replaceAll("<string>(.+)<\\/string>", "<string>\"$1\"</string>")
+                    .replaceAll("<long>(.+)<\\/long>", "<long>$1L</long>")
+                    .replaceAll("<float>(.+)<\\/float>", "<float>$1F</float>")
                     .replaceAll("<\\w+>(.+)<\\/\\w+>", "$1")
                     .replaceAll("\\s", ""));
             if (i != primitiveParams.size()) {
@@ -190,8 +256,11 @@ public class MockGeneratorUtil {
             return null;
         }
         if (primitives.contains(returnType)) {
-            returnedObject = returnedObject.replaceAll("<char>(.{1})<\\/char>", "<char>'$1'</char>")
+            returnedObject = returnedObject
+                    .replaceAll("<char>(.{1})<\\/char>", "<char>'$1'</char>")
                     .replaceAll("<string>(.+)<\\/string>", "<string>\"$1\"</string>")
+                    .replaceAll("<long>(.+)<\\/long>", "<long>$1L</long>")
+                    .replaceAll("<float>(.+)<\\/float>", "<float>$1F</float>")
                     .replaceAll("<\\w+>(.+)<\\/\\w+>", "$1")
                     .replaceAll("\\s", "");
         }
@@ -230,7 +299,7 @@ public class MockGeneratorUtil {
     }
 
     public static List<String> getReturnTypeFromInvocationMap(String nestedMethodMap) {
-        List<String> methodInvocations = List.of(nestedMethodMap.split(",#"));
+        List<String> methodInvocations = List.of(nestedMethodMap.split(",[A-Z]+#"));
         List<String> nestedReturnTypes = new ArrayList<>();
         for (String invocation : methodInvocations) {
             nestedReturnTypes.add(invocation.replaceAll("(.+):(.+)=(.+)", "$2"));

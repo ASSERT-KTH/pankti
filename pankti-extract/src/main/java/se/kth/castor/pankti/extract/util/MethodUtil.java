@@ -135,6 +135,45 @@ public class MethodUtil {
         return methodDeclaringType.getQualifiedName().equals(executableDeclaringType.getQualifiedName());
     }
 
+    /**
+     * Finds the invocations nested within a target method that are made on a parameter object
+     *
+     * @param method The target method
+     * @return A map of nested invocations made on parameters of the target method
+     */
+    public static Map<String, String> getMockableInvocationsOnParameters(final CtMethod<?> method) {
+        Map<String, String> nestedMethodInvocationMap = new LinkedHashMap<>();
+        if (method.getDeclaringType().getModifiers().contains(ModifierKind.FINAL))
+            return nestedMethodInvocationMap;
+        List<CtParameter<?>> parameters = method.getParameters();
+        List<CtInvocation> invocations = method.getElements(new TypeFilter<>(CtInvocation.class))
+                .stream()
+                .filter(ctInvocation -> ctInvocation.getTarget() != null)
+                .collect(Collectors.toList());
+        for (CtParameter<?> parameter : parameters) {
+            // if parameter is not primitive
+            if (!parameter.getType().isPrimitive()) {
+                String parameterFQN = parameter.getType().getQualifiedName();
+                String parameterName = parameter.getSimpleName();
+                for (CtInvocation<?> invocation : invocations) {
+                    // If invocation is called on parameter and parameter declaring type is different from method's
+                    if (Objects.requireNonNull(invocation.getTarget()).toString().equals(parameterName) &
+                            !parameterFQN.equals(method.getDeclaringType().getQualifiedName())) {
+                        CtExecutableReference<?> executable = getExecutable(invocation);
+                        if (executable.getType() != null & !isExecutableDeclaringTypeAJavaLibraryClass(executable.getDeclaringType()) &
+                                !executable.getDeclaringType().getModifiers().contains(ModifierKind.FINAL) &
+                                !executable.getDeclaringType().getModifiers().contains(ModifierKind.STATIC)) {
+                            nestedMethodInvocationMap.put(
+                                    "PARAMETER" + invocation.getPath() + ":" + executable.getType().getQualifiedName(),
+                                    getDeclaringType(executable).getQualifiedName()
+                                            + "." + executable.getSignature());
+                        }
+                    }
+                }
+            }
+        }
+        return nestedMethodInvocationMap;
+    }
 
     private static boolean isNestedInvocationMockable(final CtMethod<?> method,
                                                       final CtInvocation<?> invocation) {
@@ -168,15 +207,17 @@ public class MethodUtil {
         for (CtInvocation<?> invocation : nestedMethodInvocations) {
             CtExecutableReference<?> executable = getExecutable(invocation);
             nestedMethodInvocationMap.put(
-                    invocation.getPath() + ":" + executable.getType().getQualifiedName(),
+                    "FIELD" + invocation.getPath() + ":" + executable.getType().getQualifiedName(),
                     getDeclaringType(executable).getQualifiedName()
                             + "." + executable.getSignature());
         }
+        Map<String, String> nestedInvocationsOnParameters = getMockableInvocationsOnParameters(method);
+        nestedMethodInvocationMap.putAll(nestedInvocationsOnParameters);
         return nestedMethodInvocationMap;
     }
 
     /**
-     * Checks if the declaring type of a method has a non-parameterized constructor.
+     * Checks if the declaring type of a method has a public, non-parameterized constructor.
      *
      * @param method The method
      * @return true if the declaring type has a non-parameterized constructor
@@ -184,21 +225,49 @@ public class MethodUtil {
     public static boolean declaringTypeHasNoParamConstructor(final CtMethod<?> method) {
         return method.getDeclaringType()
                 .getElements(new TypeFilter<>(CtConstructor.class))
-                .stream().anyMatch(c -> c.getParameters().isEmpty());
+                .stream().anyMatch(c -> c.getParameters().isEmpty() &
+                        c.getModifiers().contains(ModifierKind.PUBLIC));
     }
 
+    public static boolean declaringTypeHasConstructorThrowingExceptions(final CtType<?> declaringType) {
+        List<CtConstructor<?>> constructors = declaringType.getElements(new TypeFilter<>(CtConstructor.class));
+        for (CtConstructor<?> constructor : constructors) {
+            if (constructor.getThrownTypes().size() > 0)
+                return true;
+        }
+        return false;
+    }
+
+    /**
+     * Finds a public parameterized constructor of the declaring type of the target method
+     * such that the constructor has the least number of parameters, and
+     * neither of its parameters are primitive
+     *
+     * @param declaringType The class in which the target method is defined
+     * @return The smallest constructor or an empty string if none is found
+     */
     public static String getDeclaringTypeSmallestConstructor(CtType<?> declaringType) {
         String smallestNonDefaultConstructorParams = "";
         List<CtConstructor<?>> constructors = declaringType.getElements(new TypeFilter<>(CtConstructor.class));
+        List<CtConstructor<?>> publicConstructors = constructors.stream()
+                .filter(ctConstructor -> !ctConstructor.hasModifier(ModifierKind.PRIVATE))
+                .filter(ctConstructor -> !ctConstructor.getSignature().contains("$"))
+                .collect(Collectors.toList());
+        if (publicConstructors.size() == 0)
+            return smallestNonDefaultConstructorParams;
         int i = 0;
         int smallestIndex = 0;
         do {
-            if (constructors.get(i).getParameters().size() < constructors.get(smallestIndex).getParameters().size()) {
+            if (publicConstructors.get(i).getParameters().size() <= publicConstructors.get(smallestIndex).getParameters().size() &
+                    publicConstructors.get(i).getParameters().stream().noneMatch(ctParameter -> ctParameter.getType().isPrimitive())) {
                 smallestIndex = i;
             }
             i++;
-        } while (i < constructors.size());
-        smallestNonDefaultConstructorParams = constructors.get(smallestIndex).getSignature()
+        } while (i < publicConstructors.size());
+        // Disregard smallest constructor if it has any primitive params
+        if (publicConstructors.get(smallestIndex).getParameters().stream().anyMatch(ctParameter -> ctParameter.getType().isPrimitive()))
+            return smallestNonDefaultConstructorParams;
+        smallestNonDefaultConstructorParams = publicConstructors.get(smallestIndex).getSignature()
                 .replaceAll("(.+)(\\(.+\\))", "$2")
                 .replaceAll("\\(", "")
                 .replaceAll("\\)", "");

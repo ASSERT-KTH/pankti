@@ -29,7 +29,7 @@ public class PanktiLauncher {
     private static String[] HEADERS =
             {"visibility", "parent-FQN", "method-name", "param-list", "return-type",
                     "param-signature", "has-mockable-invocations", "nested-invocations",
-                    "noparam-constructor", "constructor", "tags"};
+                    "noparam-constructor", "constructor"};
 
     public Launcher getLauncher(final String projectPath, final String projectName) {
         PanktiLauncher.projectName = projectName;
@@ -93,12 +93,19 @@ public class PanktiLauncher {
                 }
                 // Find nested method invocations that can be mocked
                 Map<String, String> nestedMethodInvocationMap = MethodUtil.getNestedMethodInvocationMap(method);
-                boolean methodDeclaringTypeHasNoParamConstructor = MethodUtil.declaringTypeHasNoParamConstructor(method);
+                boolean methodDeclaringTypeHasConstructorThrowingExceptions = MethodUtil.declaringTypeHasConstructorThrowingExceptions(method.getDeclaringType());
+                boolean isMockable = !nestedMethodInvocationMap.isEmpty() & !methodDeclaringTypeHasConstructorThrowingExceptions;
+                boolean methodDeclaringTypeHasNoParamConstructor = false;
                 String smallestParamConstructor = "";
-                if (!nestedMethodInvocationMap.isEmpty() && !methodDeclaringTypeHasNoParamConstructor) {
-                    smallestParamConstructor = MethodUtil.getDeclaringTypeSmallestConstructor(method.getDeclaringType());
+                if (isMockable) {
+                    methodDeclaringTypeHasNoParamConstructor = MethodUtil.declaringTypeHasNoParamConstructor(method);
+                    if (!methodDeclaringTypeHasNoParamConstructor) {
+                        smallestParamConstructor = MethodUtil.getDeclaringTypeSmallestConstructor(method.getDeclaringType());
+                        if (smallestParamConstructor.isEmpty()) {
+                            isMockable = false;
+                        }
+                    }
                 }
-                Map<String, Boolean> tags = entry.getValue();
                 csvPrinter.printRecord(
                         method.getVisibility(),
                         method.getParent(CtClass.class).getQualifiedName(),
@@ -106,11 +113,10 @@ public class PanktiLauncher {
                         paramList,
                         method.getType().getQualifiedName(),
                         paramSignature.toString(),
-                        !nestedMethodInvocationMap.isEmpty(),
+                        isMockable,
                         nestedMethodInvocationMap,
                         methodDeclaringTypeHasNoParamConstructor,
-                        smallestParamConstructor,
-                        tags);
+                        smallestParamConstructor);
             }
         }
     }

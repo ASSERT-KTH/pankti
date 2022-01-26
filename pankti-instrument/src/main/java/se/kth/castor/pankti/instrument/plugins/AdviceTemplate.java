@@ -22,9 +22,13 @@ public interface AdviceTemplate {
     }
 
     static String setUpInvokedMethodsCSVFile(String storageDir) throws Exception {
+//        String[] HEADERS = {"visibility", "parent-FQN", "method-name", "param-list", "return-type",
+//                "param-signature", "local-variables", "conditionals", "multiple-statements", "loops",
+//                "parameters", "returns", "switches", "ifs", "static", "returns-primitives", "classification"};
+
         String[] HEADERS = {"visibility", "parent-FQN", "method-name", "param-list", "return-type",
-                "param-signature", "local-variables", "conditionals", "multiple-statements", "loops",
-                "parameters", "returns", "switches", "ifs", "static", "returns-primitives", "classification"};
+                "param-signature", "has-mockable-invocations", "nested-invocations", "noparam-constructor",
+                "constructor"};
 
         File invokedMethodsCSVFile = new File(storageDir + "invoked-methods.csv");
         if (!invokedMethodsCSVFile.exists()) {

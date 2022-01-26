@@ -1,4 +1,4 @@
-package se.kth.castor.pankti.generate.parsers;
+package se.kth.castor.pankti.generate.data;
 
 import java.util.List;
 

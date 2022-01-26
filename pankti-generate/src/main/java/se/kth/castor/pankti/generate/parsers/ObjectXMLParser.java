@@ -1,18 +1,20 @@
 package se.kth.castor.pankti.generate.parsers;
 
-import org.apache.commons.collections4.MultiValuedMap;
-import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.ls.DOMImplementationLS;
 import org.w3c.dom.ls.LSSerializer;
+import se.kth.castor.pankti.generate.data.InstrumentedMethod;
+import se.kth.castor.pankti.generate.data.ObjectProfileElement;
+import se.kth.castor.pankti.generate.data.SerializedObject;
 import se.kth.castor.pankti.generate.generators.MockGeneratorUtil;
 import se.kth.castor.pankti.generate.generators.TestGeneratorUtil;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.*;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -46,16 +48,15 @@ public class ObjectXMLParser {
     }
 
     private void removeAddedAttributes(Node thisNode) {
-        List<String> attributesToRemove = List.of("uuid", "parent-uuid");
+        List<String> attributesToRemove = List.of("uuid", "parent-uuid", "timestamp");
         for (String attributeToRemove : attributesToRemove) {
             if (thisNode.getAttributes().getNamedItem(attributeToRemove) != null)
                 thisNode.getAttributes().removeNamedItem(attributeToRemove);
         }
     }
 
-    public MultiValuedMap<String, String> parseXMLInFile(File inputFile) throws Exception {
-        List<String> rawXMLObjects = new ArrayList<>();
-        MultiValuedMap<String, String> uuidRawXMLObjectMap = new ArrayListValuedHashMap<>();
+    public List<ObjectProfileElement> parseXMLInFile(File inputFile) throws Exception {
+        List<ObjectProfileElement> objectProfileElements = new ArrayList<>();
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
 
@@ -70,32 +71,35 @@ public class ObjectXMLParser {
         rootNode.normalize();
         NodeList childNodes = rootNode.getChildNodes();
 
-        List<String> attributes = new ArrayList<>();
         for (int i = 0; i < childNodes.getLength(); i++) {
             Node thisNode = childNodes.item(i);
+            ObjectProfileElement element = new ObjectProfileElement();
 
             // ignore newline xml elements => !thisNode.toString().equals("[#text: \n]")
             if (!thisNode.hasAttributes() & !thisNode.toString().equals("[#text: \n]")) {
-                // if no nested invocations, add a random attribute since we have to return a map
-                attributes.add(UUID.randomUUID().toString());
+                element.setUuid(null);
             }
             if (thisNode.hasAttributes() & !thisNode.toString().equals("[#text: \n]")) {
                 for (int j = 0; j < thisNode.getAttributes().getLength(); j++) {
                     if (thisNode.getAttributes().item(j).getNodeName().contains("uuid")) {
-                        attributes.add(thisNode.getAttributes().item(j).getNodeValue());
+                        element.setUuid(thisNode.getAttributes().item(j).getNodeValue());
+                    }
+                    if (thisNode.getAttributes().item(j).getNodeName().equals("timestamp")) {
+                        element.setTimestamp(Instant.ofEpochMilli(
+                                Long.parseLong(thisNode.getAttributes().item(j).getNodeValue())));
                     }
                 }
                 removeAddedAttributes(thisNode);
             }
             String rawXMLForObject = ser.writeToString(thisNode);
-            rawXMLObjects.add(cleanUpRawObjectXML(rawXMLForObject));
+            String cleanedUpXML = cleanUpRawObjectXML(rawXMLForObject);
+            if (!cleanedUpXML.equals("")) {
+                element.setRawXML(cleanedUpXML);
+                objectProfileElements.add(element);
+            }
+
         }
-        rawXMLObjects.removeAll(Collections.singleton(""));
-        // Map <uuid, rawXML>
-        for (int i = 0; i < rawXMLObjects.size(); i++) {
-            uuidRawXMLObjectMap.put(attributes.get(i), rawXMLObjects.get(i));
-        }
-        return uuidRawXMLObjectMap;
+        return objectProfileElements;
     }
 
     // Create object profiles from object xml files
@@ -112,26 +116,36 @@ public class ObjectXMLParser {
 
             // Get objects from xxx-receiving.xml
             File receivingObjectFile = findXMLFileByObjectType(basePath, postfix + receivingObjectFilePostfix);
-            MultiValuedMap<String, String> uuidReceivingObjectsMap = parseXMLInFile(receivingObjectFile);
-            List<String> uuids = new ArrayList<>(uuidReceivingObjectsMap.keySet());
-            List<String> receivingObjects = new ArrayList<>(uuidReceivingObjectsMap.values());
-            List<String> returnedOrReceivingPostObjects;
-
+            List<ObjectProfileElement> receivingElements = parseXMLInFile(receivingObjectFile);
+            List<String> receivingObjects = new ArrayList<>();
+            List<String> parentUUIDs = new ArrayList<>();
+            for (ObjectProfileElement element : receivingElements) {
+                receivingObjects.add(element.getRawXML());
+                parentUUIDs.add(element.getUuid());
+            }
+            List<String> returnedOrReceivingPostObjects = new ArrayList<>();
+            List<ObjectProfileElement> returnedOrReceivingPostElements;
             if (!instrumentedMethod.getReturnType().equals("void")) {
                 // Get objects from xxx-returned.xml for non-void methods
                 File returnedObjectFile = findXMLFileByObjectType(basePath, postfix + returnedObjectFilePostfix);
-                returnedOrReceivingPostObjects = new ArrayList<>(parseXMLInFile(returnedObjectFile).values());
+                returnedOrReceivingPostElements = parseXMLInFile(returnedObjectFile);
             } else {
                 // Get objects from xxx-receiving-post.xml for void methods
                 File receivingPostObjectFile = findXMLFileByObjectType(basePath, postfix + receivingPostObjectFilePostfix);
-                returnedOrReceivingPostObjects = new ArrayList<>(parseXMLInFile(receivingPostObjectFile).values());
+                returnedOrReceivingPostElements = parseXMLInFile(receivingPostObjectFile);
+            }
+            for (ObjectProfileElement returnedOrReceivingPostElement : returnedOrReceivingPostElements) {
+                returnedOrReceivingPostObjects.add(returnedOrReceivingPostElement.getRawXML());
             }
 
             // Get objects from xxx-params.xml
             List<String> paramObjects = new ArrayList<>();
             if (hasParams) {
                 File paramObjectsFile = findXMLFileByObjectType(basePath, postfix + paramObjectsFilePostfix);
-                paramObjects = new ArrayList<>(parseXMLInFile(paramObjectsFile).values());
+                List<ObjectProfileElement> paramElements = parseXMLInFile(paramObjectsFile);
+                for (ObjectProfileElement paramElement : paramElements) {
+                    paramObjects.add(paramElement.getRawXML());
+                }
             }
 
             List<SerializedObject> nestedSerializedObjects = new ArrayList<>();
@@ -143,6 +157,7 @@ public class ObjectXMLParser {
                 List<String> nestedParamObjects = new ArrayList<>();
                 List<String> nestedUuids = new ArrayList<>();
                 List<String> nestedReturnedObjects = new ArrayList<>();
+                List<Instant> nestedTimestamps = new ArrayList<>();
                 List<String> nestedInvocationFQNs = new ArrayList<>();
                 for (String invocation : nestedInvocations) {
                     String declaringType = MockGeneratorUtil.getDeclaringTypeToMock(invocation);
@@ -152,20 +167,21 @@ public class ObjectXMLParser {
                     String nestedInvocationPostfix = util.getParamListPostFix(params);
                     String filePathNestedParams = directory + nestedInvocationObjectFilePrefix + declaringType + "." + methodName +
                             nestedInvocationPostfix + paramObjectsFilePostfix;
-                    MultiValuedMap<String, String> uuidNestedParamObjectsMap = parseXMLInFile(new File(filePathNestedParams));
-                    for (Map.Entry<String, String> uuidObjectXML : uuidNestedParamObjectsMap.entries()) {
-                        if (uuids.contains(uuidObjectXML.getKey())) {
-                            nestedParamObjects.add(uuidObjectXML.getValue());
+                    List<ObjectProfileElement> nestedParamElements = parseXMLInFile(new File(filePathNestedParams));
+                    for (ObjectProfileElement nestedParamElement : nestedParamElements) {
+                        if (parentUUIDs.contains(nestedParamElement.getUuid())) {
+                            nestedParamObjects.add(nestedParamElement.getRawXML());
+                            nestedTimestamps.add(nestedParamElement.getTimestamp());
                             nestedInvocationFQNs.add(declaringType + "." + mockedMethodWithParams);
                         }
                     }
                     String filePathNestedReturned = directory + nestedInvocationObjectFilePrefix + declaringType + "." + methodName +
                             nestedInvocationPostfix + returnedObjectFilePostfix;
-                    MultiValuedMap<String, String> uuidNestedReturnedObjectsMap = parseXMLInFile(new File(filePathNestedReturned));
-                    for (Map.Entry<String, String> objectXMLUUID : uuidNestedReturnedObjectsMap.entries()) {
-                        if (uuids.contains(objectXMLUUID.getKey())) {
-                            nestedUuids.add(objectXMLUUID.getKey());
-                            nestedReturnedObjects.add(objectXMLUUID.getValue());
+                    List<ObjectProfileElement> nestedReturnedElements = parseXMLInFile(new File(filePathNestedReturned));
+                    for (ObjectProfileElement nestedReturnedElement : nestedReturnedElements) {
+                        if (parentUUIDs.contains(nestedReturnedElement.getUuid())) {
+                            nestedUuids.add(nestedReturnedElement.getUuid());
+                            nestedReturnedObjects.add(nestedReturnedElement.getRawXML());
                         }
                     }
                 }
@@ -178,6 +194,7 @@ public class ObjectXMLParser {
                             nestedParamObjects.get(i),
                             nestedUuids.get(i),
                             null,
+                            nestedTimestamps.get(i),
                             nestedInvocationFQNs.get(i)
                     ));
                 }
@@ -196,10 +213,11 @@ public class ObjectXMLParser {
                             (!instrumentedMethod.getReturnType().equals("void") ? returnedOrReceivingPostObjects.get(i) : ""),
                             (instrumentedMethod.getReturnType().equals("void") ? returnedOrReceivingPostObjects.get(i) : ""),
                             params,
-                            uuids.get(i),
+                            parentUUIDs.get(i),
                             nestedSerializedObjects.stream()
-                                    .filter(nestedSerializedObject -> nestedSerializedObject.getUUID().equals(uuids.get(finalI)))
+                                    .filter(nestedSerializedObject -> nestedSerializedObject.getUUID().equals(parentUUIDs.get(finalI)))
                                     .collect(Collectors.toList()),
+                            null,
                             null);
                     serializedObjects.add(serializedObject);
                     serializedObjectCount++;

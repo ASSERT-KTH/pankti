@@ -119,6 +119,7 @@ def generate_aspects(df):
   df.replace(np.nan, '', regex=True, inplace=True)
   for index, row in df.iterrows():
   # temporarily, instrument classes with mockable invocations
+#     if row['visibility'] == "public":
     if row['has-mockable-invocations']:
       count += 1
       aspects.append(float(count))

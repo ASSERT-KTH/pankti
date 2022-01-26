@@ -12,6 +12,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.UUID;
@@ -171,13 +172,18 @@ public class MethodAspect0 {
             }
         }
 
+        @IsEnabled
+        public static boolean isNestedInvocation() {
+            return INVOCATION_COUNT < 2;
+        }
+
         @OnBefore
         public static TraceEntry onBefore(OptionalThreadContext context,
                                           @BindReceiver Object receivingObject,
                                           @BindParameterArray Object parameterObjects,
                                           @BindMethodName String methodName) {
             setup();
-            if (fileSizeWithinLimits) {
+            if (fileSizeWithinLimits & INVOCATION_COUNT <= 1) {
                 if (hasMockableInvocations) {
                     invocationUuid = null;
                     invocationUuid = UUID.randomUUID();
@@ -198,7 +204,7 @@ public class MethodAspect0 {
         @OnReturn
         public static void onReturn(@BindReturn Object returnedObject,
                                     @BindTraveler TraceEntry traceEntry) {
-            if (fileSizeWithinLimits) {
+            if (fileSizeWithinLimits & INVOCATION_COUNT <= 1) {
                 writeObjectXMLToFile(returnedObject, returnedObjectFilePath);
                 writeObjectProfileSizeToFile(getObjectProfileSize() - profileSizePre);
                 checkFileSizeLimit();
