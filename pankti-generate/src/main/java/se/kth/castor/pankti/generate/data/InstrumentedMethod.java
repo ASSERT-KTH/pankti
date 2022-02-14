@@ -10,8 +10,6 @@ public class InstrumentedMethod {
     String returnType;
     String visibility;
     boolean hasMockableInvocations;
-    boolean hasNoParamConstructor;
-    String smallestParamConstructor;
     String nestedMethodMap;
     boolean isOverloaded;
 
@@ -22,8 +20,6 @@ public class InstrumentedMethod {
             String returnType,
             String visibility,
             boolean hasMockableInvocations,
-            boolean hasNoParamConstructor,
-            String smallestParamConstructor,
             String nestedMethodMap) {
         this.parentFQN = parentFQN;
         this.parentSimpleName = setParentSimpleName();
@@ -32,8 +28,6 @@ public class InstrumentedMethod {
         this.returnType = returnType.replaceAll("\\$", ".");
         this.visibility = visibility;
         this.hasMockableInvocations = hasMockableInvocations;
-        this.hasNoParamConstructor = hasNoParamConstructor;
-        this.smallestParamConstructor = smallestParamConstructor;
         this.nestedMethodMap = nestedMethodMap;
     }
 
@@ -78,16 +72,8 @@ public class InstrumentedMethod {
         return this.hasMockableInvocations;
     }
 
-    public boolean hasNoParamConstructor() {
-        return this.hasNoParamConstructor;
-    }
-
     public String getNestedMethodMap() {
         return this.nestedMethodMap;
-    }
-
-    public String getSmallestParamConstructor() {
-        return this.smallestParamConstructor;
     }
 
     public boolean isOverloaded() {
@@ -109,8 +95,6 @@ public class InstrumentedMethod {
                 ", returnType='" + returnType + '\'' +
                 ", visibility='" + visibility + '\'' +
                 ", hasMockableInvocations='" + hasMockableInvocations + '\'' +
-                ", hasNoParamConstructor='" + hasNoParamConstructor + '\'' +
-                ", smallestParamConstructor='" + smallestParamConstructor + '\'' +
                 ", nestedMethodMap='" + nestedMethodMap + '\'' +
                 '}';
     }

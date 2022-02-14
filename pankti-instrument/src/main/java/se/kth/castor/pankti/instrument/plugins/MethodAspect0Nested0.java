@@ -145,6 +145,7 @@ public class MethodAspect0Nested0 {
         // For mocking: instrument and collect parameters and returned values if this invocation is nested
         @IsEnabled
         public static boolean isNestedInvocation() {
+            if (INVOCATION_COUNT > 2) return false;
             boolean isNestedInvocation = Arrays.stream(Thread.currentThread().getStackTrace()).anyMatch(s ->
                     s.getClassName().equals(parentInvocationClassName) &
                             s.getMethodName().equals(parentInvocationMethodName));

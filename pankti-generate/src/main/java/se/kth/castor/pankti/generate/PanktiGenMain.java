@@ -79,6 +79,9 @@ public class PanktiGenMain implements Callable<Integer> {
         System.out.println("Number of new test cases: " + testGenerator.process(model,
                 methodCSVFilePath.toString(), objectXMLDirectoryPath.toString()));
 
+        System.out.println("Number of new test cases with mocks: " +
+                testGenerator.getNumberOfTestCasesWithMocksGenerated());
+
         // Save model in outputdir/
 
         String outputDirectory = "./output/generated/" + name;

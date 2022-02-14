@@ -1,6 +1,8 @@
 package se.kth.castor.pankti.generate.generators;
 
+import se.kth.castor.pankti.generate.util.MethodInvocationUtil;
 import se.kth.castor.pankti.generate.data.SerializedObject;
+import se.kth.castor.pankti.generate.util.MockGeneratorUtil;
 import spoon.reflect.code.CtStatement;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.factory.Factory;
@@ -62,12 +64,12 @@ public class MethodSequenceGenerator {
             }
             if (nested.getInvocationTimestamp().equals(sortedTimestamps.get(i))) {
                 // Mockito.verify(mockField, times(n)).mockedMethod(param1, param2)
-                String declaringTypeToMock = MockGeneratorUtil.getDeclaringTypeToMock(nested.getInvocationFQN());
+                String declaringTypeToMock = MethodInvocationUtil.getDeclaringTypeFromInvocationFQN(nested.getInvocationFQN());
                 CtTypeReference mockFieldType = MockGeneratorUtil.findTypeFromModel(declaringTypeToMock).get(0);
                 String mockField = String.format("mock%s", mockFieldType.getSimpleName());
-                String mockedMethodWithParams = MockGeneratorUtil.getMockedMethodWithParams(nested.getInvocationFQN());
-                String mockedMethod = MockGeneratorUtil.getMockedMethodName(mockedMethodWithParams);
-                List<String> params = MockGeneratorUtil.getParametersOfMockedMethod(mockedMethodWithParams);
+                String mockedMethodWithParams = MethodInvocationUtil.getMethodWithParamsFromInvocationFQN(nested.getInvocationFQN());
+                String mockedMethod = MethodInvocationUtil.getMethodName(mockedMethodWithParams);
+                List<String> params = MethodInvocationUtil.getMethodParams(mockedMethodWithParams);
                 List<CtExecutableReference<?>> paramExecutables =
                         MockGeneratorUtil.convertParamsToMockitoArgumentMatchers(params);
 

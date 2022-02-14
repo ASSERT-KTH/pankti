@@ -1,6 +1,5 @@
 package se.kth.castor.pankti.generate.data;
 
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;

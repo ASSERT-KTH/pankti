@@ -6,6 +6,7 @@ import se.kth.castor.pankti.extract.logging.CustomLogger;
 import se.kth.castor.pankti.extract.processors.CandidateTagger;
 import se.kth.castor.pankti.extract.processors.MethodProcessor;
 import se.kth.castor.pankti.extract.util.MethodUtil;
+import se.kth.castor.pankti.extract.util.NestedTarget;
 import spoon.JarLauncher;
 import spoon.Launcher;
 import spoon.MavenLauncher;
@@ -26,10 +27,10 @@ import java.util.logging.Logger;
 public class PanktiLauncher {
     private static final Logger LOGGER = CustomLogger.log(PanktiLauncher.class.getName());
     private static String projectName;
+    private static int numberOfNestedInvocationsOnFieldsOrParameters = 0;
     private static String[] HEADERS =
             {"visibility", "parent-FQN", "method-name", "param-list", "return-type",
-                    "param-signature", "has-mockable-invocations", "nested-invocations",
-                    "noparam-constructor", "constructor"};
+                    "param-signature", "has-mockable-invocations", "nested-invocations"};
 
     public Launcher getLauncher(final String projectPath, final String projectName) {
         PanktiLauncher.projectName = projectName;
@@ -92,20 +93,9 @@ public class PanktiLauncher {
                     }
                 }
                 // Find nested method invocations that can be mocked
-                Map<String, String> nestedMethodInvocationMap = MethodUtil.getNestedMethodInvocationMap(method);
-                boolean methodDeclaringTypeHasConstructorThrowingExceptions = MethodUtil.declaringTypeHasConstructorThrowingExceptions(method.getDeclaringType());
-                boolean isMockable = !nestedMethodInvocationMap.isEmpty() & !methodDeclaringTypeHasConstructorThrowingExceptions;
-                boolean methodDeclaringTypeHasNoParamConstructor = false;
-                String smallestParamConstructor = "";
-                if (isMockable) {
-                    methodDeclaringTypeHasNoParamConstructor = MethodUtil.declaringTypeHasNoParamConstructor(method);
-                    if (!methodDeclaringTypeHasNoParamConstructor) {
-                        smallestParamConstructor = MethodUtil.getDeclaringTypeSmallestConstructor(method.getDeclaringType());
-                        if (smallestParamConstructor.isEmpty()) {
-                            isMockable = false;
-                        }
-                    }
-                }
+                numberOfNestedInvocationsOnFieldsOrParameters += MethodUtil.getNumberofNestedInvocations(method).size();
+                Set<NestedTarget> nestedMethodInvocations = MethodUtil.getNestedMethodInvocationSet(method);
+                boolean isMockable = !nestedMethodInvocations.isEmpty();
                 csvPrinter.printRecord(
                         method.getVisibility(),
                         method.getParent(CtClass.class).getQualifiedName(),
@@ -114,9 +104,7 @@ public class PanktiLauncher {
                         method.getType().getQualifiedName(),
                         paramSignature.toString(),
                         isMockable,
-                        nestedMethodInvocationMap,
-                        methodDeclaringTypeHasNoParamConstructor,
-                        smallestParamConstructor);
+                        nestedMethodInvocations);
             }
         }
     }
@@ -141,6 +129,8 @@ public class PanktiLauncher {
         } catch (IOException e) {
             LOGGER.warning(e.getMessage());
         }
+        LOGGER.info("Number of nested invocations on fields or parameters: "
+                + numberOfNestedInvocationsOnFieldsOrParameters);
         LOGGER.info("Output saved in ./extracted-methods-" + projectName + ".csv");
         return candidateMethods;
     }

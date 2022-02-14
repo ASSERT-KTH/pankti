@@ -3,6 +3,7 @@ package se.kth.castor.pankti.generate.generators;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver;
 import org.junit.jupiter.api.Test;
+import se.kth.castor.pankti.generate.util.TestGeneratorUtil;
 
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -1,4 +1,4 @@
-package se.kth.castor.pankti.generate.generators;
+package se.kth.castor.pankti.generate.util;
 
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
@@ -28,8 +28,8 @@ import java.util.List;
 import java.util.Scanner;
 
 public class TestGeneratorUtil {
-    static String testFormat = "xml";
-    static MavenLauncher launcher;
+    public static MavenLauncher launcher;
+    public static String testFormat = "xml";
 
     public CtMethod<?> generateDeserializationMethod(Factory factory) {
         String methodName = "deserializeObject";

@@ -8,8 +8,8 @@ import org.w3c.dom.ls.LSSerializer;
 import se.kth.castor.pankti.generate.data.InstrumentedMethod;
 import se.kth.castor.pankti.generate.data.ObjectProfileElement;
 import se.kth.castor.pankti.generate.data.SerializedObject;
-import se.kth.castor.pankti.generate.generators.MockGeneratorUtil;
-import se.kth.castor.pankti.generate.generators.TestGeneratorUtil;
+import se.kth.castor.pankti.generate.util.MockGeneratorUtil;
+import se.kth.castor.pankti.generate.util.TestGeneratorUtil;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -160,10 +160,10 @@ public class ObjectXMLParser {
                 List<Instant> nestedTimestamps = new ArrayList<>();
                 List<String> nestedInvocationFQNs = new ArrayList<>();
                 for (String invocation : nestedInvocations) {
-                    String declaringType = MockGeneratorUtil.getDeclaringTypeToMock(invocation);
-                    String mockedMethodWithParams = MockGeneratorUtil.getMockedMethodWithParams(invocation);
-                    String methodName = MockGeneratorUtil.getMockedMethodName(mockedMethodWithParams);
-                    List<String> params = MockGeneratorUtil.getParametersOfMockedMethod(mockedMethodWithParams);
+                    String declaringType = MockGeneratorUtil.getDeclaringTypeToMockFromInvocationString(invocation);
+                    String methodName = MockGeneratorUtil.getMockedMethodName(invocation);
+                    List<String> params = MockGeneratorUtil.getParametersOfMockedMethod(invocation);
+                    String mockedMethodWithParams = MockGeneratorUtil.getMockedMethodWithParamsFromInvocationString(invocation);
                     String nestedInvocationPostfix = util.getParamListPostFix(params);
                     String filePathNestedParams = directory + nestedInvocationObjectFilePrefix + declaringType + "." + methodName +
                             nestedInvocationPostfix + paramObjectsFilePostfix;
@@ -219,6 +219,8 @@ public class ObjectXMLParser {
                                     .collect(Collectors.toList()),
                             null,
                             null);
+                    serializedObject.getNestedSerializedObjects()
+                            .sort(Comparator.comparing(SerializedObject::getInvocationTimestamp));
                     serializedObjects.add(serializedObject);
                     serializedObjectCount++;
                 }

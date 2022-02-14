@@ -173,7 +173,7 @@ public class MethodAspect0 {
         }
 
         @IsEnabled
-        public static boolean isNestedInvocation() {
+        public static boolean enableProfileCollection() {
             return INVOCATION_COUNT < 2;
         }
 

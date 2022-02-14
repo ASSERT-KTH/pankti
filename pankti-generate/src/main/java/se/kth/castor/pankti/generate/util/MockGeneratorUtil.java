@@ -1,23 +1,17 @@
-package se.kth.castor.pankti.generate.generators;
+package se.kth.castor.pankti.generate.util;
 
 import se.kth.castor.pankti.generate.data.SerializedObject;
-import spoon.reflect.code.CtLocalVariable;
-import spoon.reflect.code.CtStatement;
-import spoon.reflect.code.CtStatementList;
-import spoon.reflect.declaration.CtField;
-import spoon.reflect.declaration.CtMethod;
-import spoon.reflect.declaration.CtType;
+import spoon.reflect.code.*;
+import spoon.reflect.declaration.*;
 import spoon.reflect.factory.Factory;
 import spoon.reflect.reference.CtExecutableReference;
 import spoon.reflect.reference.CtTypeReference;
 
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class MockGeneratorUtil {
-    static Factory factory;
+    public static Factory factory;
 
     static TestGeneratorUtil testGenUtil = new TestGeneratorUtil();
 
@@ -26,34 +20,154 @@ public class MockGeneratorUtil {
     private static final List<String> primitives = List.of(
             "boolean", "byte", "char", "double", "float", "int", "long", "short", "java.lang.String");
 
-    public static CtMethod<?> cleanUpBaseMethodCloneForMocking(CtMethod<?> baseMethod, CtField<?> mockInjectField) {
-        CtMethod<?> updatedBaseMethod = baseMethod.clone();
+    public static CtTypeReference findOrCreateTypeReference(String type) {
+        CtTypeReference typeToFind;
+        try {
+            typeToFind = factory.createCtTypeReference(Class.forName(type));
+        } catch (ClassNotFoundException e) {
+            typeToFind = findTypeFromModel(type).get(0);
+        }
+        return typeToFind;
+    }
+
+    private static String findInString(String startString, String endString, String fromString) {
+        int start = fromString.indexOf(startString);
+        int end = fromString.indexOf(endString);
+        String result = fromString.substring(start, end).replace(startString, "");
+        return result;
+    }
+
+    public static CtMethod<?> generateHelperMethodForMockFieldInjection(String helperMethodName,
+                                                                        String mockFieldType,
+                                                                        String mockFieldTypeSimple,
+                                                                        String mockVariableName,
+                                                                        String targetFieldName,
+                                                                        boolean targetFieldIsPrivate,
+                                                                        String receivingObjectType) {
+        CtMethod<?> helperMethod = factory.createMethod();
+        helperMethod.setVisibility(ModifierKind.PRIVATE);
+
+        // Helper method return type is same as mock field type
+        CtTypeReference helperReturnType = findOrCreateTypeReference(mockFieldType);
+        helperMethod.setType(helperReturnType);
+
+        // Helper method accepts parameter of type receiving object
+        CtParameter<?> receivingObjectAsParameter = factory.createParameter();
+        CtTypeReference helperParameterType = findOrCreateTypeReference(receivingObjectType);
+        receivingObjectAsParameter.setType(helperParameterType);
+        receivingObjectAsParameter.setSimpleName("receivingObject");
+        helperMethod.addParameter(receivingObjectAsParameter);
+
+        CtStatement createMockField = factory.createCodeSnippetStatement(
+                String.format("%s %s = Mockito.mock(%s.class)",
+                mockFieldTypeSimple, mockVariableName, mockFieldTypeSimple));
+        helperMethod.setBody(createMockField);
+        helperMethod.setSimpleName(helperMethodName);
+        if (!targetFieldIsPrivate) {
+            CtStatement insertMockField = factory.createCodeSnippetStatement(
+                    String.format("receivingObject.%s = %s",
+                    targetFieldName, mockVariableName));
+            helperMethod.getBody().addStatement(insertMockField);
+        } else {
+            helperMethod.addThrownType(factory.createCtTypeReference(Exception.class));
+            CtStatement getFieldToMock = factory.createCodeSnippetStatement(
+                    String.format(
+                    "Field fieldToMock = receivingObject.getClass().getDeclaredField(\"%s\")",
+                    targetFieldName));
+            CtStatement setAccessible = factory.createCodeSnippetStatement(
+                    "fieldToMock.setAccessible(true)");
+            CtStatement setValue = factory.createCodeSnippetStatement(String.format(
+                    "fieldToMock.set(receivingObject, %s)",
+                    mockVariableName));
+            helperMethod.getBody().addStatement(getFieldToMock);
+            helperMethod.getBody().addStatement(setAccessible);
+            helperMethod.getBody().addStatement(setValue);
+        }
+        CtStatement returnStatement = factory.createCodeSnippetStatement(
+                String.format("return %s", mockVariableName));
+        helperMethod.getBody().addStatement(returnStatement);
+        return helperMethod;
+    }
+
+    /**
+     * Prepare a clone of a generated test method to support testing with mocks
+     *
+     * @param baseMethod             The generated test method that will be updated
+     * @param targetReturnsPrimitive Whether the target method returns a primitive value
+     * @return The generated base method, updated to support mocks
+     */
+    public static CtMethod<?> cleanUpBaseMethodCloneForMocking(CtMethod<?> baseMethod,
+                                                               boolean targetReturnsPrimitive,
+                                                               boolean targetReturnsVoid) {
+        CtMethod<?> updatedBaseMethod = factory.createMethod();
+        baseMethod.getAnnotations().forEach(updatedBaseMethod::addAnnotation);
+        updatedBaseMethod.addThrownType(factory.createCtTypeReference(Exception.class));
+        updatedBaseMethod.setVisibility(ModifierKind.PUBLIC);
+        updatedBaseMethod.setType(factory.createCtTypeReference(void.class));
+
         List<CtStatement> statements = baseMethod.getBody().getStatements();
+        List<CtStatement> statementsToRetain = new ArrayList<>();
+
+        CtBlock<?> methodBody = factory.createBlock();
         for (int i = 0; i < statements.size(); i++) {
-            // Add classloader variable at the top of the method, later
-            if (statements.get(i).toString().contains("getClass().getClassLoader()"))
-                updatedBaseMethod.getBody().removeStatement(statements.get(i));
-            if (statements.get(i).toString().contains("receivingObjectStr") | statements.get(i).toString().contains("fileReceiving"))
-                updatedBaseMethod.getBody().removeStatement(statements.get(i));
-            if (statements.get(i).toString().contains("assert")) {
-                CtStatement updatedAssertStatement = factory.createCodeSnippetStatement(
-                        baseMethod.getBody().getStatements().get(i).toString().replace("receivingObject", mockInjectField.getSimpleName()));
-                updatedBaseMethod.getBody().removeStatement(statements.get(i));
-                updatedBaseMethod.getBody().addStatement(updatedAssertStatement);
-            }
+            if (!statements.get(i).toString().contains("getClass().getClassLoader()") &
+                    !statements.get(i).toString().contains("returnedObjectStr") &
+                    !statements.get(i).toString().contains("fileReturned") &
+                    !statements.get(i).toString().contains("fileReceivingpost"))
+                statementsToRetain.add(statements.get(i));
+        }
+
+        statementsToRetain.forEach(methodBody::addStatement);
+        updatedBaseMethod.setBody(methodBody);
+
+        CtStatement assertionStatement = updatedBaseMethod.getBody().getLastStatement();
+        if (targetReturnsVoid) {
+            // remove assertion entirely
+            updatedBaseMethod.getBody().removeStatement(assertionStatement);
+        } else if (!targetReturnsPrimitive) {
+            // replace assertion with call receivingObject.targetMethod(params)
+            CtStatement updatedForNonPrimitiveReturn = factory.createCodeSnippetStatement(
+                    assertionStatement.toString().replaceAll("(.+,\\s)(receivingObject.+)", "$2")
+                            .replaceFirst("\\)", ""));
+            updatedBaseMethod.getBody().removeStatement(assertionStatement);
+            updatedBaseMethod.getBody().addStatement(updatedForNonPrimitiveReturn);
         }
         return updatedBaseMethod;
+    }
+
+    /**
+     * Generates a variable for a mocked parameter to add within the generated test method
+     *
+     * @param mockParameterType
+     * @return
+     */
+    public static CtStatement generateLocalVariableForMockParameter(String mockParameterType) {
+        CtStatement mockParameterVariable = factory.createCodeSnippetStatement(String.format(
+                "%s mock%s = Mockito.mock(%s.class)",
+                mockParameterType, mockParameterType, mockParameterType));
+        return mockParameterVariable;
     }
 
     public static CtMethod<?> updateAssertionForInvocationOnParameters(List<String> paramList,
                                                                        CtMethod<?> baseMethod,
                                                                        String mockFieldFQN,
-                                                                       String mockFieldName) {
+                                                                       String mockFieldName,
+                                                                       boolean targetReturnsNonPrimitiveOrVoid) {
         CtMethod<?> updatedBaseMethod = baseMethod.clone();
         List<CtStatement> statements = baseMethod.getBody().getStatements();
         int assertStatementIndex = 0;
+
+        String targetMethodCallPattern;
+        if (targetReturnsNonPrimitiveOrVoid) {
+            // We don't have Assertions.assertEquals(...)
+            targetMethodCallPattern = "receivingObject\\.\\w+\\(.*\\)";
+        } else {
+            // We have Assertions.assertEquals(...)
+            targetMethodCallPattern = "(.*)receivingObject\\.\\w+\\(.*\\)";
+        }
+
         for (int i = 0; i < statements.size(); i++) {
-            if (statements.get(i).toString().contains("assert")) {
+            if (statements.get(i).toString().matches(targetMethodCallPattern)) {
                 assertStatementIndex = i;
                 break;
             }
@@ -61,10 +175,10 @@ public class MockGeneratorUtil {
 
         for (int i = 0; i < paramList.size(); i++) {
             if (paramList.get(i).equals(mockFieldFQN)) {
-                String paramBeingReplaced = "paramObject" + (i+1);
+                String paramBeingReplaced = "paramObject" + (i + 1);
                 CtStatement updatedAssertStatement = factory.createCodeSnippetStatement(
-                        statements.get(assertStatementIndex).toString().replace(paramBeingReplaced, mockFieldName));
-                System.out.println("UPDATED ASSERT STATEMENT: " + updatedAssertStatement);
+                        statements.get(assertStatementIndex).toString()
+                                .replace(paramBeingReplaced, mockFieldName));
                 updatedBaseMethod.getBody().addStatement(assertStatementIndex, updatedAssertStatement);
                 updatedBaseMethod.getBody().removeStatement(updatedBaseMethod.getBody().getLastStatement());
                 break;
@@ -78,13 +192,8 @@ public class MockGeneratorUtil {
     }
 
     public static List<String> getListOfInvocationsFromNestedMethodMap(String nestedMethodMap) {
-        List<String> methodInvocations = List.of(nestedMethodMap.split(",[A-Z]+#"));
-        List<String> sanitizedInvocations = new ArrayList<>();
-        for (String invocation : methodInvocations) {
-            sanitizedInvocations.add(invocation.replaceAll("(.+=)(.+)", "$2")
-                    .replaceAll("}", ""));
-        }
-        return sanitizedInvocations;
+        List<String> methodInvocations = List.of(nestedMethodMap.split(",\\{"));
+        return methodInvocations;
     }
 
     /**
@@ -94,13 +203,52 @@ public class MockGeneratorUtil {
      * @param nestedMethodMap
      * @return FIELD or PARAMETER
      */
-    public static List<String> getNestedInvocationTargetTypes(String nestedMethodMap) {
+    public static List<String> getNestedInvocationTargetTypesFromNestedMethodMap(String nestedMethodMap) {
+        List<String> methodInvocations = List.of(nestedMethodMap.split(",\\{"));
         List<String> targetTypes = new ArrayList<>();
-        Pattern pattern = Pattern.compile("[A-Z]+#");
-        Matcher matcher = pattern.matcher(nestedMethodMap);
-        while (matcher.find())
-            targetTypes.add(matcher.group().replace("#", ""));
+        for (String invocation : methodInvocations) {
+            String targetType = findInString(
+                    "nestedInvocationTargetType=",
+                    ",nestedInvocationFieldName",
+                    invocation);
+            targetTypes.add(targetType);
+        }
         return targetTypes;
+    }
+
+    public static List<Map<String, String>> getNestedInvocationTargetFieldVisibilityMap(List<String> targetTypes, String nestedMethodMap) {
+        List<String> methodInvocations = List.of(nestedMethodMap.split(",\\{"));
+        List<String> targetFields = new ArrayList<>();
+        Map<String, String> fieldVisibilityMap = new LinkedHashMap<>();
+        for (int i = 0; i < targetTypes.size(); i++) {
+            if (targetTypes.get(i).equals("FIELD")) {
+                // {field1=visibility, field2=visibility, field3=visibility}
+                targetFields.add(findInString(
+                        "nestedInvocationFieldName='",
+                        "',nestedInvocationDeclaringType",
+                        methodInvocations.get(i)));
+            } else {
+                targetFields.add("");
+            }
+        }
+
+        List<Map<String, String>> fieldVisibilityMaps = new ArrayList<>();
+
+        for (String targetField : targetFields) {
+            if (!targetField.isEmpty()) {
+                String[] entry = targetField.split(",");
+                for (String e : entry) {
+                    e = e.replaceAll("}", "").replaceAll("\\{", "");
+                    fieldVisibilityMap.put(e.replaceAll("(.+)(=.+)", "$1"),
+                            e.replaceAll("(.+)(=.+)", "$2").replace("=", ""));
+                    fieldVisibilityMaps.add(fieldVisibilityMap);
+                }
+            } else {
+                fieldVisibilityMaps.add(null);
+            }
+        }
+
+        return fieldVisibilityMaps;
     }
 
     /**
@@ -109,8 +257,12 @@ public class MockGeneratorUtil {
      * @param invocation
      * @return declaring type of method to mock
      */
-    public static String getDeclaringTypeToMock(String invocation) {
-        return invocation.replaceAll(invocationRegex, "$1");
+    public static String getDeclaringTypeToMockFromInvocationString(String invocation) {
+        String declaringType = findInString(
+                "nestedInvocationDeclaringType='",
+                "',nestedInvocationMethod",
+                invocation);
+        return declaringType;
     }
 
     /**
@@ -134,19 +286,28 @@ public class MockGeneratorUtil {
      * @param invocation
      * @return method to mock
      */
-    public static String getMockedMethodWithParams(String invocation) {
-        return invocation.replaceAll(invocationRegex, "$2").replaceAll("^\\.", "");
+    public static String getMockedMethodWithParamsFromInvocationString(String invocation) {
+        String methodAndParams = findInString(
+                "nestedInvocationSignature='",
+                "'}",
+                invocation);
+        return methodAndParams;
     }
 
-    public static String getMockedMethodName(String methodAndParams) {
-        return methodAndParams.replaceAll("(.+)(\\(.*\\))", "$1");
+    public static String getMockedMethodName(String invocation) {
+        String methodName = findInString(
+                "nestedInvocationMethod='",
+                "',nestedInvocationParams",
+                invocation);
+        return methodName;
     }
 
-    public static List<String> getParametersOfMockedMethod(String methodAndParams) {
-        return List.of(methodAndParams.replaceAll("(.+)(\\(.*\\))", "$2")
-                .replace(")", "")
-                .replace("(", "")
-                .split(","));
+    public static List<String> getParametersOfMockedMethod(String invocation) {
+        String params = findInString(
+                "nestedInvocationParams='[",
+                "]',nestedInvocationSignature",
+                invocation);
+        return List.of(params.split(","));
     }
 
     public static CtExecutableReference<?> createArgumentMatcher(String name) throws ClassNotFoundException {
@@ -173,7 +334,7 @@ public class MockGeneratorUtil {
         return mockitoArgumentMatchers;
     }
 
-    public static boolean arePrimitive(List<String> paramOrReturnTypes) {
+    public static boolean arePrimitiveOrString(List<String> paramOrReturnTypes) {
         for (String paramOrReturnType : paramOrReturnTypes) {
             if (!primitives.contains(paramOrReturnType))
                 return false;
@@ -299,21 +460,26 @@ public class MockGeneratorUtil {
     }
 
     public static List<String> getReturnTypeFromInvocationMap(String nestedMethodMap) {
-        List<String> methodInvocations = List.of(nestedMethodMap.split(",[A-Z]+#"));
+        List<String> methodInvocations = List.of(nestedMethodMap.split(",\\{"));
         List<String> nestedReturnTypes = new ArrayList<>();
         for (String invocation : methodInvocations) {
-            nestedReturnTypes.add(invocation.replaceAll("(.+):(.+)=(.+)", "$2"));
+            String returnType = findInString(
+                    "nestedInvocationReturnType='",
+                    "',nestedInvocationTargetType",
+                    invocation);
+            nestedReturnTypes.add(returnType);
         }
         return nestedReturnTypes;
     }
 
-    public static Map<String, String> sanitizeNestedInvocationMap(List<String> nestedSanitizedInvocations,
-                                                                  List<String> nestedReturnType) {
-        Map<String, String> returnTypeInvocationMap = new HashMap<>();
-        for (int i = 0; i < nestedSanitizedInvocations.size(); i++) {
-            returnTypeInvocationMap.put(nestedSanitizedInvocations.get(i), nestedReturnType.get(i));
+    public static List<String> sanitizeNestedInvocationMap(String nestedMethodMap) {
+        List<String> methodInvocations = List.of(nestedMethodMap.split(",\\{"));
+        List<String> sanitizedInvocations = new ArrayList<>();
+        for (String invocation : methodInvocations) {
+            sanitizedInvocations.add(getDeclaringTypeToMockFromInvocationString(invocation) +
+                    "." + getMockedMethodWithParamsFromInvocationString(invocation));
         }
-        return returnTypeInvocationMap;
+        return sanitizedInvocations;
     }
 
     public static String getNestedParamsArgumentForInvocations(List<String> paramTypes) {

@@ -5,25 +5,21 @@ import re
 import sys
 
 def extract_from_nested_invocation_map(invocation_map):
-  nested_invocations = []
-  invocation_map_to_list = invocation_map.split(", ")
-  for invocation in invocation_map_to_list:
-    invocation = re.sub(r"(.+=)(.+)", r"\2", invocation)
-    nested_invocations.append(invocation.replace("}", "").replace("{", ""))
-  print("Found nested invocations", len(nested_invocations))
-  return nested_invocations
+  invocation_map_to_list = invocation_map.split("}, ")
+  print("Found nested invocations", len(invocation_map_to_list))
+  return invocation_map_to_list
 
 def get_class_name_from_invocation_string(invocation):
-  return re.sub(r"(.+)(\.[a-zA-Z0-9]+\(.+)", r"\1", invocation)
+  class_name = re.sub(r"(.+)(nestedInvocationDeclaringType=')(.+)(', nestedInvocationMethod.+)", r"\3", invocation)
+  return class_name
 
 def get_method_from_invocation_string(invocation):
-  method_and_args = re.sub(r"(.+)(\.[a-zA-Z0-9]+\(.+)", r"\2", invocation)
-  method_and_args = re.sub(r"^\.", "", method_and_args)
-  return re.sub(r"(.+)(\(.+)", r"\1", method_and_args)
+  method = re.sub(r"(.+nestedInvocationMethod=)('\w+')(.+)", r"\2", invocation).replace("'", "")
+  return method
 
 def get_parameters_from_invocation_string(invocation):
-  method_and_args = re.sub(r"(.+)(\.[a-zA-Z0-9]+\(.+)", r"\2", invocation)
-  return re.sub(r"(.+)(\(.+)", r"\2", method_and_args)
+  args = re.sub(r"(.+nestedInvocationParams='\[)(.*)(\].+)", r"\2", invocation).replace("\s", "")
+  return args
 
 def sanitize_parameter_list(param_list):
   parameters = param_list.replace("(", "").replace(")", "")

@@ -4,6 +4,7 @@ import se.kth.castor.pankti.generate.parsers.CSVFileParser;
 import se.kth.castor.pankti.generate.data.InstrumentedMethod;
 import se.kth.castor.pankti.generate.parsers.ObjectXMLParser;
 import se.kth.castor.pankti.generate.data.SerializedObject;
+import se.kth.castor.pankti.generate.util.TestGeneratorUtil;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.code.*;
@@ -23,6 +24,7 @@ public class TestGenerator {
     private static final String XSTREAM_CONSTRUCTOR = "new XStream()";
     private static final String XSTREAM_VARIABLE = "xStream";
     private static final String JUNIT_JUPITER_TEST_REFERENCE = "org.junit.jupiter.api.Test";
+    private static final String JUNIT_JUPITER_DISABLED_REFERENCE = "org.junit.jupiter.api.Disabled";
     private static final String JUNIT_BEFORE_REFERENCE = "org.junit.Before";
     private static final String JUNIT_ASSERT_REFERENCE = "org.junit.jupiter.api.Assertions";
     private static final String JAVA_UTIL_ARRAYS_REFERENCE = "java.util.Arrays";
@@ -32,6 +34,7 @@ public class TestGenerator {
     private static final String TEST_CLASS_PREFIX = "Test";
     private static final String TEST_CLASS_POSTFIX = "PanktiGen";
     private static int numberOfTestCasesGenerated;
+    private static int numberOfTestCasesWithMocksGenerated;
     private final String testFormat;
 
     private final TestGeneratorUtil testGenUtil = new TestGeneratorUtil();
@@ -444,6 +447,9 @@ public class TestGenerator {
         generatedMethod.setSimpleName("test" + method.getSimpleName().substring(0, 1).toUpperCase() + method.getSimpleName().substring(1) + postfix + methodCounter);
         CtAnnotation<?> testAnnotation = factory.createAnnotation(factory.createCtTypeReference(Class.forName(JUNIT_JUPITER_TEST_REFERENCE)));
         generatedMethod.addAnnotation(testAnnotation);
+        CtAnnotation<?> disabledAnnotation = factory.createAnnotation(factory.createCtTypeReference(
+                Class.forName(JUNIT_JUPITER_DISABLED_REFERENCE)));
+        generatedMethod.addAnnotation(disabledAnnotation);
         generatedMethod.setModifiers(Collections.singleton(ModifierKind.PUBLIC));
         generatedMethod.setType(factory.createCtTypeReference(void.class));
         generatedMethod.addThrownType(factory.createCtTypeReference(Exception.class));
@@ -494,8 +500,9 @@ public class TestGenerator {
                 mockGenerator.addAnnotationToGeneratedClass(generatedClass);
 
             // Add @Mock, @InjectMocks fields, generate tests that use mocks
-            List<CtMethod<?>> generatedTestsWithMocks = mockGenerator.generateMockInfrastructure(
+            Set<CtMethod<?>> generatedTestsWithMocks = mockGenerator.generateMockInfrastructure(
                     mockMethod, serializedObject, generatedClass, instrumentedMethod);
+            numberOfTestCasesWithMocksGenerated += generatedTestsWithMocks.size();
             for (CtMethod<?> generatedTestWithMock : generatedTestsWithMocks) {
                 generatedClass.addMethod(generatedTestWithMock);
             }
@@ -511,6 +518,7 @@ public class TestGenerator {
                         testForMethodSequence.getBody().insertEnd(statement);
                     }
                     generatedClass.addMethod(testForMethodSequence);
+                    numberOfTestCasesWithMocksGenerated++;
                     System.out.println("Generated 1 test to verify sequence of nested method calls within " + instrumentedMethod.getFullMethodPath());
                 }
             }
@@ -585,6 +593,10 @@ public class TestGenerator {
             }
         }
         return new AbstractMap.SimpleEntry<>(methodsByName.get(0), false);
+    }
+
+    public int getNumberOfTestCasesWithMocksGenerated() {
+        return numberOfTestCasesWithMocksGenerated;
     }
 
     public int process(CtModel ctModel, String methodCSVFilePath, String objectXMLDirectoryPath) {

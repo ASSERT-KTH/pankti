@@ -98,7 +98,7 @@ public class MethodUtilTest {
                 "#subPackage[name=org]#subPackage[name=jitsi]#subPackage[name=videobridge]#containedType[name=Conference]" +
                         "#method[signature=getDebugState(boolean,java.lang.String)]";
         CtMethod<?> method = findMethodByPath(methodPath);
-        assertEquals(0, MethodUtil.getNestedMethodInvocationMap(method).size(),
+        assertEquals(0, MethodUtil.getNestedMethodInvocationSet(method).size(),
                 String.format("%s has no nested method invocations that may be mocked",
                         method.getSignature()));
     }
@@ -125,11 +125,11 @@ public class MethodUtilTest {
                         "#method[signature=getTentacle()]";
         CtMethod<?> method1 = findMethodByPath(methodPath1);
         CtMethod<?> method2 = findMethodByPath(methodPath2);
-        assertEquals(0, MethodUtil.getNestedMethodInvocationMap(method1).size(),
+        assertEquals(0, MethodUtil.getNestedMethodInvocationSet(method1).size(),
                 String.format("%s has zero nested method invocations that may be mocked",
                         method1.getSignature()));
-        assertEquals(1, MethodUtil.getNestedMethodInvocationMap(method2).size(),
-                String.format("%s has one nested method invocation that may be mocked",
+        assertEquals(0, MethodUtil.getNestedMethodInvocationSet(method2).size(),
+                String.format("%s has zero nested method invocations that may be mocked",
                         method2.getSignature()));
     }
 
