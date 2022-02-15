@@ -9,7 +9,7 @@ public class PanktiGenLauncher {
         launcher.getEnvironment().setAutoImports(true);
         launcher.getEnvironment().disableConsistencyChecks();
         System.out.println("Skip checks: " + launcher.getEnvironment().checksAreSkipped());
-        launcher.getEnvironment().setCommentEnabled(false);
+        launcher.getEnvironment().setCommentEnabled(true);
         return launcher;
     }
 

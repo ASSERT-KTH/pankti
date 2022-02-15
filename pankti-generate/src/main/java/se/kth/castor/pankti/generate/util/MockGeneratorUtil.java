@@ -37,6 +37,18 @@ public class MockGeneratorUtil {
         return result;
     }
 
+    public static int findIndexOfStatementWithInvocationOnReceivingObject(CtMethod<?> testMethod) {
+        int index = -1;
+        List<CtStatement> statements = testMethod.getBody().getStatements();
+        for (int i = 0; i < statements.size(); i++) {
+            if (statements.get(i).toString().contains("receivingObject.")) {
+                index = i;
+                break;
+            }
+        }
+        return index;
+    }
+
     public static CtMethod<?> generateHelperMethodForMockFieldInjection(String helperMethodName,
                                                                         String mockFieldType,
                                                                         String mockFieldTypeSimple,

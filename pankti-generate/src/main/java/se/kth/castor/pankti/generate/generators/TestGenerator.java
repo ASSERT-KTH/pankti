@@ -4,6 +4,7 @@ import se.kth.castor.pankti.generate.parsers.CSVFileParser;
 import se.kth.castor.pankti.generate.data.InstrumentedMethod;
 import se.kth.castor.pankti.generate.parsers.ObjectXMLParser;
 import se.kth.castor.pankti.generate.data.SerializedObject;
+import se.kth.castor.pankti.generate.util.MockGeneratorUtil;
 import se.kth.castor.pankti.generate.util.TestGeneratorUtil;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
@@ -504,6 +505,10 @@ public class TestGenerator {
                     mockMethod, serializedObject, generatedClass, instrumentedMethod);
             numberOfTestCasesWithMocksGenerated += generatedTestsWithMocks.size();
             for (CtMethod<?> generatedTestWithMock : generatedTestsWithMocks) {
+                int indexWithCall = MockGeneratorUtil.findIndexOfStatementWithInvocationOnReceivingObject(generatedTestWithMock);
+                generatedTestWithMock.getBody().getStatement(indexWithCall).addComment(factory.createInlineComment("Act"));
+                generatedTestWithMock.getBody().getStatement(0).addComment(factory.createInlineComment("Arrange"));
+                generatedTestWithMock.getBody().getLastStatement().addComment(factory.createInlineComment("Assert"));
                 generatedClass.addMethod(generatedTestWithMock);
             }
 
@@ -514,6 +519,9 @@ public class TestGenerator {
                     CtMethod<?> testForMethodSequence = sequenceGenerator.cleanUpGeneratedMockMethod(testWithMock.clone());
                     testForMethodSequence.setSimpleName("testVerifyMethodSeq_" + instrumentedMethod.getMethodName());
                     List<CtStatement> verificationStatements = sequenceGenerator.verifyMethodCallSequence(serializedObject);
+                    if (!verificationStatements.isEmpty()) {
+                        verificationStatements.get(0).addComment(factory.createInlineComment("Assert"));
+                    }
                     for (CtStatement statement : verificationStatements) {
                         testForMethodSequence.getBody().insertEnd(statement);
                     }
