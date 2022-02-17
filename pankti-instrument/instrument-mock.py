@@ -118,7 +118,7 @@ def generate_aspects(df):
 #     if row['visibility'] == "public":
     if row['has-mockable-invocations']:
       count += 1
-      aspects.append(float(count))
+      aspects.append(str(count))
       new_file_path = base_path + str(count) + ".java"
       if (row['param-list'].startswith('[') and row['param-list'].endswith(']')):
         row['param-list'] = re.sub(r"^\[", "", row['param-list'])
@@ -129,9 +129,10 @@ def generate_aspects(df):
         for i in range(len(nested_invocations)):
           nested_count = i + 1
           new_file_path = base_path + str(count) + "Nested" + str(nested_count) + ".java"
-          aspects.append(float(str(count) + "." + str(nested_count)))
+          aspects.append(str(count) + "." + str(nested_count))
           generate_mock_aspect_class(mock_template_file_path, new_file_path, count, nested_count, nested_invocations[i])
   print("New aspect classes added in se.kth.castor.pankti.instrument.plugins")
+  print(aspects)
   return aspects
 
 # Update Glowroot plugin
@@ -143,9 +144,9 @@ def update_glowroot_plugin_json(aspects):
   has_existing_aspects = False
   last_existing_aspect = ""
   for i in range(len(aspects)):
-    whole = re.sub(r"(\d+)\.(\d+)", r"\1", str(aspects[i]))
-    frac = re.sub(r"(\d+)\.(\d+)", r"\2", str(aspects[i]))
-    if frac == '0':
+    whole = re.sub(r"(\d+)(\.*)(\d*)", r"\1", str(aspects[i]))
+    frac = re.sub(r"(\d+)(\.*)(\d*)", r"\3", str(aspects[i]))
+    if frac == '':
       aspect_lines += "    \"" + aspect_path + whole + "\""
     else:
       aspect_lines += "    \"" + aspect_path + whole + "Nested" + frac + "\""
