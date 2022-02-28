@@ -21,6 +21,20 @@ def get_parameters_from_invocation_string(invocation):
   args = re.sub(r"(.+nestedInvocationParams='\[)(.*)(\].+)", r"\2", invocation).replace("\s", "")
   return args
 
+def get_mode(invocation):
+  mode = re.sub(r"(.+nestedInvocationMode=)('\w+')(.+)", r"\2", invocation).replace("'", "")
+  return mode
+
+def instrument_java_lib(invocation):
+  lib_class_name = re.sub(r"(.+)(nestedInvocationDeclaringType=')(.+)(', nestedInvocationMethod.+)", r"\3", invocation)
+  to_instrument = "java.io" in lib_class_name or \
+                  "java.awt" in lib_class_name or \
+                  "java.math" in lib_class_name or \
+                  "java.util.List" in lib_class_name or \
+                  "java.util.Map" in lib_class_name or \
+                  "java.util.HashMap" in lib_class_name
+  return to_instrument
+
 def sanitize_parameter_list(param_list):
   parameters = param_list.replace("(", "").replace(")", "")
   parameters = re.sub(r"([a-zA-Z0-9\$\.\[\]]+)", "\"" + r"\1" + "\"", parameters)
@@ -29,7 +43,8 @@ def sanitize_parameter_list(param_list):
   return parameters
 
 # Generate aspect classes based on the MethodAspect0Nested0 template
-def generate_mock_aspect_class(template_file_path, new_file_path, count, nested_count, nested_invocation):
+def generate_mock_aspect_class(template_file_path, new_file_path, count, nested_count, nested_invocation,
+                               invocation_on_library_method):
   print("Generating aspect class", new_file_path)
   class_name = get_class_name_from_invocation_string(nested_invocation)
   method_name = get_method_from_invocation_string(nested_invocation)
@@ -56,7 +71,9 @@ def generate_mock_aspect_class(template_file_path, new_file_path, count, nested_
           line = re.sub(r"=\s\d+;", "= " + str(count) + "." + str(nested_count) + ";", line)
         if ("MethodAspect0.TargetMethodAdvice" in line):
           line = line.replace("MethodAspect0", "MethodAspect" + str(count))
-        f.write(line)        
+        if (invocation_on_library_method and "boolean invocationOnLibraryMethod" in line):
+          line = line.replace("false", "true")
+        f.write(line)
 
 # Generate aspect classes based on the MethodAspect0 template
 def generate_aspect_class(template_file_path, new_file_path, count, row, df):
@@ -127,12 +144,15 @@ def generate_aspects(df):
       if (row['has-mockable-invocations']):
         nested_invocations = extract_from_nested_invocation_map(row['nested-invocations'])
         for i in range(len(nested_invocations)):
-          nested_count = i + 1
-          new_file_path = base_path + str(count) + "Nested" + str(nested_count) + ".java"
-          aspects.append(str(count) + "." + str(nested_count))
-          generate_mock_aspect_class(mock_template_file_path, new_file_path, count, nested_count, nested_invocations[i])
+          invocation_on_library_method = get_mode(nested_invocations[i]) == 'LIBRARY'
+          if (not invocation_on_library_method or
+                  (invocation_on_library_method and instrument_java_lib(nested_invocations[i]))):
+            nested_count = i + 1
+            new_file_path = base_path + str(count) + "Nested" + str(nested_count) + ".java"
+            aspects.append(str(count) + "." + str(nested_count))
+            generate_mock_aspect_class(mock_template_file_path, new_file_path, count, nested_count, nested_invocations[i],
+                                       invocation_on_library_method)
   print("New aspect classes added in se.kth.castor.pankti.instrument.plugins")
-  print(aspects)
   return aspects
 
 # Update Glowroot plugin

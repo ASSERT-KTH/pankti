@@ -9,6 +9,7 @@ import spoon.reflect.code.*;
 import spoon.reflect.declaration.CtAnnotation;
 import spoon.reflect.declaration.CtClass;
 import spoon.reflect.declaration.CtMethod;
+import spoon.reflect.declaration.ModifierKind;
 import spoon.reflect.factory.Factory;
 import spoon.reflect.reference.CtExecutableReference;
 
@@ -18,6 +19,7 @@ public class MockGenerator {
     static Factory factory;
     static int counter;
     private static final String JUNIT_EXTEND_WITH_REFERENCE = "org.junit.jupiter.api.extension.ExtendWith";
+    private static final String JUNIT_JUPITER_TEST_REFERENCE = "org.junit.jupiter.api.Test";
     private static final String MOCKITO_EXTENSION_REFERENCE = "org.mockito.junit.jupiter.MockitoExtension";
     private static final String JUNIT_JUPITER_DISABLED_REFERENCE = "org.junit.jupiter.api.Disabled";
     private static final String MOCKITO_REFERENCE = "org.mockito.Mockito";
@@ -79,7 +81,7 @@ public class MockGenerator {
 
     private CtStatementList prepareWhenThenInvocation(NestedInvocation nestedInvocation,
                                                       SerializedObject nestedSerializedObject,
-                                                      String mockVariableTypeSimple,
+                                                      String mockVariableName,
                                                       List<String> paramTypes,
                                                       String nestedParams) throws ClassNotFoundException {
         // For non-void methods, get serialized nested returned value and generate stub
@@ -87,8 +89,9 @@ public class MockGenerator {
         if (!nestedInvocation.getInvocationReturnType().equals("void")) {
             String nestedReturned = MockGeneratorUtil.extractReturnedValueOfNestedInvocation(
                     nestedSerializedObject, nestedInvocation.getInvocationReturnType());
-            mockitoWhenThenInvocation = createMockitoWhenThenInvocation(
-                    nestedInvocation.getInvocation(), mockVariableTypeSimple, paramTypes, nestedParams, nestedInvocation.getInvocationReturnType(), nestedReturned);
+            mockitoWhenThenInvocation = createMockitoWhenThenInvocation(nestedInvocation.getInvocation(),
+                    mockVariableName, paramTypes, nestedParams,
+                    nestedInvocation.getInvocationReturnType(), nestedReturned);
         }
         return mockitoWhenThenInvocation;
     }
@@ -98,28 +101,32 @@ public class MockGenerator {
                                                              String mockVariableTypeSimple,
                                                              String mockVariableName,
                                                              CtMethod<?> updatedBaseMethod,
-                                                             String targetFieldName) throws ClassNotFoundException {
+                                                             String targetFieldName,
+                                                             String targetMethodName,
+                                                             String parentUUID) throws ClassNotFoundException {
         List<String> paramTypes = getParamTypes(nestedInvocation);
         String nestedParams = "";
-        if (nestedSerializedObject != null) {
+        if (nestedSerializedObject != null | !nestedInvocation.getInvocationMode().equals("LIBRARY")) {
             nestedParams = prepareNestedParams(paramTypes, nestedSerializedObject);
         }
         CtStatementList mockitoWhenThenInvocation = null;
-        if (nestedSerializedObject != null) {
+        if (nestedSerializedObject != null | !nestedInvocation.getInvocationMode().equals("LIBRARY")) {
             mockitoWhenThenInvocation = prepareWhenThenInvocation(nestedInvocation,
-                    nestedSerializedObject, mockVariableTypeSimple, paramTypes, nestedParams);
+                    nestedSerializedObject, mockVariableName, paramTypes, nestedParams);
         }
-        CtInvocation mockitoVerifyInvocation = createMockitoVerifyInvocation(nestedInvocation.getInvocation(),
+        CtInvocation mockitoVerifyInvocation = createMockitoVerifyInvocation(nestedInvocation,
                 mockVariableName, paramTypes, nestedParams, nestedSerializedObject);
         String mockedMethodNameAndParams = MethodInvocationUtil.getMethodWithParamsFromInvocationFQN(nestedInvocation.getInvocation());
         String mockedMethodName = MethodInvocationUtil.getMethodName(mockedMethodNameAndParams);
         CtMethod<?> testWithMock =
                 generateTestWithMock(updatedBaseMethod.clone(),
+                        targetMethodName,
                         mockedMethodName,
                         mockitoVerifyInvocation,
                         mockitoWhenThenInvocation,
-                        nestedSerializedObject == null ? "" : nestedSerializedObject.getUUID(),
-                        targetFieldName);
+                        parentUUID,
+                        targetFieldName,
+                        nestedInvocation.getInvocationMode());
         return testWithMock;
     }
 
@@ -128,7 +135,6 @@ public class MockGenerator {
                                                       NestedInvocation nestedInvocation,
                                                       CtMethod<?> baseMethod,
                                                       CtClass<?> generatedTestClass,
-                                                      String mockVariableName,
                                                       String mockVariableTypeFQN,
                                                       String mockVariableTypeSimple,
                                                       SerializedObject nestedSerializedObject) throws ClassNotFoundException {
@@ -145,14 +151,16 @@ public class MockGenerator {
         for (Map.Entry<String, String> entry : fieldVisibilityMap.entrySet()) {
             String targetFieldName = nestedInvocation.getTargetFieldName(entry);
             boolean targetFieldIsPrivate = nestedInvocation.isTargetFieldPrivate(entry);
-
+//            String mockVariableName = "mock" + (targetFieldIsPrivate ? "Private" : "") + mockVariableTypeSimple;
+            String mockVariableName = "mock" + mockVariableTypeSimple;
             // See processPage in PDFTextStripper extends LegacyPDFStreamEngine with private pageSize
             if (receivingObjectType.equals(targetMethodType) || !targetFieldIsPrivate) {
 
                 // Clean up base method, remove non-required statements
                 updatedBaseMethod = MockGeneratorUtil.cleanUpBaseMethodCloneForMocking(baseMethod,
                         MockGeneratorUtil.arePrimitiveOrString(List.of(targetMethod.getReturnType())),
-                        targetMethod.getReturnType().equals("void"));
+                        targetMethod.getReturnType().equals("void"),
+                        nestedInvocation.getInvocationMode().equals("LIBRARY"));
 
                 if (nestedInvocation.isTargetFieldPrivate(entry)) {
                     helperMethodName = String.format("insertPrivateMockField%sIn%s",
@@ -187,7 +195,8 @@ public class MockGenerator {
 
                 CtMethod<?> testWithMock = getEverythingTogetherAndGenerateTest(nestedInvocation,
                         nestedSerializedObject, mockVariableTypeSimple, mockVariableName,
-                        updatedBaseMethod, targetFieldName);
+                        updatedBaseMethod, targetFieldName, targetMethod.getMethodName(),
+                        serializedObject.getUUID());
 
                 generatedTestsWithMocks.add(testWithMock);
             } else {
@@ -202,9 +211,10 @@ public class MockGenerator {
                                                     CtMethod<?> baseMethod,
                                                     String mockVariableTypeSimple,
                                                     String mockVariableTypeFQN,
-                                                    String mockVariableName,
                                                     NestedInvocation nestedInvocation,
-                                                    SerializedObject nestedSerializedObject) throws ClassNotFoundException {
+                                                    SerializedObject nestedSerializedObject,
+                                                    SerializedObject serializedObject) throws ClassNotFoundException {
+        String mockVariableName = "mock" + mockVariableTypeSimple;
         CtMethod<?> updatedBaseMethod;
         boolean targetReturnsNonPrimitiveOrVoid = !MockGeneratorUtil.arePrimitiveOrString(
                 List.of(targetMethod.getReturnType())) ||
@@ -213,7 +223,8 @@ public class MockGenerator {
         // Clean up base method, remove non-required statements
         updatedBaseMethod = MockGeneratorUtil.cleanUpBaseMethodCloneForMocking(baseMethod,
                 MockGeneratorUtil.arePrimitiveOrString(List.of(targetMethod.getReturnType())),
-                targetMethod.getReturnType().equals("void"));
+                targetMethod.getReturnType().equals("void"),
+                nestedInvocation.getInvocationMode().equals("LIBRARY"));
 
         updatedBaseMethod.getBody().getLastStatement().insertBefore(
                 MockGeneratorUtil.generateLocalVariableForMockParameter(mockVariableTypeSimple));
@@ -224,7 +235,8 @@ public class MockGenerator {
 
         CtMethod<?> testWithMock = getEverythingTogetherAndGenerateTest(nestedInvocation,
                 nestedSerializedObject, mockVariableTypeSimple, mockVariableName,
-                updatedBaseMethod, "");
+                updatedBaseMethod, "", targetMethod.getMethodName(),
+                serializedObject.getUUID());
 
         return testWithMock;
     }
@@ -242,73 +254,90 @@ public class MockGenerator {
                                                        SerializedObject serializedObject,
                                                        CtClass<?> generatedTestClass,
                                                        InstrumentedMethod targetMethod) throws ClassNotFoundException {
-        String nestedMethodMap = targetMethod.getNestedMethodMap();
-        List<String> sanitizedInvocations = MockGeneratorUtil.sanitizeNestedInvocationMap(nestedMethodMap);
-        List<String> nestedReturnTypes = MockGeneratorUtil.getReturnTypeFromInvocationMap(nestedMethodMap);
-        List<String> invocationTargetTypes = MockGeneratorUtil.getNestedInvocationTargetTypesFromNestedMethodMap(nestedMethodMap);
-        List<Map<String, String>> fieldVisibilityMaps = MockGeneratorUtil.getNestedInvocationTargetFieldVisibilityMap(invocationTargetTypes, nestedMethodMap);
-
-        assert (sanitizedInvocations.size() == nestedReturnTypes.size() &
-                nestedReturnTypes.size() == invocationTargetTypes.size() &
-                invocationTargetTypes.size() == fieldVisibilityMaps.size());
-
-        List<NestedInvocation> nestedInvocations = new ArrayList<>();
-        for (int i = 0; i < sanitizedInvocations.size(); i++) {
-            nestedInvocations.add(new NestedInvocation(
-                    sanitizedInvocations.get(i), nestedReturnTypes.get(i),
-                    invocationTargetTypes.get(i), fieldVisibilityMaps.get(i)));
-        }
+        List<NestedInvocation> nestedInvocations = targetMethod.getNestedInvocations();
 
         Set<CtMethod<?>> generatedTestsWithMocks = new LinkedHashSet<>();
 
         for (NestedInvocation nestedInvocation : nestedInvocations) {
             String mockVariableTypeFQN = MethodInvocationUtil.getDeclaringTypeFromInvocationFQN(nestedInvocation.getInvocation());
             String mockVariableTypeSimple = MethodInvocationUtil.getDeclaringTypeSimpleNameFromFQN(mockVariableTypeFQN);
-            String mockVariableName = "mock" + mockVariableTypeSimple;
 
-            // Use the generated mock field in a generated test that uses mocks
-            for (SerializedObject nestedSerializedObject : serializedObject.getNestedSerializedObjects()) {
-                if (nestedSerializedObject.getInvocationFQN().equals(nestedInvocation.getInvocation())) {
-                    System.out.println("Generating test with mock for " + nestedInvocation);
+            if (nestedInvocation.getInvocationMode().equals("DOMAIN")) {
+                // Use the generated mock field in a generated test that uses mocks
+                for (SerializedObject nestedSerializedObject : serializedObject.getNestedSerializedObjects()) {
+                    if (nestedSerializedObject.getInvocationFQN().equals(nestedInvocation.getInvocation())) {
+                        System.out.println("Generating test with mock for " + nestedInvocation);
 
-                    if (nestedInvocation.getInvocationTargetType().equals("FIELD")) {
-                        nestedInvocation.setHasCorrespondingSerializedObject();;
-                        generatedTestsWithMocks.addAll(handleInvocationOnFields(
-                                serializedObject, targetMethod, nestedInvocation, baseMethod,
-                                generatedTestClass, mockVariableName, mockVariableTypeFQN,
-                                mockVariableTypeSimple, nestedSerializedObject));
-                    } else if (nestedInvocation.getInvocationTargetType().equals("PARAMETER")) {
-                        nestedInvocation.setHasCorrespondingSerializedObject();
-                        generatedTestsWithMocks.add(handleInvocationOnParameter(targetMethod,
-                                baseMethod, mockVariableTypeSimple, mockVariableTypeFQN,
-                                mockVariableName, nestedInvocation,
-                                nestedSerializedObject));
+                        if (nestedInvocation.getInvocationTargetType().equals("FIELD")) {
+                            nestedInvocation.setHasCorrespondingSerializedObject();
+                            generatedTestsWithMocks.addAll(handleInvocationOnFields(
+                                    serializedObject, targetMethod, nestedInvocation, baseMethod,
+                                    generatedTestClass, mockVariableTypeFQN,
+                                    mockVariableTypeSimple, nestedSerializedObject));
+                        } else if (nestedInvocation.getInvocationTargetType().equals("PARAMETER")) {
+                            nestedInvocation.setHasCorrespondingSerializedObject();
+                            generatedTestsWithMocks.add(handleInvocationOnParameter(targetMethod,
+                                    baseMethod, mockVariableTypeSimple, mockVariableTypeFQN,
+                                    nestedInvocation, nestedSerializedObject, serializedObject));
+                        }
                     }
                 }
-            }
-            // If there is no object profile corresponding to this nested invocation
-            if (!nestedInvocation.hasCorrespondingSerializedObject()) {
-                System.out.println("No nested invocations found, will generate Mockito.never()");
+            } else {
+                // If this nested invocation is made on a LIBRARY method
+                System.out.println("INVOCATION MADE ON LIBRARY METHOD");
                 if (nestedInvocation.getInvocationTargetType().equals("FIELD")) {
                     generatedTestsWithMocks.addAll(handleInvocationOnFields(serializedObject, targetMethod,
-                            nestedInvocation, baseMethod, generatedTestClass,
-                            mockVariableName, mockVariableTypeFQN,
+                            nestedInvocation, baseMethod, generatedTestClass, mockVariableTypeFQN,
                             mockVariableTypeSimple, null));
                 } else if (nestedInvocation.getInvocationTargetType().equals("PARAMETER")) {
                     generatedTestsWithMocks.add(handleInvocationOnParameter(targetMethod,
                             baseMethod, mockVariableTypeSimple, mockVariableTypeFQN,
-                            mockVariableName, nestedInvocation,
-                            null));
+                            nestedInvocation, null, serializedObject));
                 }
             }
         }
 
-        System.out.println("Generated " + generatedTestsWithMocks.size() + " test(s) with mocks");
         return generatedTestsWithMocks;
     }
 
+    public Set<CtMethod<?>> generateTestsWithStubsAndAssertions(Set<CtMethod<?>> generatedTestsWithMocks) throws ClassNotFoundException {
+        Set<CtMethod<?>> testsWithStubsAndAssertions = new LinkedHashSet<>();
+        for (CtMethod<?> testWithMock : generatedTestsWithMocks) {
+            List<CtStatement> statements = testWithMock.getBody().getStatements();
+            for (CtStatement statement : statements) {
+                if (statement.toString().contains("Assertions.assert")) {
+                    testsWithStubsAndAssertions.add(
+                            removeVerificationAndGenerateTest(testWithMock));
+                    break;
+                }
+            }
+        }
+        return testsWithStubsAndAssertions;
+    }
+
+    public CtMethod<?> removeVerificationAndGenerateTest(CtMethod<?> generatedTest) throws ClassNotFoundException {
+        List<CtStatement> statementsToRetain = new ArrayList<>();
+        List<CtStatement> statements = generatedTest.getBody().getStatements();
+        CtBlock<?> methodBody = factory.createBlock();
+        CtMethod<?> newMethod = factory.createMethod();
+        newMethod.setSimpleName(generatedTest.getSimpleName() + "_noVerify");
+        newMethod.setVisibility(ModifierKind.PUBLIC);
+        newMethod.setType(factory.createCtTypeReference(void.class));
+        newMethod.addThrownType(factory.createCtTypeReference(Exception.class));
+        CtAnnotation<?> testAnnotation = factory.createAnnotation(
+                factory.createCtTypeReference(Class.forName(JUNIT_JUPITER_TEST_REFERENCE)));
+        newMethod.addAnnotation(testAnnotation);
+        for (CtStatement statement : statements) {
+            if (!statement.toString().contains("Mockito.verify"))
+                statementsToRetain.add(statement);
+        }
+        statementsToRetain.forEach(methodBody::addStatement);
+        newMethod.setBody(methodBody);
+        return newMethod;
+    }
+
     private CtStatementList createMockitoWhenThenInvocation(String invocation,
-                                                            String mockVariableSimpleName,
+                                                            String mockVariableName,
                                                             List<String> paramTypes,
                                                             String nestedParams,
                                                             String returnType,
@@ -356,7 +385,7 @@ public class MockGenerator {
         // Mockito.when(mockField.mockedMethod(param1, param2))
         mockitoWhenInvocation.setArguments(List.of(factory.createCodeSnippetExpression(
                 String.format("%s.%s(%s)",
-                        "mock" + mockVariableSimpleName,
+                        mockVariableName,
                         MethodInvocationUtil.getMethodName(mockedMethodWithParams),
                         nestedParams))));
 
@@ -376,7 +405,7 @@ public class MockGenerator {
         return whenThenStatements;
     }
 
-    private CtInvocation createMockitoVerifyInvocation(String invocation,
+    private CtInvocation createMockitoVerifyInvocation(NestedInvocation nestedInvocation,
                                                        String mockVariableName,
                                                        List<String> paramTypes,
                                                        String nestedParams,
@@ -393,22 +422,17 @@ public class MockGenerator {
         CtInvocation mockitoVerifyInvocation = factory.createInvocation();
         mockitoVerifyInvocation.setExecutable(executableReferenceForMockitoVerify);
         mockitoVerifyInvocation.setTarget(factory.createTypeAccess(factory.createCtTypeReference(Class.forName(MOCKITO_REFERENCE))));
-        if (nestedSerializedObject != null) {
-            CtExpression<?> mockitoAtLeastOnceExpression = factory.createCodeSnippetExpression("Mockito.atLeastOnce()");
-            mockitoVerifyInvocation.setArguments(Arrays.asList(mockedFieldExpression, mockitoAtLeastOnceExpression));
-        } else {
-            CtExpression<?> mockitoNeverExpression = factory.createCodeSnippetExpression("Mockito.never()");
-            mockitoVerifyInvocation.setArguments(Arrays.asList(mockedFieldExpression, mockitoNeverExpression));
-        }
+        CtExpression<?> mockitoAtLeastOnceExpression = factory.createCodeSnippetExpression("Mockito.atLeastOnce()");
+        mockitoVerifyInvocation.setArguments(Arrays.asList(mockedFieldExpression, mockitoAtLeastOnceExpression));
 
         // Mockito.verify(mockedObject, Mockito.atLeastOnce()).mockedMethod(param1, param2, ...)
-        String mockedMethodWithParams = MethodInvocationUtil.getMethodWithParamsFromInvocationFQN(invocation);
+        String mockedMethodWithParams = MethodInvocationUtil.getMethodWithParamsFromInvocationFQN(nestedInvocation.getInvocation());
         CtExecutableReference<?> executableReferenceForMockedMethod = factory.createExecutableReference();
         executableReferenceForMockedMethod.setSimpleName(MethodInvocationUtil.getMethodName(mockedMethodWithParams));
         CtInvocation mockedMethodInvocation = factory.createInvocation();
         mockedMethodInvocation.setExecutable(executableReferenceForMockedMethod);
         mockedMethodInvocation.setTarget(mockitoVerifyInvocation);
-        if (nestedSerializedObject != null) {
+        if (nestedSerializedObject != null | !nestedInvocation.getInvocationMode().equals("LIBRARY")) {
             mockedMethodInvocation.setArguments(List.of(factory.createCodeSnippetExpression(nestedParams)));
         } else {
             List<CtExecutableReference<?>> paramExecutables =
@@ -420,17 +444,21 @@ public class MockGenerator {
     }
 
     private CtMethod<?> generateTestWithMock(CtMethod<?> testWithMock,
+                                             String targetMethodName,
                                              String mockedMethodName,
                                              CtInvocation<?> mockitoVerifyInvocation,
                                              CtStatementList mockitoWhenThenInvocation,
-                                             String uuid, String targetFieldName) throws ClassNotFoundException {
+                                             String uuid, String targetFieldName,
+                                             String invocationMode) throws ClassNotFoundException {
         // when(mockedObject.mockedMethod(<params>)).thenReturn(<returned-object>);
         // assertEquals(<returned-object>, receivingObject.targetMethod(<params>));
         // verify(mockedObject).mockedMethod
-        testWithMock.setSimpleName("testWithMock" + mockedMethodName.substring(0, 1).toUpperCase() +
-                mockedMethodName.substring(1) +
+        testWithMock.setSimpleName("test" +
+                targetMethodName.substring(0, 1).toUpperCase() + targetMethodName.substring(1) +
+                "WithMock" + mockedMethodName.substring(0, 1).toUpperCase() + mockedMethodName.substring(1) +
                 (uuid.isEmpty() ? ++counter : "_" + uuid.replace("-", "")) +
-                (!targetFieldName.isEmpty() ? "_" + targetFieldName : ""));
+                (!targetFieldName.isEmpty() ? "_" + targetFieldName : "") +
+                "_" + invocationMode);
         if (mockitoWhenThenInvocation != null) {
             testWithMock.getBody().getLastStatement().insertBefore(mockitoWhenThenInvocation);
         }

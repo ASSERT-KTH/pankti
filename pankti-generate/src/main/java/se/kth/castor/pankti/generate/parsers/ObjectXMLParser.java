@@ -6,8 +6,10 @@ import org.w3c.dom.NodeList;
 import org.w3c.dom.ls.DOMImplementationLS;
 import org.w3c.dom.ls.LSSerializer;
 import se.kth.castor.pankti.generate.data.InstrumentedMethod;
+import se.kth.castor.pankti.generate.data.NestedInvocation;
 import se.kth.castor.pankti.generate.data.ObjectProfileElement;
 import se.kth.castor.pankti.generate.data.SerializedObject;
+import se.kth.castor.pankti.generate.util.MethodInvocationUtil;
 import se.kth.castor.pankti.generate.util.MockGeneratorUtil;
 import se.kth.castor.pankti.generate.util.TestGeneratorUtil;
 
@@ -17,6 +19,7 @@ import java.io.*;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ObjectXMLParser {
     Set<SerializedObject> serializedObjects = new HashSet<>();
@@ -103,7 +106,8 @@ public class ObjectXMLParser {
     }
 
     // Create object profiles from object xml files
-    public Set<SerializedObject> parseXML(String directory, String methodPath, InstrumentedMethod instrumentedMethod) {
+    public Set<SerializedObject> parseXML(String directory, String methodPath, InstrumentedMethod instrumentedMethod,
+                                          boolean generateMocks) {
         final String basePath = directory + methodPath;
         String postfix = "";
         TestGeneratorUtil util = new TestGeneratorUtil();
@@ -151,52 +155,83 @@ public class ObjectXMLParser {
             List<SerializedObject> nestedSerializedObjects = new ArrayList<>();
 
             // Get objects from nested-xxx-params.xml and nested-xxx-returned.xml
-            if (instrumentedMethod.hasMockableInvocations()) {
-                List<String> nestedInvocations = MockGeneratorUtil.getListOfInvocationsFromNestedMethodMap(instrumentedMethod.getNestedMethodMap());
+            // Get nested xml if --rick
+            if (generateMocks & instrumentedMethod.hasMockableInvocations()) {
+                List<NestedInvocation> nestedInvocations = instrumentedMethod.getNestedInvocations();
                 System.out.println("List of nested invocations to mock: " + nestedInvocations);
-                List<String> nestedParamObjects = new ArrayList<>();
-                List<String> nestedUuids = new ArrayList<>();
-                List<String> nestedReturnedObjects = new ArrayList<>();
-                List<Instant> nestedTimestamps = new ArrayList<>();
-                List<String> nestedInvocationFQNs = new ArrayList<>();
-                for (String invocation : nestedInvocations) {
-                    String declaringType = MockGeneratorUtil.getDeclaringTypeToMockFromInvocationString(invocation);
-                    String methodName = MockGeneratorUtil.getMockedMethodName(invocation);
-                    List<String> params = MockGeneratorUtil.getParametersOfMockedMethod(invocation);
-                    String mockedMethodWithParams = MockGeneratorUtil.getMockedMethodWithParamsFromInvocationString(invocation);
+                for (NestedInvocation nestedInvocation : nestedInvocations) {
+                    String declaringType = MethodInvocationUtil.getDeclaringTypeFromInvocationFQN(nestedInvocation.getInvocation());
+                    String mockedMethodWithParams = MethodInvocationUtil.getMethodWithParamsFromInvocationFQN(nestedInvocation.getInvocation());
+                    String methodName = MethodInvocationUtil.getMethodName(mockedMethodWithParams);
+                    List<String> params = MethodInvocationUtil.getMethodParams(mockedMethodWithParams);
                     String nestedInvocationPostfix = util.getParamListPostFix(params);
-                    String filePathNestedParams = directory + nestedInvocationObjectFilePrefix + declaringType + "." + methodName +
-                            nestedInvocationPostfix + paramObjectsFilePostfix;
-                    List<ObjectProfileElement> nestedParamElements = parseXMLInFile(new File(filePathNestedParams));
-                    for (ObjectProfileElement nestedParamElement : nestedParamElements) {
-                        if (parentUUIDs.contains(nestedParamElement.getUuid())) {
-                            nestedParamObjects.add(nestedParamElement.getRawXML());
-                            nestedTimestamps.add(nestedParamElement.getTimestamp());
-                            nestedInvocationFQNs.add(declaringType + "." + mockedMethodWithParams);
-                        }
-                    }
-                    String filePathNestedReturned = directory + nestedInvocationObjectFilePrefix + declaringType + "." + methodName +
-                            nestedInvocationPostfix + returnedObjectFilePostfix;
-                    List<ObjectProfileElement> nestedReturnedElements = parseXMLInFile(new File(filePathNestedReturned));
-                    for (ObjectProfileElement nestedReturnedElement : nestedReturnedElements) {
-                        if (parentUUIDs.contains(nestedReturnedElement.getUuid())) {
-                            nestedUuids.add(nestedReturnedElement.getUuid());
-                            nestedReturnedObjects.add(nestedReturnedElement.getRawXML());
-                        }
-                    }
-                }
 
-                for (int i = 0; i < nestedParamObjects.size(); i++) {
-                    nestedSerializedObjects.add(new SerializedObject(
-                            null,
-                            nestedReturnedObjects.get(i),
-                            null,
-                            nestedParamObjects.get(i),
-                            nestedUuids.get(i),
-                            null,
-                            nestedTimestamps.get(i),
-                            nestedInvocationFQNs.get(i)
-                    ));
+                    if (nestedInvocation.getInvocationMode().equals("LIBRARY")) {
+                        List<String> nestedUuids = new ArrayList<>();
+                        List<Instant> nestedTimestamps = new ArrayList<>();
+                        List<String> nestedInvocationFQNs = new ArrayList<>();
+                        System.out.println("INVOCATION MADE ON LIBRARY");
+                        String filePathNestedLibraryInvocations = directory + nestedInvocationObjectFilePrefix + declaringType + "." + methodName +
+                                nestedInvocationPostfix + ".xml";
+                        System.out.println(filePathNestedLibraryInvocations);
+                        List<ObjectProfileElement> nestedLibraryInvocations = parseXMLInFile(new File(filePathNestedLibraryInvocations));
+                        for (ObjectProfileElement nestedLibraryInvocation : nestedLibraryInvocations) {
+                            if (parentUUIDs.contains(nestedLibraryInvocation.getUuid())) {
+                                nestedUuids.add(nestedLibraryInvocation.getUuid());
+                                nestedTimestamps.add(nestedLibraryInvocation.getTimestamp());
+                                nestedInvocationFQNs.add(declaringType + "." + mockedMethodWithParams);
+                            }
+                        }
+                        for (int i = 0; i < nestedUuids.size(); i++) {
+                            nestedSerializedObjects.add(new SerializedObject(
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    nestedUuids.get(i),
+                                    null,
+                                    nestedTimestamps.get(i),
+                                    nestedInvocationFQNs.get(i)
+                            ));
+                        }
+                    } else {
+                        List<String> nestedParamObjects = new ArrayList<>();
+                        List<String> nestedUuids = new ArrayList<>();
+                        List<String> nestedReturnedObjects = new ArrayList<>();
+                        List<Instant> nestedTimestamps = new ArrayList<>();
+                        List<String> nestedInvocationFQNs = new ArrayList<>();
+                        String filePathNestedParams = directory + nestedInvocationObjectFilePrefix + declaringType + "." + methodName +
+                                nestedInvocationPostfix + paramObjectsFilePostfix;
+                        List<ObjectProfileElement> nestedParamElements = parseXMLInFile(new File(filePathNestedParams));
+                        for (ObjectProfileElement nestedParamElement : nestedParamElements) {
+                            if (parentUUIDs.contains(nestedParamElement.getUuid())) {
+                                nestedParamObjects.add(nestedParamElement.getRawXML());
+                                nestedTimestamps.add(nestedParamElement.getTimestamp());
+                                nestedInvocationFQNs.add(declaringType + "." + mockedMethodWithParams);
+                            }
+                        }
+                        String filePathNestedReturned = directory + nestedInvocationObjectFilePrefix + declaringType + "." + methodName +
+                                nestedInvocationPostfix + returnedObjectFilePostfix;
+                        List<ObjectProfileElement> nestedReturnedElements = parseXMLInFile(new File(filePathNestedReturned));
+                        for (ObjectProfileElement nestedReturnedElement : nestedReturnedElements) {
+                            if (parentUUIDs.contains(nestedReturnedElement.getUuid())) {
+                                nestedUuids.add(nestedReturnedElement.getUuid());
+                                nestedReturnedObjects.add(nestedReturnedElement.getRawXML());
+                            }
+                        }
+                        for (int i = 0; i < nestedParamObjects.size(); i++) {
+                            nestedSerializedObjects.add(new SerializedObject(
+                                    null,
+                                    nestedReturnedObjects.get(i),
+                                    null,
+                                    nestedParamObjects.get(i),
+                                    nestedUuids.get(i),
+                                    null,
+                                    nestedTimestamps.get(i),
+                                    nestedInvocationFQNs.get(i)
+                            ));
+                        }
+                    }
                 }
 
                 System.out.println("Nested serialized objects: " + nestedSerializedObjects.size());
@@ -215,6 +250,7 @@ public class ObjectXMLParser {
                             params,
                             parentUUIDs.get(i),
                             nestedSerializedObjects.stream()
+                                    .filter(Objects::nonNull)
                                     .filter(nestedSerializedObject -> nestedSerializedObject.getUUID().equals(parentUUIDs.get(finalI)))
                                     .collect(Collectors.toList()),
                             null,

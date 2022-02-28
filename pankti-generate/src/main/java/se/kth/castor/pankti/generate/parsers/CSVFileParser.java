@@ -32,7 +32,9 @@ public class CSVFileParser {
                 String visibility = record.get(csvVisibilityField);
                 boolean hasMockableInvocations = record.get(csvMockableInvocationsField)
                         .equalsIgnoreCase("true");
-                String nestedMethodMap = record.get(csvNestedMethodInvocationsField);
+                String nestedMethodMap = "";
+                if (hasMockableInvocations)
+                    nestedMethodMap = record.get(csvNestedMethodInvocationsField);
 
                 List<String> paramList = new ArrayList<>();
                 if (!params.isEmpty()) {

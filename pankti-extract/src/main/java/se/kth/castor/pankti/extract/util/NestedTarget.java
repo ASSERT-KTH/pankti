@@ -7,6 +7,11 @@ enum TargetType {
     PARAMETER
 }
 
+enum InvocationMode {
+    LIBRARY,
+    DOMAIN
+}
+
 public class NestedTarget {
     String nestedInvocationReturnType;
     TargetType nestedInvocationTargetType;
@@ -15,6 +20,7 @@ public class NestedTarget {
     String nestedInvocationMethod;
     String nestedInvocationParams;
     String nestedInvocationSignature;
+    InvocationMode mode;
 
     public NestedTarget(String nestedInvocationReturnType,
                         TargetType nestedInvocationTargetType,
@@ -30,6 +36,7 @@ public class NestedTarget {
         this.nestedInvocationMethod = nestedInvocationMethod;
         this.nestedInvocationParams = nestedInvocationParams;
         this.nestedInvocationSignature = nestedInvocationSignature;
+        this.mode = (nestedInvocationDeclaringType.contains("java")) ? InvocationMode.LIBRARY : InvocationMode.DOMAIN;
     }
 
     @Override
@@ -48,7 +55,8 @@ public class NestedTarget {
     @Override
     public String toString() {
         return "{" +
-                "nestedInvocationReturnType='" + nestedInvocationReturnType + '\'' +
+                "nestedInvocationMode='" + mode + '\'' +
+                ", nestedInvocationReturnType='" + nestedInvocationReturnType + '\'' +
                 ", nestedInvocationTargetType=" + nestedInvocationTargetType +
                 ", nestedInvocationFieldName='" + nestedInvocationFieldName + '\'' +
                 ", nestedInvocationDeclaringType='" + nestedInvocationDeclaringType + '\'' +

@@ -164,6 +164,12 @@ public class MethodUtil {
         return executableDeclaringType.getQualifiedName().contains("java");
     }
 
+    private static boolean isExecutableUnmockable(CtExecutableReference<?> executable) {
+        return (executable.getSimpleName().equals("equals") ||
+                executable.getSimpleName().equals("hashCode"));
+
+    }
+
     private static boolean isMethodDeclaringTypeSameAsExecutableDeclaringType(final CtType<?> methodDeclaringType,
                                                                               final CtTypeReference<?> executableDeclaringType) {
         return methodDeclaringType.getQualifiedName().equals(executableDeclaringType.getQualifiedName());
@@ -201,7 +207,7 @@ public class MethodUtil {
                             !parameterFQN.equals(method.getDeclaringType().getQualifiedName())) {
                         CtExecutableReference<?> executable = getExecutable(invocation);
                         if (executable.getType() != null) {
-                            if (!isExecutableDeclaringTypeAJavaLibraryClass(executable.getDeclaringType()) &
+                            if (!isExecutableUnmockable(executable) &
                                     !executable.getDeclaringType().getModifiers().contains(ModifierKind.FINAL) &
                                     !executable.getDeclaringType().getModifiers().contains(ModifierKind.STATIC) &
                                     executable.getType().isPrimitive()) {
@@ -234,7 +240,7 @@ public class MethodUtil {
         if (isExecutableNonFinalNonStatic(executable)
                 & !isMethodDeclaringTypePrivate(methodDeclaringType)
                 & !isMethodDeclaringTypeAbstract(methodDeclaringType)
-                & !isExecutableDeclaringTypeAJavaLibraryClass(executableDeclaringType)
+                & !isExecutableUnmockable(executable)
                 & !isMethodDeclaringTypeSameAsExecutableDeclaringType(methodDeclaringType, executableDeclaringType)) {
             if (isInvocationTargetANonFinalNonStaticField(method, invocation)) {
                 Set<ModifierKind> invocationClassModifiers =
@@ -263,8 +269,8 @@ public class MethodUtil {
      * method invocation signature.
      *
      * @param nestedMethodInvocations The invocations within a target method
-     * @param method The target method
-     * @param invocationSignature A unique invocation signature within the target method
+     * @param method                  The target method
+     * @param invocationSignature     A unique invocation signature within the target method
      * @return
      */
     public static Map<String, String> getAllFieldsWithSameInvocationSignature(List<CtInvocation<?>> nestedMethodInvocations,

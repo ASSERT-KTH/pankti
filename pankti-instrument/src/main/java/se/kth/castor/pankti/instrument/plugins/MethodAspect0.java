@@ -12,7 +12,6 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.UUID;
@@ -45,7 +44,7 @@ public class MethodAspect0 {
         private static final boolean hasMockableInvocations = false;
         private static final String methodParamTypesString = String.join(",", TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodParameterTypes());
         private static final String postfix = methodParamTypesString.isEmpty() ? "" : "_" + methodParamTypesString;
-        private static final String methodFQN = TargetMethodAdvice.class.getAnnotation(Pointcut.class).className() + "."
+        public static final String methodFQN = TargetMethodAdvice.class.getAnnotation(Pointcut.class).className() + "."
                 + TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodName() + postfix;
         static UUID invocationUuid = null;
         private static final String invocationString = String.format("Invocation count for %s: ", methodFQN);
@@ -174,7 +173,7 @@ public class MethodAspect0 {
 
         @IsEnabled
         public static boolean enableProfileCollection() {
-            return INVOCATION_COUNT < 2;
+            return INVOCATION_COUNT < 1;
         }
 
         @OnBefore
@@ -183,10 +182,11 @@ public class MethodAspect0 {
                                           @BindParameterArray Object parameterObjects,
                                           @BindMethodName String methodName) {
             setup();
-            if (fileSizeWithinLimits & INVOCATION_COUNT <= 1) {
+            if (fileSizeWithinLimits) {
                 if (hasMockableInvocations) {
                     invocationUuid = null;
                     invocationUuid = UUID.randomUUID();
+                    Thread.currentThread().setName(methodFQN);
                 }
                 profileSizePre = getObjectProfileSize();
                 writeObjectXMLToFile(receivingObject, receivingObjectFilePath);
@@ -204,7 +204,7 @@ public class MethodAspect0 {
         @OnReturn
         public static void onReturn(@BindReturn Object returnedObject,
                                     @BindTraveler TraceEntry traceEntry) {
-            if (fileSizeWithinLimits & INVOCATION_COUNT <= 1) {
+            if (fileSizeWithinLimits) {
                 writeObjectXMLToFile(returnedObject, returnedObjectFilePath);
                 writeObjectProfileSizeToFile(getObjectProfileSize() - profileSizePre);
                 checkFileSizeLimit();

@@ -43,6 +43,11 @@ public class PanktiGenMain implements Callable<Integer> {
     private TestFormat testFormat;
 
     @CommandLine.Option(
+            names = {"-r", "--rick"},
+            description = "Generate tests with mocks")
+    private boolean generateMocks;
+
+    @CommandLine.Option(
             names = {"-h", "--help"},
             description = "Display help/usage.",
             usageHelp = true)
@@ -54,10 +59,13 @@ public class PanktiGenMain implements Callable<Integer> {
         return projectPath;
     }
 
-    public PanktiGenMain(final Path projectPath, final Path methodCSVFilePath, final Path objectXMLDirectoryPath, final boolean help) {
+    public PanktiGenMain(final Path projectPath, final Path methodCSVFilePath,
+                         final Path objectXMLDirectoryPath, final boolean generateMocks,
+                         final boolean help) {
         this.projectPath = projectPath;
         this.methodCSVFilePath = methodCSVFilePath;
         this.objectXMLDirectoryPath = objectXMLDirectoryPath;
+        this.generateMocks = generateMocks;
         this.usageHelpRequested = help;
     }
 
@@ -75,7 +83,7 @@ public class PanktiGenMain implements Callable<Integer> {
         System.out.println("POM found at: " + projectPom.getPath());
         System.out.println("Number of Maven modules: " + projectPom.getModel().getModules().size());
 
-        TestGenerator testGenerator = new TestGenerator(testFormat.toString(), launcher);
+        TestGenerator testGenerator = new TestGenerator(testFormat.toString(), launcher, generateMocks);
         System.out.println("Number of new test cases: " + testGenerator.process(model,
                 methodCSVFilePath.toString(), objectXMLDirectoryPath.toString()));
 

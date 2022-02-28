@@ -1,6 +1,7 @@
 package se.kth.castor.pankti.extract.util;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import se.kth.castor.pankti.extract.launchers.PanktiLauncher;
 import se.kth.castor.pankti.extract.processors.CandidateTagger;
@@ -134,6 +135,7 @@ public class MethodUtilTest {
     }
 
     @Test
+    @Disabled("This constraint removed to allow nested invocations on Java library methods")
     public void testThatMethodsWithMockingCandidatesDoNotHaveNestedInvocationsOnJavaLibraryClassMethods() {
         for (CtMethod<?> thisMethod : allMethods) {
             List<CtInvocation<?>> methodInvocations = MethodUtil.findNestedMethodCalls(thisMethod);

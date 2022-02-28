@@ -7,16 +7,19 @@ public class NestedInvocation {
     String invocationReturnType;
     String invocationTargetType;
     Map<String, String> invocationFieldsVisibilityMap;
+    String invocationMode;
     boolean hasCorrespondingSerializedObject = false;
 
     public NestedInvocation(String invocation,
                             String invocationReturnType,
                             String invocationTargetType,
-                            Map<String, String> invocationFieldsVisibilityMap) {
+                            Map<String, String> invocationFieldsVisibilityMap,
+                            String invocationMode) {
         this.invocation = invocation;
         this.invocationReturnType = invocationReturnType;
         this.invocationTargetType = invocationTargetType;
         this.invocationFieldsVisibilityMap = invocationFieldsVisibilityMap;
+        this.invocationMode = invocationMode;
     }
 
     public String getInvocation() {
@@ -51,10 +54,15 @@ public class NestedInvocation {
         hasCorrespondingSerializedObject = true;
     }
 
+    public String getInvocationMode() {
+        return invocationMode;
+    }
+
     @Override
     public String toString() {
         return "NestedInvocation{" +
-                "invocation='" + invocation + '\'' +
+                "invocationMode='" + invocationMode + '\'' +
+                ", invocation='" + invocation + '\'' +
                 ", invocationReturnType='" + invocationReturnType + '\'' +
                 ", invocationTargetType='" + invocationTargetType + '\'' +
                 ", invocationFieldsVisibilityMap=" + invocationFieldsVisibilityMap +

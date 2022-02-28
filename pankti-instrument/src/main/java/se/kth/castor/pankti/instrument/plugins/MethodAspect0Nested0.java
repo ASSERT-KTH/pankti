@@ -13,9 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,6 +35,7 @@ public class MethodAspect0Nested0 {
         private static String invocationCountFilePath;
         private static String invokedMethodsCSVFilePath;
         private static String objectProfileSizeFilePath;
+        private static String libraryInvocationFilePath;
         private static String parentInvocationClassName = MethodAspect0.TargetMethodAdvice.class.getAnnotation(Pointcut.class).className();
         private static String parentInvocationMethodName = MethodAspect0.TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodName();
         private static Logger logger = Logger.getLogger(TargetMethodAdvice.class);
@@ -46,21 +45,46 @@ public class MethodAspect0Nested0 {
                 + TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodName() + postfix;
         static UUID invocationUuid = null;
         static long invocationTimestamp;
+        private static final boolean invocationOnLibraryMethod = false;
         private static final String invocationString = String.format("Invocation count for %s: ", methodFQN);
         private static File[] allObjectFiles;
 
+        private static synchronized void gatherDataForInvocationOfLibraryMethod() {
+            setup();
+            logger.info(String.format("Writing invocation %s to file %s",
+                    INVOCATION_COUNT, libraryInvocationFilePath));
+            INVOCATION_COUNT++;
+            invocationTimestamp = Instant.now().toEpochMilli();
+            try {
+                FileWriter objectFileWriter = new FileWriter(libraryInvocationFilePath, true);
+                String toWrite = String.format("<%s parent=\"%s.%s\" parent-uuid=\"%s\" timestamp=\"%s\"/>",
+                        methodFQN.replaceAll(",", "_"),
+                        parentInvocationClassName, parentInvocationMethodName,
+                        invocationUuid, invocationTimestamp);
+                objectFileWriter.write(toWrite + "\n");
+                objectFileWriter.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
         private static void setup() {
             AdviceTemplate.setUpXStream();
-            Map<Type, String> fileNameMap = AdviceTemplate.setUpFiles("nested-" + methodFQN);
-            paramObjectsFilePath = fileNameMap.get(Type.PARAMS);
-            returnedObjectFilePath = fileNameMap.get(Type.RETURNED);
-            invocationCountFilePath = fileNameMap.get(Type.INVOCATION_COUNT);
-            invokedMethodsCSVFilePath = fileNameMap.get(Type.INVOKED_METHODS);
-            objectProfileSizeFilePath = fileNameMap.get(Type.OBJECT_PROFILE_SIZE);
-            allObjectFiles = new File[]{
-                    new File(returnedObjectFilePath),
-                    new File(paramObjectsFilePath)};
-            checkFileSizeLimit();
+            if (!invocationOnLibraryMethod) {
+                Map<Type, String> fileNameMap = AdviceTemplate.setUpFiles("nested-" + methodFQN);
+                paramObjectsFilePath = fileNameMap.get(Type.PARAMS);
+                returnedObjectFilePath = fileNameMap.get(Type.RETURNED);
+                invocationCountFilePath = fileNameMap.get(Type.INVOCATION_COUNT);
+                invokedMethodsCSVFilePath = fileNameMap.get(Type.INVOKED_METHODS);
+                objectProfileSizeFilePath = fileNameMap.get(Type.OBJECT_PROFILE_SIZE);
+                allObjectFiles = new File[]{
+                        new File(returnedObjectFilePath),
+                        new File(paramObjectsFilePath)};
+                checkFileSizeLimit();
+            } else {
+                Map<Type, String> fileNameMap = AdviceTemplate.setUpFilesForLibraryInvocation("nested-" + methodFQN);
+                libraryInvocationFilePath = fileNameMap.get(Type.LIBRARY_METHOD_INV);
+            }
         }
 
         public static long getObjectProfileSize() {
@@ -145,12 +169,22 @@ public class MethodAspect0Nested0 {
         // For mocking: instrument and collect parameters and returned values if this invocation is nested
         @IsEnabled
         public static boolean isNestedInvocation() {
-            if (INVOCATION_COUNT > 2) return false;
+            if (INVOCATION_COUNT >= 2)
+                return false;
             boolean isNestedInvocation = Arrays.stream(Thread.currentThread().getStackTrace()).anyMatch(s ->
                     s.getClassName().equals(parentInvocationClassName) &
                             s.getMethodName().equals(parentInvocationMethodName));
-            if (isNestedInvocation)
-                logger.info("Aspect " + COUNT + " is a nested invocation");
+            if (isNestedInvocation) {
+                if (!invocationOnLibraryMethod) {
+                    logger.info("Aspect " + COUNT + " is a nested invocation");
+                } else if (invocationOnLibraryMethod) {
+                    if (Thread.currentThread().getName().equals(MethodAspect0.TargetMethodAdvice.methodFQN)) {
+                        invocationUuid = MethodAspect0.TargetMethodAdvice.invocationUuid;
+                        gatherDataForInvocationOfLibraryMethod();
+                    }
+                    return false;
+                }
+            }
             return isNestedInvocation;
         }
 
@@ -158,13 +192,15 @@ public class MethodAspect0Nested0 {
         public static TraceEntry onBefore(OptionalThreadContext context,
                                           @BindParameterArray Object parameterObjects,
                                           @BindMethodName String methodName) {
-            setup();
-            if (fileSizeWithinLimits & INVOCATION_COUNT <= 1) {
-                invocationUuid = null;
-                invocationUuid = MethodAspect0.TargetMethodAdvice.invocationUuid;
-                invocationTimestamp = Instant.now().toEpochMilli();
-                profileSizePre = getObjectProfileSize();
-                writeObjectXMLToFile(parameterObjects, paramObjectsFilePath);
+            if (!invocationOnLibraryMethod) {
+                setup();
+                if (fileSizeWithinLimits) {
+                    invocationUuid = null;
+                    invocationUuid = MethodAspect0.TargetMethodAdvice.invocationUuid;
+                    invocationTimestamp = Instant.now().toEpochMilli();
+                    profileSizePre = getObjectProfileSize();
+                    writeObjectXMLToFile(parameterObjects, paramObjectsFilePath);
+                }
             }
             MessageSupplier messageSupplier = MessageSupplier.create(
                     "className: {}, methodName: {}",
@@ -177,13 +213,15 @@ public class MethodAspect0Nested0 {
         @OnReturn
         public static void onReturn(@BindReturn Object returnedObject,
                                     @BindTraveler TraceEntry traceEntry) {
-            if (fileSizeWithinLimits & INVOCATION_COUNT <= 1) {
-                writeObjectXMLToFile(returnedObject, returnedObjectFilePath);
-                writeObjectProfileSizeToFile(getObjectProfileSize() - profileSizePre);
-                checkFileSizeLimit();
+            if (!invocationOnLibraryMethod) {
+                if (fileSizeWithinLimits & INVOCATION_COUNT <= 1) {
+                    writeObjectXMLToFile(returnedObject, returnedObjectFilePath);
+                    writeObjectProfileSizeToFile(getObjectProfileSize() - profileSizePre);
+                    checkFileSizeLimit();
+                }
+                INVOCATION_COUNT++;
+                writeInvocationCountToFile();
             }
-            INVOCATION_COUNT++;
-            writeInvocationCountToFile();
             traceEntry.end();
         }
 

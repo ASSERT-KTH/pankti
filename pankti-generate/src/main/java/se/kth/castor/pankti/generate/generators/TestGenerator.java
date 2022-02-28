@@ -37,10 +37,12 @@ public class TestGenerator {
     private static int numberOfTestCasesGenerated;
     private static int numberOfTestCasesWithMocksGenerated;
     private final String testFormat;
+    private final boolean generateMocks;
 
     private final TestGeneratorUtil testGenUtil = new TestGeneratorUtil();
 
-    public TestGenerator(String testFormat, MavenLauncher launcher) {
+    public TestGenerator(String testFormat, MavenLauncher launcher, boolean generateMocks) {
+        this.generateMocks = generateMocks;
         this.testFormat = testFormat;
         TestGeneratorUtil.launcher = launcher;
         if (!testFormat.equals("xml")) {
@@ -448,9 +450,11 @@ public class TestGenerator {
         generatedMethod.setSimpleName("test" + method.getSimpleName().substring(0, 1).toUpperCase() + method.getSimpleName().substring(1) + postfix + methodCounter);
         CtAnnotation<?> testAnnotation = factory.createAnnotation(factory.createCtTypeReference(Class.forName(JUNIT_JUPITER_TEST_REFERENCE)));
         generatedMethod.addAnnotation(testAnnotation);
-        CtAnnotation<?> disabledAnnotation = factory.createAnnotation(factory.createCtTypeReference(
-                Class.forName(JUNIT_JUPITER_DISABLED_REFERENCE)));
-        generatedMethod.addAnnotation(disabledAnnotation);
+        if (generateMocks) {
+            CtAnnotation<?> disabledAnnotation = factory.createAnnotation(factory.createCtTypeReference(
+                    Class.forName(JUNIT_JUPITER_DISABLED_REFERENCE)));
+            generatedMethod.addAnnotation(disabledAnnotation);
+        }
         generatedMethod.setModifiers(Collections.singleton(ModifierKind.PUBLIC));
         generatedMethod.setType(factory.createCtTypeReference(void.class));
         generatedMethod.addThrownType(factory.createCtTypeReference(Exception.class));
@@ -503,32 +507,33 @@ public class TestGenerator {
             // Add @Mock, @InjectMocks fields, generate tests that use mocks
             Set<CtMethod<?>> generatedTestsWithMocks = mockGenerator.generateMockInfrastructure(
                     mockMethod, serializedObject, generatedClass, instrumentedMethod);
-            numberOfTestCasesWithMocksGenerated += generatedTestsWithMocks.size();
+
+            Set<CtMethod<?>> testsWithStubsAndAssertions = mockGenerator.generateTestsWithStubsAndAssertions(generatedTestsWithMocks);
+            testsWithStubsAndAssertions.forEach(generatedClass::addMethod);
+
+            int numberOfTestsWithMocksGenerated = generatedTestsWithMocks.size() + testsWithStubsAndAssertions.size();
+            System.out.println("Generated " + numberOfTestsWithMocksGenerated + " test(s) with mocks");
+            numberOfTestCasesWithMocksGenerated += numberOfTestsWithMocksGenerated;
+
+            String uuid = serializedObject.getUUID().replace("-", "");
+
+            // Generate test to verify sequence of method invocations within each method invocation
+            if (generatedClass.getMethodsByName("testVerifyMethodSeq_" + uuid).size() == 0 &
+                    serializedObject.getNestedSerializedObjects().size() > 0) {
+                MethodSequenceGenerator sequenceGenerator = new MethodSequenceGenerator(factory);
+                CtMethod<?> seqMethod = sequenceGenerator.generateTestToVerifyMethodSequence(generatedTestsWithMocks, serializedObject);
+                seqMethod.setSimpleName("testVerifyMethodSeq_" + uuid);
+                seqMethod.addAnnotation(factory.createAnnotation(factory.createCtTypeReference(Class.forName(JUNIT_JUPITER_TEST_REFERENCE))));
+                generatedClass.addMethod(seqMethod);
+                System.out.println("Generated 1 test to verify sequence of nested method calls within " + instrumentedMethod.getFullMethodPath());
+            }
+
             for (CtMethod<?> generatedTestWithMock : generatedTestsWithMocks) {
                 int indexWithCall = MockGeneratorUtil.findIndexOfStatementWithInvocationOnReceivingObject(generatedTestWithMock);
                 generatedTestWithMock.getBody().getStatement(indexWithCall).addComment(factory.createInlineComment("Act"));
                 generatedTestWithMock.getBody().getStatement(0).addComment(factory.createInlineComment("Arrange"));
                 generatedTestWithMock.getBody().getLastStatement().addComment(factory.createInlineComment("Assert"));
                 generatedClass.addMethod(generatedTestWithMock);
-            }
-
-            for (CtMethod<?> testWithMock : generatedTestsWithMocks) {
-                if (generatedClass.getMethodsByName("testVerifyMethodSeq_" + instrumentedMethod.getMethodName()).size() == 0) {
-                    // Verify nested method call sequence
-                    MethodSequenceGenerator sequenceGenerator = new MethodSequenceGenerator(factory);
-                    CtMethod<?> testForMethodSequence = sequenceGenerator.cleanUpGeneratedMockMethod(testWithMock.clone());
-                    testForMethodSequence.setSimpleName("testVerifyMethodSeq_" + instrumentedMethod.getMethodName());
-                    List<CtStatement> verificationStatements = sequenceGenerator.verifyMethodCallSequence(serializedObject);
-                    if (!verificationStatements.isEmpty()) {
-                        verificationStatements.get(0).addComment(factory.createInlineComment("Assert"));
-                    }
-                    for (CtStatement statement : verificationStatements) {
-                        testForMethodSequence.getBody().insertEnd(statement);
-                    }
-                    generatedClass.addMethod(testForMethodSequence);
-                    numberOfTestCasesWithMocksGenerated++;
-                    System.out.println("Generated 1 test to verify sequence of nested method calls within " + instrumentedMethod.getFullMethodPath());
-                }
             }
         }
     }
@@ -540,7 +545,7 @@ public class TestGenerator {
         String methodPath = instrumentedMethod.getFullMethodPath();
         ObjectXMLParser objectXMLParser = new ObjectXMLParser();
         Set<SerializedObject> serializedObjects = objectXMLParser.parseXML(
-                objectXMLDirectoryPath + File.separatorChar, methodPath, instrumentedMethod);
+                objectXMLDirectoryPath + File.separatorChar, methodPath, instrumentedMethod, generateMocks);
         System.out.println("Number of unique pairs/triples of object values: " + serializedObjects.size());
 
         if (serializedObjects.size() == 0) {
@@ -567,7 +572,9 @@ public class TestGenerator {
                 generatedClass.addMethod(generatedMethod);
                 // If mocks can be used to test this method
                 CtMethod<?> baseMethod = generatedMethod.clone();
-                generateMockMethod(instrumentedMethod, serializedObject, baseMethod, generatedClass);
+                if (generateMocks) {
+                    generateMockMethod(instrumentedMethod, serializedObject, baseMethod, generatedClass);
+                }
                 methodCounter++;
             }
             return generatedClass;

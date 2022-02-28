@@ -1,6 +1,10 @@
 package se.kth.castor.pankti.generate.data;
 
+import se.kth.castor.pankti.generate.util.MockGeneratorUtil;
+
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class InstrumentedMethod {
     String parentFQN;
@@ -12,6 +16,7 @@ public class InstrumentedMethod {
     boolean hasMockableInvocations;
     String nestedMethodMap;
     boolean isOverloaded;
+    List<NestedInvocation> nestedInvocations = new ArrayList<>();
 
     public InstrumentedMethod(
             String parentFQN,
@@ -29,6 +34,8 @@ public class InstrumentedMethod {
         this.visibility = visibility;
         this.hasMockableInvocations = hasMockableInvocations;
         this.nestedMethodMap = nestedMethodMap;
+        if (hasMockableInvocations)
+            setNestedInvocations();
     }
 
     public String getParentFQN() {
@@ -84,6 +91,28 @@ public class InstrumentedMethod {
         isOverloaded = overloaded;
     }
 
+    public void setNestedInvocations() {
+        List<String> sanitizedInvocations = MockGeneratorUtil.sanitizeNestedInvocationMap(nestedMethodMap);
+        List<String> nestedReturnTypes = MockGeneratorUtil.getReturnTypeFromInvocationMap(nestedMethodMap);
+        List<String> invocationTargetTypes = MockGeneratorUtil.getNestedInvocationTargetTypesFromNestedMethodMap(nestedMethodMap);
+        List<Map<String, String>> fieldVisibilityMaps = MockGeneratorUtil.getNestedInvocationTargetFieldVisibilityMap(invocationTargetTypes, nestedMethodMap);
+        List<String> invocationMode = MockGeneratorUtil.getInvocationMode(nestedMethodMap);
+
+        assert (sanitizedInvocations.size() == nestedReturnTypes.size() &
+                nestedReturnTypes.size() == invocationTargetTypes.size() &
+                invocationTargetTypes.size() == fieldVisibilityMaps.size());
+
+        for (int i = 0; i < sanitizedInvocations.size(); i++) {
+            nestedInvocations.add(new NestedInvocation(
+                    sanitizedInvocations.get(i), nestedReturnTypes.get(i),
+                    invocationTargetTypes.get(i), fieldVisibilityMaps.get(i),
+                    invocationMode.get(i)));
+        }
+    }
+
+    public List<NestedInvocation> getNestedInvocations() {
+        return nestedInvocations;
+    }
 
     @Override
     public String toString() {
@@ -95,7 +124,7 @@ public class InstrumentedMethod {
                 ", returnType='" + returnType + '\'' +
                 ", visibility='" + visibility + '\'' +
                 ", hasMockableInvocations='" + hasMockableInvocations + '\'' +
-                ", nestedMethodMap='" + nestedMethodMap + '\'' +
+                ", nestedInvocations='" + nestedInvocations + '\'' +
                 '}';
     }
 }

@@ -72,20 +72,20 @@ public class MockGeneratorUtil {
 
         CtStatement createMockField = factory.createCodeSnippetStatement(
                 String.format("%s %s = Mockito.mock(%s.class)",
-                mockFieldTypeSimple, mockVariableName, mockFieldTypeSimple));
+                        mockFieldTypeSimple, mockVariableName, mockFieldTypeSimple));
         helperMethod.setBody(createMockField);
         helperMethod.setSimpleName(helperMethodName);
         if (!targetFieldIsPrivate) {
             CtStatement insertMockField = factory.createCodeSnippetStatement(
                     String.format("receivingObject.%s = %s",
-                    targetFieldName, mockVariableName));
+                            targetFieldName, mockVariableName));
             helperMethod.getBody().addStatement(insertMockField);
         } else {
             helperMethod.addThrownType(factory.createCtTypeReference(Exception.class));
             CtStatement getFieldToMock = factory.createCodeSnippetStatement(
                     String.format(
-                    "Field fieldToMock = receivingObject.getClass().getDeclaredField(\"%s\")",
-                    targetFieldName));
+                            "Field fieldToMock = receivingObject.getClass().getDeclaredField(\"%s\")",
+                            targetFieldName));
             CtStatement setAccessible = factory.createCodeSnippetStatement(
                     "fieldToMock.setAccessible(true)");
             CtStatement setValue = factory.createCodeSnippetStatement(String.format(
@@ -110,7 +110,8 @@ public class MockGeneratorUtil {
      */
     public static CtMethod<?> cleanUpBaseMethodCloneForMocking(CtMethod<?> baseMethod,
                                                                boolean targetReturnsPrimitive,
-                                                               boolean targetReturnsVoid) {
+                                                               boolean targetReturnsVoid,
+                                                               boolean invocationMadeOnLibraryMethod) {
         CtMethod<?> updatedBaseMethod = factory.createMethod();
         baseMethod.getAnnotations().forEach(updatedBaseMethod::addAnnotation);
         updatedBaseMethod.addThrownType(factory.createCtTypeReference(Exception.class));
@@ -136,7 +137,7 @@ public class MockGeneratorUtil {
         if (targetReturnsVoid) {
             // remove assertion entirely
             updatedBaseMethod.getBody().removeStatement(assertionStatement);
-        } else if (!targetReturnsPrimitive) {
+        } else if (!targetReturnsPrimitive | invocationMadeOnLibraryMethod) {
             // replace assertion with call receivingObject.targetMethod(params)
             CtStatement updatedForNonPrimitiveReturn = factory.createCodeSnippetStatement(
                     assertionStatement.toString().replaceAll("(.+,\\s)(receivingObject.+)", "$2")
@@ -230,33 +231,30 @@ public class MockGeneratorUtil {
 
     public static List<Map<String, String>> getNestedInvocationTargetFieldVisibilityMap(List<String> targetTypes, String nestedMethodMap) {
         List<String> methodInvocations = List.of(nestedMethodMap.split(",\\{"));
-        List<String> targetFields = new ArrayList<>();
-        Map<String, String> fieldVisibilityMap = new LinkedHashMap<>();
+        Map<String, String> methodInvocationTargetFields = new LinkedHashMap<>();
+
         for (int i = 0; i < targetTypes.size(); i++) {
             if (targetTypes.get(i).equals("FIELD")) {
                 // {field1=visibility, field2=visibility, field3=visibility}
-                targetFields.add(findInString(
+                String fields = findInString(
                         "nestedInvocationFieldName='",
                         "',nestedInvocationDeclaringType",
-                        methodInvocations.get(i)));
+                        methodInvocations.get(i));
+                methodInvocationTargetFields.put(methodInvocations.get(i), fields);
             } else {
-                targetFields.add("");
+                methodInvocationTargetFields.put(methodInvocations.get(i), "");
             }
         }
 
         List<Map<String, String>> fieldVisibilityMaps = new ArrayList<>();
 
-        for (String targetField : targetFields) {
-            if (!targetField.isEmpty()) {
-                String[] entry = targetField.split(",");
-                for (String e : entry) {
-                    e = e.replaceAll("}", "").replaceAll("\\{", "");
-                    fieldVisibilityMap.put(e.replaceAll("(.+)(=.+)", "$1"),
-                            e.replaceAll("(.+)(=.+)", "$2").replace("=", ""));
-                    fieldVisibilityMaps.add(fieldVisibilityMap);
-                }
-            } else {
-                fieldVisibilityMaps.add(null);
+        for (Map.Entry<String, String> entry : methodInvocationTargetFields.entrySet()) {
+            Map<String, String> fieldVisibilityMap = new LinkedHashMap<>();
+            for (String e : entry.getValue().split(",")) {
+                e = e.replaceAll("}", "").replaceAll("\\{", "");
+                fieldVisibilityMap.put(e.replaceAll("(.+)(=.+)", "$1"),
+                        e.replaceAll("(.+)(=.+)", "$2").replace("=", ""));
+                fieldVisibilityMaps.add(fieldVisibilityMap);
             }
         }
 
@@ -320,6 +318,19 @@ public class MockGeneratorUtil {
                 "]',nestedInvocationSignature",
                 invocation);
         return List.of(params.split(","));
+    }
+
+    public static List<String> getInvocationMode(String nestedMethodMap) {
+        List<String> methodInvocations = List.of(nestedMethodMap.split(",\\{"));
+        List<String> modes = new ArrayList<>();
+        for (String invocation : methodInvocations) {
+            String returnType = findInString(
+                    "nestedInvocationMode='",
+                    "',nestedInvocationReturnType",
+                    invocation);
+            modes.add(returnType);
+        }
+        return modes;
     }
 
     public static CtExecutableReference<?> createArgumentMatcher(String name) throws ClassNotFoundException {
