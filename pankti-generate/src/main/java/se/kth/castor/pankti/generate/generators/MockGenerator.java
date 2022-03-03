@@ -269,13 +269,11 @@ public class MockGenerator {
                         System.out.println("Generating test with mock for " + nestedInvocation);
 
                         if (nestedInvocation.getInvocationTargetType().equals("FIELD")) {
-                            nestedInvocation.setHasCorrespondingSerializedObject();
                             generatedTestsWithMocks.addAll(handleInvocationOnFields(
                                     serializedObject, targetMethod, nestedInvocation, baseMethod,
                                     generatedTestClass, mockVariableTypeFQN,
                                     mockVariableTypeSimple, nestedSerializedObject));
                         } else if (nestedInvocation.getInvocationTargetType().equals("PARAMETER")) {
-                            nestedInvocation.setHasCorrespondingSerializedObject();
                             generatedTestsWithMocks.add(handleInvocationOnParameter(targetMethod,
                                     baseMethod, mockVariableTypeSimple, mockVariableTypeFQN,
                                     nestedInvocation, nestedSerializedObject, serializedObject));
@@ -285,14 +283,19 @@ public class MockGenerator {
             } else {
                 // If this nested invocation is made on a LIBRARY method
                 System.out.println("INVOCATION MADE ON LIBRARY METHOD");
-                if (nestedInvocation.getInvocationTargetType().equals("FIELD")) {
-                    generatedTestsWithMocks.addAll(handleInvocationOnFields(serializedObject, targetMethod,
-                            nestedInvocation, baseMethod, generatedTestClass, mockVariableTypeFQN,
-                            mockVariableTypeSimple, null));
-                } else if (nestedInvocation.getInvocationTargetType().equals("PARAMETER")) {
-                    generatedTestsWithMocks.add(handleInvocationOnParameter(targetMethod,
-                            baseMethod, mockVariableTypeSimple, mockVariableTypeFQN,
-                            nestedInvocation, null, serializedObject));
+                for (SerializedObject nestedSerializedObject : serializedObject.getNestedSerializedObjects()) {
+                    if (nestedSerializedObject.getUUID() != null &
+                            nestedInvocation.getInvocation().equals(nestedSerializedObject.getInvocationFQN())) {
+                        if (nestedInvocation.getInvocationTargetType().equals("FIELD")) {
+                            generatedTestsWithMocks.addAll(handleInvocationOnFields(serializedObject, targetMethod,
+                                    nestedInvocation, baseMethod, generatedTestClass, mockVariableTypeFQN,
+                                    mockVariableTypeSimple, null));
+                        } else if (nestedInvocation.getInvocationTargetType().equals("PARAMETER")) {
+                            generatedTestsWithMocks.add(handleInvocationOnParameter(targetMethod,
+                                    baseMethod, mockVariableTypeSimple, mockVariableTypeFQN,
+                                    nestedInvocation, null, serializedObject));
+                        }
+                    }
                 }
             }
         }

@@ -105,7 +105,8 @@ public class InstrumentedMethod {
         for (int i = 0; i < sanitizedInvocations.size(); i++) {
             nestedInvocations.add(new NestedInvocation(
                     sanitizedInvocations.get(i), nestedReturnTypes.get(i),
-                    invocationTargetTypes.get(i), fieldVisibilityMaps.get(i),
+                    invocationTargetTypes.get(i),
+                    !fieldVisibilityMaps.get(i).toString().equals("{=}") ? fieldVisibilityMaps.get(i): null,
                     invocationMode.get(i)));
         }
     }

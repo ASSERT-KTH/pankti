@@ -7,6 +7,7 @@ import com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver;
 import com.thoughtworks.xstream.io.xml.XppReader;
 import org.apache.commons.text.StringEscapeUtils;
 import org.xmlpull.mxp1.MXParser;
+import spoon.Launcher;
 import spoon.MavenLauncher;
 import spoon.compiler.SpoonResource;
 import spoon.compiler.SpoonResourceHelper;
@@ -28,7 +29,7 @@ import java.util.List;
 import java.util.Scanner;
 
 public class TestGeneratorUtil {
-    public static MavenLauncher launcher;
+    public static Launcher launcher;
     public static String testFormat = "xml";
 
     public CtMethod<?> generateDeserializationMethod(Factory factory) {

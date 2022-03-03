@@ -5,4 +5,5 @@ output/
 spooned/
 target/
 *.tmp
+**/__pycache__/
 

@@ -1,0 +1,136 @@
+<org.apache.pdfbox.contentstream.operator.state.SetGraphicsStateParameters uuid="032df387-1293-4900-8a3b-d3cb68e6203b">
+    <context class="org.apache.pdfbox.text.PDFTextStripper">
+        <operators>
+            <entry>
+                <string>Tc</string>
+                <org.apache.pdfbox.contentstream.operator.text.SetCharSpacing>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.text.SetCharSpacing>
+            </entry>
+            <entry>
+                <string>Td</string>
+                <org.apache.pdfbox.contentstream.operator.text.MoveText>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.text.MoveText>
+            </entry>
+            <entry>
+                <string>Tf</string>
+                <org.apache.pdfbox.contentstream.operator.text.SetFontAndSize>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.text.SetFontAndSize>
+            </entry>
+            <entry>
+                <string>Tj</string>
+                <org.apache.pdfbox.contentstream.operator.text.ShowText>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.text.ShowText>
+            </entry>
+            <entry>
+                <string>Tm</string>
+                <org.apache.pdfbox.contentstream.operator.state.SetMatrix>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.state.SetMatrix>
+            </entry>
+            <entry>
+                <string>Tr</string>
+                <org.apache.pdfbox.contentstream.operator.text.SetTextRenderingMode>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.text.SetTextRenderingMode>
+            </entry>
+            <entry>
+                <string>Ts</string>
+                <org.apache.pdfbox.contentstream.operator.text.SetTextRise>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.text.SetTextRise>
+            </entry>
+            <entry>
+                <string>&quot;</string>
+                <org.apache.pdfbox.contentstream.operator.text.ShowTextLineAndSpace>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.text.ShowTextLineAndSpace>
+            </entry>
+            <entry>
+                <string>Tw</string>
+                <org.apache.pdfbox.contentstream.operator.text.SetWordSpacing>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.text.SetWordSpacing>
+            </entry>
+            <entry>
+                <string>Tz</string>
+                <org.apache.pdfbox.contentstream.operator.text.SetTextHorizontalScaling>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.text.SetTextHorizontalScaling>
+            </entry>
+            <entry>
+                <string>&apos;</string>
+                <org.apache.pdfbox.contentstream.operator.text.ShowTextLine>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.text.ShowTextLine>
+            </entry>
+            <entry>
+                <string>Do</string>
+                <org.apache.pdfbox.contentstream.operator.DrawObject>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.DrawObject>
+            </entry>
+            <entry>
+                <string>ET</string>
+                <org.apache.pdfbox.contentstream.operator.text.EndText>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.text.EndText>
+            </entry>
+            <entry>
+                <string>Q</string>
+                <org.apache.pdfbox.contentstream.operator.state.Restore>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.state.Restore>
+            </entry>
+            <entry>
+                <string>BT</string>
+                <org.apache.pdfbox.contentstream.operator.text.BeginText>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.text.BeginText>
+            </entry>
+            <entry>
+                <string>T*</string>
+                <org.apache.pdfbox.contentstream.operator.text.NextLine>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.text.NextLine>
+            </entry>
+            <entry>
+                <string>cm</string>
+                <org.apache.pdfbox.contentstream.operator.state.Concatenate>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.state.Concatenate>
+            </entry>
+            <entry>
+                <string>gs</string>
+                <org.apache.pdfbox.contentstream.operator.state.SetGraphicsStateParameters reference="../../../.."/>
+            </entry>
+            <entry>
+                <string>TD</string>
+                <org.apache.pdfbox.contentstream.operator.text.MoveTextSetLeading>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.text.MoveTextSetLeading>
+            </entry>
+            <entry>
+                <string>q</string>
+                <org.apache.pdfbox.contentstream.operator.state.Save>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.state.Save>
+            </entry>
+            <entry>
+                <string>TJ</string>
+                <org.apache.pdfbox.contentstream.operator.text.ShowTextAdjusted>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.text.ShowTextAdjusted>
+            </entry>
+            <entry>
+                <string>TL</string>
+                <org.apache.pdfbox.contentstream.operator.text.SetTextLeading>
+                    <context class="org.apache.pdfbox.text.PDFTextStripper" reference="../../../.."/>
+                </org.apache.pdfbox.contentstream.operator.text.SetTextLeading>
+            </entry>
+        </operators>
+    </context>
+</org.apache.pdfbox.contentstream.operator.state.SetGraphicsStateParameters>

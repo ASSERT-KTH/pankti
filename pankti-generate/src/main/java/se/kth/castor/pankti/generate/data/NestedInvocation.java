@@ -8,7 +8,6 @@ public class NestedInvocation {
     String invocationTargetType;
     Map<String, String> invocationFieldsVisibilityMap;
     String invocationMode;
-    boolean hasCorrespondingSerializedObject = false;
 
     public NestedInvocation(String invocation,
                             String invocationReturnType,
@@ -44,14 +43,6 @@ public class NestedInvocation {
 
     public Map<String, String> getInvocationFieldsVisibilityMap() {
         return invocationFieldsVisibilityMap;
-    }
-
-    public boolean hasCorrespondingSerializedObject() {
-        return hasCorrespondingSerializedObject;
-    }
-
-    public void setHasCorrespondingSerializedObject() {
-        hasCorrespondingSerializedObject = true;
     }
 
     public String getInvocationMode() {

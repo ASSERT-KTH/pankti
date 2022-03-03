@@ -30,6 +30,10 @@ class DummyClass {
     }
 }
 
+/**
+ * These tests verify the transformation between
+ * XML and JSON formats
+ */
 public class GeneratorUtilTest {
     static DummyClass dummyObject = new DummyClass();
     static XStream xStream = new XStream();

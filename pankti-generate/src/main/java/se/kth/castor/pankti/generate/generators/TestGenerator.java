@@ -6,7 +6,7 @@ import se.kth.castor.pankti.generate.parsers.ObjectXMLParser;
 import se.kth.castor.pankti.generate.data.SerializedObject;
 import se.kth.castor.pankti.generate.util.MockGeneratorUtil;
 import se.kth.castor.pankti.generate.util.TestGeneratorUtil;
-import spoon.MavenLauncher;
+import spoon.Launcher;
 import spoon.reflect.CtModel;
 import spoon.reflect.code.*;
 import spoon.reflect.declaration.*;
@@ -34,20 +34,27 @@ public class TestGenerator {
 
     private static final String TEST_CLASS_PREFIX = "Test";
     private static final String TEST_CLASS_POSTFIX = "PanktiGen";
-    private static int numberOfTestCasesGenerated;
     private static int numberOfTestCasesWithMocksGenerated;
     private final String testFormat;
     private final boolean generateMocks;
+    private static CtAnnotation<?> testAnnotation;
+    private static CtAnnotation<?> disabledAnnotation;
+    Set<CtClass<?>> generatedTestClasses = new LinkedHashSet<>();
 
     private final TestGeneratorUtil testGenUtil = new TestGeneratorUtil();
 
-    public TestGenerator(String testFormat, MavenLauncher launcher, boolean generateMocks) {
+    public TestGenerator(String testFormat, Launcher launcher, boolean generateMocks) {
         this.generateMocks = generateMocks;
         this.testFormat = testFormat;
         TestGeneratorUtil.launcher = launcher;
         if (!testFormat.equals("xml")) {
             TestGeneratorUtil.testFormat = testFormat;
         }
+    }
+
+    public static void generateTestAndDisabledAnnotations() throws ClassNotFoundException {
+        testAnnotation = factory.createAnnotation(factory.createCtTypeReference(Class.forName(JUNIT_JUPITER_TEST_REFERENCE)));
+        disabledAnnotation = factory.createAnnotation(factory.createCtTypeReference(Class.forName(JUNIT_JUPITER_DISABLED_REFERENCE)));
     }
 
     public String getGeneratedClassName(CtPackage ctPackage, String className) {
@@ -448,11 +455,8 @@ public class TestGenerator {
             postfix = testGenUtil.getParamListPostFix(instrumentedMethod.getParamList()).replaceAll("[.,]", "_");
         }
         generatedMethod.setSimpleName("test" + method.getSimpleName().substring(0, 1).toUpperCase() + method.getSimpleName().substring(1) + postfix + methodCounter);
-        CtAnnotation<?> testAnnotation = factory.createAnnotation(factory.createCtTypeReference(Class.forName(JUNIT_JUPITER_TEST_REFERENCE)));
         generatedMethod.addAnnotation(testAnnotation);
         if (generateMocks) {
-            CtAnnotation<?> disabledAnnotation = factory.createAnnotation(factory.createCtTypeReference(
-                    Class.forName(JUNIT_JUPITER_DISABLED_REFERENCE)));
             generatedMethod.addAnnotation(disabledAnnotation);
         }
         generatedMethod.setModifiers(Collections.singleton(ModifierKind.PUBLIC));
@@ -523,8 +527,9 @@ public class TestGenerator {
                 MethodSequenceGenerator sequenceGenerator = new MethodSequenceGenerator(factory);
                 CtMethod<?> seqMethod = sequenceGenerator.generateTestToVerifyMethodSequence(generatedTestsWithMocks, serializedObject);
                 seqMethod.setSimpleName("testVerifyMethodSeq_" + uuid);
-                seqMethod.addAnnotation(factory.createAnnotation(factory.createCtTypeReference(Class.forName(JUNIT_JUPITER_TEST_REFERENCE))));
+                seqMethod.addAnnotation(testAnnotation);
                 generatedClass.addMethod(seqMethod);
+                numberOfTestCasesWithMocksGenerated++;
                 System.out.println("Generated 1 test to verify sequence of nested method calls within " + instrumentedMethod.getFullMethodPath());
             }
 
@@ -542,19 +547,17 @@ public class TestGenerator {
                                             CtMethod<?> method,
                                             InstrumentedMethod instrumentedMethod,
                                             String objectXMLDirectoryPath) throws ClassNotFoundException {
-        String methodPath = instrumentedMethod.getFullMethodPath();
         ObjectXMLParser objectXMLParser = new ObjectXMLParser();
         Set<SerializedObject> serializedObjects = objectXMLParser.parseXML(
-                objectXMLDirectoryPath + File.separatorChar, methodPath, instrumentedMethod, generateMocks);
+                objectXMLDirectoryPath + File.separatorChar, instrumentedMethod, generateMocks);
         System.out.println("Number of unique pairs/triples of object values: " + serializedObjects.size());
 
         if (serializedObjects.size() == 0) {
             System.out.println("NO OBJECTS FOUND FOR " + instrumentedMethod.getFullMethodPath() + " - SKIPPING");
             return null;
         } else {
-            numberOfTestCasesGenerated += serializedObjects.size();
-
             factory = type.getFactory();
+            generateTestAndDisabledAnnotations();
             CtClass<?> generatedClass = factory.Class().get(getGeneratedClassName(type.getPackage(), type.getSimpleName()));
             if (generatedClass == null) {
                 generatedClass = generateTestClass(type.getPackage(), type.getSimpleName());
@@ -569,17 +572,24 @@ public class TestGenerator {
             int methodCounter = 1;
             for (SerializedObject serializedObject : serializedObjects) {
                 CtMethod<?> generatedMethod = generateTestMethod(method, methodCounter, instrumentedMethod, serializedObject);
-                generatedClass.addMethod(generatedMethod);
+                if (!generateMocks)
+                    generatedClass.addMethod(generatedMethod);
                 // If mocks can be used to test this method
-                CtMethod<?> baseMethod = generatedMethod.clone();
                 if (generateMocks) {
+                    CtMethod<?> baseMethod = generatedMethod.clone();
                     generateMockMethod(instrumentedMethod, serializedObject, baseMethod, generatedClass);
                 }
                 methodCounter++;
             }
-            return generatedClass;
+            if (generatedClass.getMethods().stream().anyMatch(m -> m.getAnnotations().contains(testAnnotation) &
+                    !m.getAnnotations().contains(disabledAnnotation)))
+                return generatedClass;
+            else {
+                System.out.println("No non-disabled test, not generating class " + generatedClass.getQualifiedName());
+                factory.Class().get(generatedClass.getQualifiedName()).delete();
+                return null;
+            }
         }
-
     }
 
     public List<CtType<?>> getTypesToProcess(CtModel ctModel) {
@@ -593,7 +603,8 @@ public class TestGenerator {
         return typesToProcess;
     }
 
-    private Map.Entry<CtMethod<?>, Boolean> findMethodToGenerateTestMethodsFor(List<CtMethod<?>> methodsByName, InstrumentedMethod instrumentedMethod) {
+    public Map.Entry<CtMethod<?>, Boolean> findMethodToGenerateTestMethodsFor(List<CtMethod<?>> methodsByName,
+                                                                              InstrumentedMethod instrumentedMethod) {
         if (methodsByName.size() > 1) {
             // match parameter list for overloaded methods
             for (CtMethod<?> method : methodsByName) {
@@ -636,6 +647,7 @@ public class TestGenerator {
                                     type, methodToGenerateTestsFor, instrumentedMethod, objectXMLDirectoryPath);
                             if (generatedClass != null) {
                                 System.out.println("Generated test class: " + generatedClass.getQualifiedName());
+                                generatedTestClasses.add(generatedClass);
                             }
                             System.out.println("--------------------------------------------------------------");
                         } catch (ClassNotFoundException e) {
@@ -645,6 +657,11 @@ public class TestGenerator {
                 }
             }
         }
-        return numberOfTestCasesGenerated;
+        int allGeneratedTests = 0;
+        for (CtClass<?> generated : generatedTestClasses) {
+            allGeneratedTests += generated.getMethods().stream()
+                    .filter(m -> m.getAnnotations().contains(testAnnotation)).count();
+        }
+        return allGeneratedTests - numberOfTestCasesWithMocksGenerated;
     }
 }
