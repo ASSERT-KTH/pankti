@@ -152,7 +152,7 @@ public class MockGenerator {
             String targetFieldName = nestedInvocation.getTargetFieldName(entry);
             boolean targetFieldIsPrivate = nestedInvocation.isTargetFieldPrivate(entry);
 //            String mockVariableName = "mock" + (targetFieldIsPrivate ? "Private" : "") + mockVariableTypeSimple;
-            String mockVariableName = "mock" + mockVariableTypeSimple;
+            String mockVariableName = "mock" + mockVariableTypeSimple.replace(".", "");
             // See processPage in PDFTextStripper extends LegacyPDFStreamEngine with private pageSize
             if (receivingObjectType.equals(targetMethodType) || !targetFieldIsPrivate) {
 
@@ -214,7 +214,7 @@ public class MockGenerator {
                                                     NestedInvocation nestedInvocation,
                                                     SerializedObject nestedSerializedObject,
                                                     SerializedObject serializedObject) throws ClassNotFoundException {
-        String mockVariableName = "mock" + mockVariableTypeSimple;
+        String mockVariableName = "mock" + mockVariableTypeSimple.replace(".", "");
         CtMethod<?> updatedBaseMethod;
         boolean targetReturnsNonPrimitiveOrVoid = !MockGeneratorUtil.arePrimitiveOrString(
                 List.of(targetMethod.getReturnType())) ||
@@ -266,7 +266,7 @@ public class MockGenerator {
                 // Use the generated mock field in a generated test that uses mocks
                 for (SerializedObject nestedSerializedObject : serializedObject.getNestedSerializedObjects()) {
                     if (nestedSerializedObject.getInvocationFQN().equals(nestedInvocation.getInvocation())) {
-                        System.out.println("Generating test with mock for " + nestedInvocation);
+                        System.out.println("Generating test with mock for DOMAIN " + nestedInvocation);
 
                         if (nestedInvocation.getInvocationTargetType().equals("FIELD")) {
                             generatedTestsWithMocks.addAll(handleInvocationOnFields(
@@ -282,10 +282,10 @@ public class MockGenerator {
                 }
             } else {
                 // If this nested invocation is made on a LIBRARY method
-                System.out.println("INVOCATION MADE ON LIBRARY METHOD");
                 for (SerializedObject nestedSerializedObject : serializedObject.getNestedSerializedObjects()) {
                     if (nestedSerializedObject.getUUID() != null &
                             nestedInvocation.getInvocation().equals(nestedSerializedObject.getInvocationFQN())) {
+                        System.out.println("Generating test with mock for LIBRARY " + nestedInvocation);
                         if (nestedInvocation.getInvocationTargetType().equals("FIELD")) {
                             generatedTestsWithMocks.addAll(handleInvocationOnFields(serializedObject, targetMethod,
                                     nestedInvocation, baseMethod, generatedTestClass, mockVariableTypeFQN,
@@ -299,7 +299,6 @@ public class MockGenerator {
                 }
             }
         }
-
         return generatedTestsWithMocks;
     }
 

@@ -8,7 +8,6 @@ import com.thoughtworks.xstream.io.xml.XppReader;
 import org.apache.commons.text.StringEscapeUtils;
 import org.xmlpull.mxp1.MXParser;
 import spoon.Launcher;
-import spoon.MavenLauncher;
 import spoon.compiler.SpoonResource;
 import spoon.compiler.SpoonResourceHelper;
 import spoon.reflect.code.*;
@@ -98,9 +97,11 @@ public class TestGeneratorUtil {
     public CtStatement addFileVariableToTestMethod(Factory factory, String fileName, String type) {
         type = getObjectProfileType(type);
         String fileVariableName = "file" + type;
+        String sanitizedFileName = fileName.replaceAll("\\[", "\\\\\\\\[")
+                .replaceAll("\\]", "\\\\\\\\]");
         // Create file
         CtExpression<String> fileVariableExpression = factory.createCodeSnippetExpression(
-                "new File(classLoader.getResource(\"" + fileName + "\").getFile())"
+                "new File(classLoader.getResource(\"" + sanitizedFileName + "\").getFile())"
         );
         CtLocalVariable<?> fileVariable = factory.createLocalVariable(
                 factory.createCtTypeReference(File.class),

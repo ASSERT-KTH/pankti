@@ -13,7 +13,8 @@ public class MethodInvocationUtil {
     }
 
     public static String getDeclaringTypeSimpleNameFromFQN(String declaringTypeFQN) {
-        return declaringTypeFQN.replaceAll("(.+\\.)(\\w+)$", "$2");
+        return declaringTypeFQN.replaceAll("(.+\\.)(.+)$", "$2")
+                .replaceAll("\\$", ".");
     }
 
     public static String getMethodWithParamsFromInvocationFQN(String invocationFQN) {

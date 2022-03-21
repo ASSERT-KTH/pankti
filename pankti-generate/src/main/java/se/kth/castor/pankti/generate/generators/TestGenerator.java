@@ -187,6 +187,8 @@ public class TestGenerator {
             if (hasOnlyPrimitiveParams) {
                 arguments.append(primitiveParams.get(i - 1)
                         .replaceAll("<char>(.{1})<\\/char>", "<char>'$1'</char>")
+                        .replaceAll("<long>(.+)<\\/long>", "<long>$1L</long>")
+                        .replaceAll("<float>(.+)<\\/float>", "<float>$1F</float>")
                         .replaceAll("<\\w+>(.+)<\\/\\w+>", "$1")
                         .replaceAll("\\s", ""));
             } else {
