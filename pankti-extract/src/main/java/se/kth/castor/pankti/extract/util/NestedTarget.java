@@ -65,4 +65,36 @@ public class NestedTarget {
                 ", nestedInvocationSignature='" + nestedInvocationSignature + '\'' +
                 '}';
     }
+
+    public String getNestedInvocationReturnType() {
+        return nestedInvocationReturnType;
+    }
+
+    public TargetType getNestedInvocationTargetType() {
+        return nestedInvocationTargetType;
+    }
+
+    public String getNestedInvocationFieldName() {
+        return nestedInvocationFieldName;
+    }
+
+    public String getNestedInvocationDeclaringType() {
+        return nestedInvocationDeclaringType;
+    }
+
+    public String getNestedInvocationMethod() {
+        return nestedInvocationMethod;
+    }
+
+    public String getNestedInvocationParams() {
+        return nestedInvocationParams;
+    }
+
+    public String getNestedInvocationSignature() {
+        return nestedInvocationSignature;
+    }
+
+    public InvocationMode getMode() {
+        return mode;
+    }
 }

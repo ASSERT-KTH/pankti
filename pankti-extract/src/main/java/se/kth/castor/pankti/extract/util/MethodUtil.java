@@ -62,7 +62,7 @@ public class MethodUtil {
      * @return invocationsOnFieldsOrParameters A list of nested invocations made on
      * fields or parameters
      */
-    public static List<CtInvocation<?>> getNumberofNestedInvocations(final CtMethod<?> method) {
+    public static List<CtInvocation<?>> getNumberOfNestedInvocations(final CtMethod<?> method) {
         List<String> methodParameters = method.getParameters().stream()
                 .filter(p -> !p.getType().isPrimitive())
                 .map(CtNamedElement::getSimpleName)
@@ -88,17 +88,12 @@ public class MethodUtil {
      * @param invocation The nested method invocation
      * @return true if the invocation target is a non-final, non-static field in the declaring type of the method
      */
-    private static boolean isInvocationTargetANonFinalNonStaticField(final CtMethod<?> method,
-                                                                     final CtInvocation<?> invocation) {
-
+    private static boolean isInvocationTargetAField(final CtMethod<?> method,
+                                                    final CtInvocation<?> invocation) {
         CtField<?> field = method.getDeclaringType().getField(String.valueOf(invocation.getTarget()));
         // Invocation target is a field and not a local variable
-        if (field != null
-                && invocation.getTarget().getElements(new TypeFilter<>(CtFieldReferenceImpl.class)).size() == 1) {
-            return !(field.getModifiers().contains(ModifierKind.STATIC)
-                    || field.getModifiers().contains(ModifierKind.FINAL));
-        }
-        return false;
+        return field != null &&
+                invocation.getTarget().getElements(new TypeFilter<>(CtFieldReferenceImpl.class)).size() == 1;
     }
 
     /**
@@ -117,56 +112,41 @@ public class MethodUtil {
         return executable.getDeclaringType();
     }
 
-    private static boolean isExecutableNonFinalNonStatic(final CtExecutableReference<?> executable) {
-        boolean isExecutableNonFinalNonStatic = false;
-        try {
-            isExecutableNonFinalNonStatic = !(executable.isFinal() || executable.isStatic());
-        } catch (Throwable throwable) {
-            LOGGER.info(String.format("Skipping executable %s because %s", executable, throwable.getMessage()));
-        }
-        return isExecutableNonFinalNonStatic;
-    }
-
     /**
-     * Finds invocations within a method that can be mocked.
+     * Finds nested method calls made on fields, within a method under test that are mockable.
+     * <p>
+     * For a nested method call to be mockable,
+     * it should be invoked on a field in the declaring type of the method.
      *
-     * <p>For a nested method call to be mocked, it should be invoked on a field in the declaring type of the method.
-     * <p>This field must be non-final and non-static.
-     * <p>The declaring type of this field should also be non-final and non-static.
-     *
-     * @param method The method in which to find nested method invocations
+     * @param outerMethod The method in which to find nested method invocations
      * @return Nested method invocations that meet all criteria for mocking
      */
-    static List<CtInvocation<?>> findNestedMethodCalls(final CtMethod<?> method) {
-        List<CtInvocation<?>> invocationList = method.getElements(new TypeFilter<>(CtInvocation.class));
+    static List<CtInvocation<?>> findNestedMethodCallsOnFields(final CtMethod<?> outerMethod) {
+        List<CtInvocation<?>> invocationList = outerMethod.getElements(new TypeFilter<>(CtInvocation.class));
         return invocationList.stream()
-                .filter(invocation -> isNestedInvocationMockable(method, invocation))
+                .filter(invocation -> isNestedInvocationOnFieldMockable(outerMethod, invocation))
                 .filter(invocation -> invocation.getExecutable().getType().isPrimitive())
                 .filter(MethodUtil::areNestedInvocationParamsPrimitive)
                 .collect(Collectors.toList());
     }
 
-    private static boolean isMethodDeclaringTypeAbstract(final CtType<?> methodDeclaringType) {
-        return methodDeclaringType.getModifiers().contains(ModifierKind.ABSTRACT);
-    }
+    private static boolean isExecutableEqualsOrHashCode(CtExecutableReference<?> executable) {
+        return (executable.getSimpleName().equals("equals") ||
+                executable.getSimpleName().equals("hashCode"));
 
-    private static boolean isMethodDeclaringTypePrivate(final CtType<?> methodDeclaringType) {
-        return methodDeclaringType.getModifiers().contains(ModifierKind.PRIVATE);
     }
 
     /**
-     * Exclude nested invocations on methods of Java library classes
+     * Instrumentation fails for java.lang.String and java.util.Collection,
+     * so we exclude them
      *
-     * @param executableDeclaringType The declaring type of the nested invocation executable
-     * @return true if the declaring type is a java.* class
+     * @param executable
+     * @return true if executable declaring type is String or Collection
      */
-    private static boolean isExecutableDeclaringTypeAJavaLibraryClass(final CtTypeReference<?> executableDeclaringType) {
-        return executableDeclaringType.getQualifiedName().contains("java");
-    }
-
-    private static boolean isExecutableUnmockable(CtExecutableReference<?> executable) {
-        return (executable.getSimpleName().equals("equals") ||
-                executable.getSimpleName().equals("hashCode"));
+    private static boolean isExecutableDeclaringTypeStringOrCollection(CtExecutableReference<?> executable) {
+        CtTypeReference<?> executableDeclaringType = executable.getDeclaringType();
+        return executableDeclaringType.getQualifiedName().equals("java.lang.String") ||
+                executableDeclaringType.getQualifiedName().equals("java.util.Collection");
 
     }
 
@@ -185,41 +165,34 @@ public class MethodUtil {
      */
     public static Set<NestedTarget> getMockableInvocationsOnParameters(final CtMethod<?> method) {
         Set<NestedTarget> nestedTargets = new LinkedHashSet<>();
-        if (method.getDeclaringType().getModifiers().contains(ModifierKind.FINAL)
-                | method.getDeclaringType().getModifiers().contains(ModifierKind.PRIVATE)
-                | method.getDeclaringType().getModifiers().contains(ModifierKind.ABSTRACT)) {
-            return nestedTargets;
-        }
-        List<CtParameter<?>> parameters = method.getParameters();
+        List<CtParameter<?>> parameters = method.getParameters().stream()
+                .filter(p -> !p.getType().isPrimitive())
+                .collect(Collectors.toList());
         List<CtInvocation> invocations = method.getElements(new TypeFilter<>(CtInvocation.class))
                 .stream()
                 .filter(ctInvocation -> ctInvocation.getTarget() != null)
                 .filter(MethodUtil::areNestedInvocationParamsPrimitive)
                 .collect(Collectors.toList());
         for (CtParameter<?> parameter : parameters) {
-            // if parameter is not primitive
-            if (!parameter.getType().isPrimitive()) {
-                String parameterFQN = parameter.getType().getQualifiedName();
-                String parameterName = parameter.getSimpleName();
-                for (CtInvocation<?> invocation : invocations) {
-                    // If invocation is called on parameter and parameter declaring type is different from method's
-                    if (Objects.requireNonNull(invocation.getTarget()).toString().equals(parameterName) &
-                            !parameterFQN.equals(method.getDeclaringType().getQualifiedName())) {
-                        CtExecutableReference<?> executable = getExecutable(invocation);
-                        if (executable.getType() != null) {
-                            if (!isExecutableUnmockable(executable) &
-                                    !executable.getDeclaringType().getModifiers().contains(ModifierKind.FINAL) &
-                                    !executable.getDeclaringType().getModifiers().contains(ModifierKind.STATIC) &
-                                    executable.getType().isPrimitive()) {
-                                nestedTargets.add(new NestedTarget(
-                                        executable.getType().getQualifiedName(),
-                                        TargetType.PARAMETER,
-                                        null,
-                                        getDeclaringType(executable).getQualifiedName(),
-                                        executable.getSimpleName(),
-                                        executable.getParameters().stream().map(CtTypeInformation::getQualifiedName).collect(Collectors.toList()).toString(),
-                                        executable.getSignature()));
-                            }
+            String parameterFQN = parameter.getType().getQualifiedName();
+            String parameterName = parameter.getSimpleName();
+            for (CtInvocation<?> invocation : invocations) {
+                // If invocation is called on parameter and parameter declaring type is different from method's
+                if (Objects.requireNonNull(invocation.getTarget()).toString().equals(parameterName) &
+                        !parameterFQN.equals(method.getDeclaringType().getQualifiedName())) {
+                    CtExecutableReference<?> executable = getExecutable(invocation);
+                    if (!isExecutableDeclaringTypeStringOrCollection(executable)
+                            & executable.getType() != null) {
+                        if (!isExecutableEqualsOrHashCode(executable) &
+                                executable.getType().isPrimitive()) {
+                            nestedTargets.add(new NestedTarget(
+                                    executable.getType().getQualifiedName(),
+                                    TargetType.PARAMETER,
+                                    null,
+                                    getDeclaringType(executable).getQualifiedName(),
+                                    executable.getSimpleName(),
+                                    executable.getParameters().stream().map(CtTypeInformation::getQualifiedName).collect(Collectors.toList()).toString(),
+                                    executable.getSignature()));
                         }
                     }
                 }
@@ -232,27 +205,22 @@ public class MethodUtil {
         return invocation.getExecutable().getParameters().stream().allMatch(CtTypeInformation::isPrimitive);
     }
 
-    private static boolean isNestedInvocationMockable(final CtMethod<?> method,
-                                                      final CtInvocation<?> invocation) {
+    private static boolean isNestedInvocationOnFieldMockable(final CtMethod<?> method,
+                                                             final CtInvocation<?> invocation) {
         CtExecutableReference<?> executable = getExecutable(invocation);
+        if (isExecutableDeclaringTypeStringOrCollection(executable))
+            return false;
         CtTypeReference<?> executableDeclaringType = getDeclaringType(executable);
         CtType<?> methodDeclaringType = method.getDeclaringType();
-        if (isExecutableNonFinalNonStatic(executable)
-                & !isMethodDeclaringTypePrivate(methodDeclaringType)
-                & !isMethodDeclaringTypeAbstract(methodDeclaringType)
-                & !isExecutableUnmockable(executable)
-                & !isMethodDeclaringTypeSameAsExecutableDeclaringType(methodDeclaringType, executableDeclaringType)) {
-            if (isInvocationTargetANonFinalNonStaticField(method, invocation)) {
-                Set<ModifierKind> invocationClassModifiers =
-                        executableDeclaringType.getModifiers();
-                return !(invocationClassModifiers.contains(ModifierKind.FINAL)
-                        | invocationClassModifiers.contains(ModifierKind.STATIC));
-            }
+        if (!isExecutableEqualsOrHashCode(executable) &
+                !isMethodDeclaringTypeSameAsExecutableDeclaringType(methodDeclaringType, executableDeclaringType)) {
+            return isInvocationTargetAField(method, invocation);
         }
         return false;
     }
 
-    private static String getFieldModifier(CtMethod<?> method, CtInvocation<?> invocation) {
+    private static String getFieldModifier(CtMethod<?> method,
+                                           CtInvocation<?> invocation) {
         Set<ModifierKind> modifiers = method.getDeclaringType()
                 .getField(invocation.getTarget().toString())
                 .getModifiers();
@@ -273,14 +241,18 @@ public class MethodUtil {
      * @param invocationSignature     A unique invocation signature within the target method
      * @return
      */
-    public static Map<String, String> getAllFieldsWithSameInvocationSignature(List<CtInvocation<?>> nestedMethodInvocations,
-                                                                              CtMethod<?> method, String invocationSignature) {
-        List<CtInvocation<?>> nestedInvocations = method.getElements(new TypeFilter<>(CtInvocation.class));
+    public static Map<String, String> getAllFieldsWithSameInvocationSignature(
+            List<CtInvocation<?>> nestedMethodInvocations,
+            CtMethod<?> method, String invocationSignature) {
         Map<String, String> targetFieldVisibilityMap = new LinkedHashMap<>();
+        List<CtInvocation<?>> nestedInvocations = method.getElements(
+                new TypeFilter<>(CtInvocation.class)
+        );
         for (CtInvocation<?> nested : nestedInvocations) {
             if (nestedMethodInvocations.contains(nested)) {
                 CtExecutableReference<?> executable = getExecutable(nested);
-                String signature = getDeclaringType(executable).getQualifiedName() + "." + executable.getSignature();
+                String signature = getDeclaringType(executable).getQualifiedName()
+                        + "." + executable.getSignature();
                 if (signature.equals(invocationSignature)) {
                     targetFieldVisibilityMap.put(nested.getTarget().toString(),
                             getFieldModifier(method, nested));
@@ -299,10 +271,11 @@ public class MethodUtil {
      */
     public static Set<NestedTarget> getNestedMethodInvocationSet(final CtMethod<?> method) {
         assert !method.isAbstract();
-        // Get invocations on fields
-        List<CtInvocation<?>> nestedMethodInvocations = findNestedMethodCalls(method);
 
         Set<NestedTarget> nestedTargets = new LinkedHashSet<>();
+
+        // Get invocations on fields
+        List<CtInvocation<?>> nestedMethodInvocations = findNestedMethodCallsOnFields(method);
 
         for (int i = 0; i < nestedMethodInvocations.size(); i++) {
             CtExecutableReference<?> executable = getExecutable(nestedMethodInvocations.get(i));
@@ -321,70 +294,11 @@ public class MethodUtil {
                     executable.getParameters().stream().map(CtTypeInformation::getQualifiedName)
                             .collect(Collectors.toList()).toString(),
                     executable.getSignature()));
-
         }
 
         // Get invocations on parameters
         Set<NestedTarget> nestedInvocationsOnParameters = getMockableInvocationsOnParameters(method);
         nestedTargets.addAll(nestedInvocationsOnParameters);
         return nestedTargets;
-    }
-
-    /**
-     * Checks if the declaring type of a method has a public, non-parameterized constructor.
-     *
-     * @param method The method
-     * @return true if the declaring type has a non-parameterized constructor
-     */
-    public static boolean declaringTypeHasNoParamConstructor(final CtMethod<?> method) {
-        return method.getDeclaringType()
-                .getElements(new TypeFilter<>(CtConstructor.class))
-                .stream().anyMatch(c -> c.getParameters().isEmpty() &
-                        c.getModifiers().contains(ModifierKind.PUBLIC));
-    }
-
-    public static boolean declaringTypeHasConstructorThrowingExceptions(final CtType<?> declaringType) {
-        List<CtConstructor<?>> constructors = declaringType.getElements(new TypeFilter<>(CtConstructor.class));
-        for (CtConstructor<?> constructor : constructors) {
-            if (constructor.getThrownTypes().size() > 0)
-                return true;
-        }
-        return false;
-    }
-
-    /**
-     * Finds a public parameterized constructor of the declaring type of the target method
-     * such that the constructor has the least number of parameters, and
-     * neither of its parameters are primitive
-     *
-     * @param declaringType The class in which the target method is defined
-     * @return The smallest constructor or an empty string if none is found
-     */
-    public static String getDeclaringTypeSmallestConstructor(CtType<?> declaringType) {
-        String smallestNonDefaultConstructorParams = "";
-        List<CtConstructor<?>> constructors = declaringType.getElements(new TypeFilter<>(CtConstructor.class));
-        List<CtConstructor<?>> publicConstructors = constructors.stream()
-                .filter(ctConstructor -> !ctConstructor.hasModifier(ModifierKind.PRIVATE))
-                .filter(ctConstructor -> !ctConstructor.getSignature().contains("$"))
-                .collect(Collectors.toList());
-        if (publicConstructors.size() == 0)
-            return smallestNonDefaultConstructorParams;
-        int i = 0;
-        int smallestIndex = 0;
-        do {
-            if (publicConstructors.get(i).getParameters().size() <= publicConstructors.get(smallestIndex).getParameters().size() &
-                    publicConstructors.get(i).getParameters().stream().noneMatch(ctParameter -> ctParameter.getType().isPrimitive())) {
-                smallestIndex = i;
-            }
-            i++;
-        } while (i < publicConstructors.size());
-        // Disregard smallest constructor if it has any primitive params
-        if (publicConstructors.get(smallestIndex).getParameters().stream().anyMatch(ctParameter -> ctParameter.getType().isPrimitive()))
-            return smallestNonDefaultConstructorParams;
-        smallestNonDefaultConstructorParams = publicConstructors.get(smallestIndex).getSignature()
-                .replaceAll("(.+)(\\(.+\\))", "$2")
-                .replaceAll("\\(", "")
-                .replaceAll("\\)", "");
-        return smallestNonDefaultConstructorParams;
     }
 }
