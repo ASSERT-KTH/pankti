@@ -47,7 +47,7 @@ public class MethodAspect0 {
         public static final String methodFQN = TargetMethodAdvice.class.getAnnotation(Pointcut.class).className() + "."
                 + TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodName() + postfix;
         static UUID invocationUuid = null;
-        private static final String invocationString = String.format("Invocation count for %s: ", methodFQN);
+        private static final String invocationString = String.format("Invocation count for %s: ", methodFQN.replaceAll("\\[\\]", "%5b%5d"));
         private static File[] allObjectFiles;
 
         private static void setup() {
@@ -173,6 +173,7 @@ public class MethodAspect0 {
 
         @IsEnabled
         public static boolean enableProfileCollection() {
+            invocationUuid = null;
             return INVOCATION_COUNT < 1;
         }
 
@@ -184,7 +185,6 @@ public class MethodAspect0 {
             setup();
             if (fileSizeWithinLimits) {
                 if (hasMockableInvocations) {
-                    invocationUuid = null;
                     invocationUuid = UUID.randomUUID();
                     Thread.currentThread().setName(methodFQN);
                 }

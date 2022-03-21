@@ -46,8 +46,14 @@ public class MethodAspect0Nested0 {
         static UUID invocationUuid = null;
         static long invocationTimestamp;
         private static final boolean invocationOnLibraryMethod = false;
-        private static final String invocationString = String.format("Invocation count for %s: ", methodFQN);
+        private static final String invocationString = String.format("Invocation count for %s: ", methodFQN.replaceAll("\\[\\]", "%5b%5d"));
         private static File[] allObjectFiles;
+
+        private static String sanitizeMethodFQN() {
+            return methodFQN.replaceAll("\\[\\]", "%5b%5d")
+                    .replaceAll("\\$", ".")
+                    .replaceAll(",", "_");
+        }
 
         private static synchronized void gatherDataForInvocationOfLibraryMethod() {
             setup();
@@ -58,7 +64,7 @@ public class MethodAspect0Nested0 {
             try {
                 FileWriter objectFileWriter = new FileWriter(libraryInvocationFilePath, true);
                 String toWrite = String.format("<%s parent=\"%s.%s\" parent-uuid=\"%s\" timestamp=\"%s\"/>",
-                        methodFQN.replaceAll(",", "_"),
+                        sanitizeMethodFQN(),
                         parentInvocationClassName, parentInvocationMethodName,
                         invocationUuid, invocationTimestamp);
                 objectFileWriter.write(toWrite + "\n");
@@ -169,7 +175,8 @@ public class MethodAspect0Nested0 {
         // For mocking: instrument and collect parameters and returned values if this invocation is nested
         @IsEnabled
         public static boolean isNestedInvocation() {
-            if (INVOCATION_COUNT >= 2)
+            invocationUuid = null;
+            if (INVOCATION_COUNT >= 10)
                 return false;
             boolean isNestedInvocation = Arrays.stream(Thread.currentThread().getStackTrace()).anyMatch(s ->
                     s.getClassName().equals(parentInvocationClassName) &
@@ -195,7 +202,6 @@ public class MethodAspect0Nested0 {
             if (!invocationOnLibraryMethod) {
                 setup();
                 if (fileSizeWithinLimits) {
-                    invocationUuid = null;
                     invocationUuid = MethodAspect0.TargetMethodAdvice.invocationUuid;
                     invocationTimestamp = Instant.now().toEpochMilli();
                     profileSizePre = getObjectProfileSize();
@@ -214,7 +220,7 @@ public class MethodAspect0Nested0 {
         public static void onReturn(@BindReturn Object returnedObject,
                                     @BindTraveler TraceEntry traceEntry) {
             if (!invocationOnLibraryMethod) {
-                if (fileSizeWithinLimits & INVOCATION_COUNT <= 1) {
+                if (fileSizeWithinLimits) {
                     writeObjectXMLToFile(returnedObject, returnedObjectFilePath);
                     writeObjectProfileSizeToFile(getObjectProfileSize() - profileSizePre);
                     checkFileSizeLimit();
