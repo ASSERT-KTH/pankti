@@ -56,19 +56,4 @@ public interface AdviceTemplate {
         }
         return fileNameMap;
     }
-
-    static Map<Type, String> setUpFilesForLibraryInvocation(String path) {
-        Map<Type, String> fileNameMap = new HashMap<>();
-        try {
-            String storageDir = "/tmp/pankti-object-data/";
-            Files.createDirectories(Paths.get(storageDir));
-            String filePath = storageDir + path;
-            fileNameMap.put(Type.LIBRARY_METHOD_INV, filePath + ".xml");
-            return fileNameMap;
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(0);
-        }
-        return fileNameMap;
-    }
 }

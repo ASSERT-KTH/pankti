@@ -214,6 +214,7 @@ public class MethodAspect0 {
                 appendRowToInvokedCSVFile();
             }
             writeInvocationCountToFile();
+            invocationUuid = null;
             traceEntry.end();
         }
 

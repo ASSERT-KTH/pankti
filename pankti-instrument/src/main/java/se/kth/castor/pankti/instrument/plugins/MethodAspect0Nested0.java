@@ -76,21 +76,16 @@ public class MethodAspect0Nested0 {
 
         private static void setup() {
             AdviceTemplate.setUpXStream();
-            if (!invocationOnLibraryMethod) {
-                Map<Type, String> fileNameMap = AdviceTemplate.setUpFiles("nested-" + methodFQN);
-                paramObjectsFilePath = fileNameMap.get(Type.PARAMS);
-                returnedObjectFilePath = fileNameMap.get(Type.RETURNED);
-                invocationCountFilePath = fileNameMap.get(Type.INVOCATION_COUNT);
-                invokedMethodsCSVFilePath = fileNameMap.get(Type.INVOKED_METHODS);
-                objectProfileSizeFilePath = fileNameMap.get(Type.OBJECT_PROFILE_SIZE);
-                allObjectFiles = new File[]{
-                        new File(returnedObjectFilePath),
-                        new File(paramObjectsFilePath)};
-                checkFileSizeLimit();
-            } else {
-                Map<Type, String> fileNameMap = AdviceTemplate.setUpFilesForLibraryInvocation("nested-" + methodFQN);
-                libraryInvocationFilePath = fileNameMap.get(Type.LIBRARY_METHOD_INV);
-            }
+            Map<Type, String> fileNameMap = AdviceTemplate.setUpFiles("nested-" + methodFQN);
+            paramObjectsFilePath = fileNameMap.get(Type.PARAMS);
+            returnedObjectFilePath = fileNameMap.get(Type.RETURNED);
+            invocationCountFilePath = fileNameMap.get(Type.INVOCATION_COUNT);
+            invokedMethodsCSVFilePath = fileNameMap.get(Type.INVOKED_METHODS);
+            objectProfileSizeFilePath = fileNameMap.get(Type.OBJECT_PROFILE_SIZE);
+            allObjectFiles = new File[]{
+                    new File(returnedObjectFilePath),
+                    new File(paramObjectsFilePath)};
+            checkFileSizeLimit();
         }
 
         public static long getObjectProfileSize() {
@@ -184,29 +179,27 @@ public class MethodAspect0Nested0 {
             if (isNestedInvocation) {
                 if (!invocationOnLibraryMethod) {
                     logger.info("Aspect " + COUNT + " is a nested invocation");
+                    invocationUuid = MethodAspect0.TargetMethodAdvice.invocationUuid;
                 } else if (invocationOnLibraryMethod) {
+                    logger.info("Aspect " + COUNT + " is a nested invocation on a library method");
                     if (Thread.currentThread().getName().equals(MethodAspect0.TargetMethodAdvice.methodFQN)) {
                         invocationUuid = MethodAspect0.TargetMethodAdvice.invocationUuid;
-                        gatherDataForInvocationOfLibraryMethod();
                     }
-                    return false;
                 }
             }
-            return isNestedInvocation;
+            return invocationUuid != null & isNestedInvocation;
         }
 
         @OnBefore
         public static TraceEntry onBefore(OptionalThreadContext context,
                                           @BindParameterArray Object parameterObjects,
                                           @BindMethodName String methodName) {
-            if (!invocationOnLibraryMethod) {
-                setup();
-                if (fileSizeWithinLimits) {
-                    invocationUuid = MethodAspect0.TargetMethodAdvice.invocationUuid;
-                    invocationTimestamp = Instant.now().toEpochMilli();
-                    profileSizePre = getObjectProfileSize();
-                    writeObjectXMLToFile(parameterObjects, paramObjectsFilePath);
-                }
+            setup();
+            if (fileSizeWithinLimits) {
+                invocationTimestamp = Instant.now().toEpochMilli();
+                profileSizePre = getObjectProfileSize();
+                writeObjectXMLToFile(parameterObjects, paramObjectsFilePath);
+                INVOCATION_COUNT++;
             }
             MessageSupplier messageSupplier = MessageSupplier.create(
                     "className: {}, methodName: {}",
@@ -219,15 +212,13 @@ public class MethodAspect0Nested0 {
         @OnReturn
         public static void onReturn(@BindReturn Object returnedObject,
                                     @BindTraveler TraceEntry traceEntry) {
-            if (!invocationOnLibraryMethod) {
-                if (fileSizeWithinLimits) {
-                    writeObjectXMLToFile(returnedObject, returnedObjectFilePath);
-                    writeObjectProfileSizeToFile(getObjectProfileSize() - profileSizePre);
-                    checkFileSizeLimit();
-                }
-                INVOCATION_COUNT++;
-                writeInvocationCountToFile();
+            if (fileSizeWithinLimits) {
+                writeObjectXMLToFile(returnedObject, returnedObjectFilePath);
+                writeObjectProfileSizeToFile(getObjectProfileSize() - profileSizePre);
+                checkFileSizeLimit();
             }
+            writeInvocationCountToFile();
+            invocationUuid = null;
             traceEntry.end();
         }
 
