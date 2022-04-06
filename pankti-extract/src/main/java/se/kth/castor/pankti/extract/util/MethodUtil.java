@@ -145,6 +145,8 @@ public class MethodUtil {
      */
     private static boolean isExecutableDeclaringTypeStringOrCollection(CtExecutableReference<?> executable) {
         CtTypeReference<?> executableDeclaringType = executable.getDeclaringType();
+        if (executableDeclaringType == null || executable.getType() == null)
+            return true;
         return executableDeclaringType.getQualifiedName().equals("java.lang.String") ||
                 executableDeclaringType.getQualifiedName().equals("java.util.Collection");
 
@@ -184,7 +186,7 @@ public class MethodUtil {
                     if (!isExecutableDeclaringTypeStringOrCollection(executable)
                             & executable.getType() != null) {
                         if (!isExecutableEqualsOrHashCode(executable) &
-                                executable.getType().isPrimitive()) {
+                                executable.getType().isPrimitive() & getExecutableLOC(executable) != 1) {
                             nestedTargets.add(new NestedTarget(
                                     executable.getType().getQualifiedName(),
                                     TargetType.PARAMETER,
@@ -221,8 +223,14 @@ public class MethodUtil {
 
     private static String getFieldModifier(CtMethod<?> method,
                                            CtInvocation<?> invocation) {
+        String target = invocation.getTarget().toString();
+        if (target.contains("this."))
+            target = invocation.getTarget()
+                    .getElements(new TypeFilter<>(CtFieldReferenceImpl.class)).get(0)
+                    .toString();
+
         Set<ModifierKind> modifiers = method.getDeclaringType()
-                .getField(invocation.getTarget().toString())
+                .getField(target)
                 .getModifiers();
 
         return modifiers.contains(ModifierKind.PRIVATE) ?
@@ -285,20 +293,31 @@ public class MethodUtil {
                     getAllFieldsWithSameInvocationSignature(nestedMethodInvocations,
                             method, nestedInvocationSignature);
 
-            nestedTargets.add(new NestedTarget(
-                    executable.getType().getQualifiedName(),
-                    TargetType.FIELD,
-                    invocationFieldVisibility.toString(),
-                    getDeclaringType(executable).getQualifiedName(),
-                    executable.getSimpleName(),
-                    executable.getParameters().stream().map(CtTypeInformation::getQualifiedName)
-                            .collect(Collectors.toList()).toString(),
-                    executable.getSignature()));
+            if (getExecutableLOC(executable) != 1) {
+                nestedTargets.add(new NestedTarget(
+                        executable.getType().getQualifiedName(),
+                        TargetType.FIELD,
+                        invocationFieldVisibility.toString(),
+                        getDeclaringType(executable).getQualifiedName(),
+                        executable.getSimpleName(),
+                        executable.getParameters().stream().map(CtTypeInformation::getQualifiedName)
+                                .collect(Collectors.toList()).toString(),
+                        executable.getSignature()));
+            }
         }
 
         // Get invocations on parameters
         Set<NestedTarget> nestedInvocationsOnParameters = getMockableInvocationsOnParameters(method);
         nestedTargets.addAll(nestedInvocationsOnParameters);
         return nestedTargets;
+    }
+    private static int getExecutableLOC(CtExecutableReference<?> executable) {
+        int loc;
+        try {
+            loc = executable.getDeclaration().getBody().getStatements().size();
+        } catch (Exception e) {
+            loc = 0;
+        }
+        return loc;
     }
 }

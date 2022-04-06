@@ -95,7 +95,8 @@ public class PanktiLauncher {
                 // Find nested method invocations that can be mocked
                 numberOfNestedInvocationsOnFieldsOrParameters += MethodUtil.getNumberOfNestedInvocations(method).size();
                 Set<NestedTarget> nestedMethodInvocations = MethodUtil.getNestedMethodInvocationSet(method);
-                boolean isMockable = !nestedMethodInvocations.isEmpty();
+                int methodLOC = method.getBody().getStatements().size();
+                boolean isMockable = !nestedMethodInvocations.isEmpty() && methodLOC > 1;
                 csvPrinter.printRecord(
                         method.getVisibility(),
                         method.getParent(CtClass.class).getQualifiedName(),
