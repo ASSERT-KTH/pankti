@@ -25,7 +25,10 @@ public class MockGeneratorUtil {
         try {
             typeToFind = factory.createCtTypeReference(Class.forName(type));
         } catch (ClassNotFoundException e) {
-            typeToFind = findTypeFromModel(type).get(0);
+            List<CtTypeReference> foundTypes = findTypeFromModel(type);
+            if (foundTypes.size() > 0)
+                typeToFind = foundTypes.get(0);
+            else return findOrCreateTypeReference("java.lang.Object");
         }
         return typeToFind;
     }
@@ -42,6 +45,20 @@ public class MockGeneratorUtil {
         List<CtStatement> statements = testMethod.getBody().getStatements();
         for (int i = 0; i < statements.size(); i++) {
             if (statements.get(i).toString().contains("receivingObject.")) {
+                index = i;
+                break;
+            }
+        }
+        return index;
+    }
+
+    public static int findIndexOfStatementWithAssertionOrVerification(CtMethod<?> testMethod) {
+        int index = -1;
+        List<CtStatement> statements = testMethod.getBody().getStatements();
+        for (int i = 0; i < statements.size(); i++) {
+            if (statements.get(i).toString().contains("assertEquals") ||
+                    statements.get(i).toString().contains("InOrder") ||
+                    statements.get(i).toString().contains(".verify")) {
                 index = i;
                 break;
             }
@@ -126,6 +143,8 @@ public class MockGeneratorUtil {
             if (!statements.get(i).toString().contains("getClass().getClassLoader()") &
                     !statements.get(i).toString().contains("returnedObjectStr") &
                     !statements.get(i).toString().contains("fileReturned") &
+                    !statements.get(i).toString().contains("receivingPostObjectStr =") &
+                    !statements.get(i).toString().contains("= deserializeObject(receivingPostObjectStr)") &
                     !statements.get(i).toString().contains("fileReceivingpost"))
                 statementsToRetain.add(statements.get(i));
         }
@@ -154,50 +173,27 @@ public class MockGeneratorUtil {
      * @param mockParameterType
      * @return
      */
-    public static CtStatement generateLocalVariableForMockParameter(String mockParameterType) {
+    public static CtStatement generateLocalVariableForMockParameter(String mockVariableName, String mockParameterType) {
         CtStatement mockParameterVariable = factory.createCodeSnippetStatement(String.format(
-                "%s mock%s = Mockito.mock(%s.class)",
-                mockParameterType, mockParameterType, mockParameterType));
+                "%s %s = Mockito.mock(%s.class)",
+                mockParameterType, mockVariableName, mockParameterType));
         return mockParameterVariable;
     }
 
-    public static CtMethod<?> updateAssertionForInvocationOnParameters(List<String> paramList,
-                                                                       CtMethod<?> baseMethod,
+    public static CtStatement updateAssertionForInvocationOnParameters(CtStatement assertionStatement,
+                                                                       List<String> paramList,
                                                                        String mockFieldFQN,
-                                                                       String mockFieldName,
-                                                                       boolean targetReturnsNonPrimitiveOrVoid) {
-        CtMethod<?> updatedBaseMethod = baseMethod.clone();
-        List<CtStatement> statements = baseMethod.getBody().getStatements();
-        int assertStatementIndex = 0;
-
-        String targetMethodCallPattern;
-        if (targetReturnsNonPrimitiveOrVoid) {
-            // We don't have Assertions.assertEquals(...)
-            targetMethodCallPattern = "receivingObject\\.\\w+\\(.*\\)";
-        } else {
-            // We have Assertions.assertEquals(...)
-            targetMethodCallPattern = "(.*)receivingObject\\.\\w+\\(.*\\)";
-        }
-
-        for (int i = 0; i < statements.size(); i++) {
-            if (statements.get(i).toString().matches(targetMethodCallPattern)) {
-                assertStatementIndex = i;
-                break;
-            }
-        }
-
+                                                                       String mockFieldName) {
+        CtStatement updatedAssertStatement = null;
         for (int i = 0; i < paramList.size(); i++) {
             if (paramList.get(i).equals(mockFieldFQN)) {
                 String paramBeingReplaced = "paramObject" + (i + 1);
-                CtStatement updatedAssertStatement = factory.createCodeSnippetStatement(
-                        statements.get(assertStatementIndex).toString()
-                                .replace(paramBeingReplaced, mockFieldName));
-                updatedBaseMethod.getBody().addStatement(assertStatementIndex, updatedAssertStatement);
-                updatedBaseMethod.getBody().removeStatement(updatedBaseMethod.getBody().getLastStatement());
+                updatedAssertStatement = factory.createCodeSnippetStatement(
+                        assertionStatement.toString().replace(paramBeingReplaced, mockFieldName));
                 break;
             }
         }
-        return updatedBaseMethod;
+        return updatedAssertStatement;
     }
 
     public static CtStatement delegateClassLoaderVariableCreation() {
@@ -324,11 +320,11 @@ public class MockGeneratorUtil {
         List<String> methodInvocations = List.of(nestedMethodMap.split(",\\{"));
         List<String> modes = new ArrayList<>();
         for (String invocation : methodInvocations) {
-            String returnType = findInString(
+            String mode = findInString(
                     "nestedInvocationMode='",
                     "',nestedInvocationReturnType",
                     invocation);
-            modes.add(returnType);
+             modes.add(mode);
         }
         return modes;
     }

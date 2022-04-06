@@ -53,6 +53,7 @@ public class TestGeneratorUtil {
     public String createLongObjectStringFile(String methodIdentifier, String profileType, String longObjectStr) {
         String fileName = "";
         try {
+            methodIdentifier = methodIdentifier.replaceAll("\\[]", "_arr_");
             File longObjectStrFile = new File("./output/object-data/" + methodIdentifier + "-" + profileType + "." + testFormat);
             longObjectStrFile.getParentFile().mkdirs();
             FileWriter myWriter = new FileWriter(longObjectStrFile);
@@ -97,8 +98,7 @@ public class TestGeneratorUtil {
     public CtStatement addFileVariableToTestMethod(Factory factory, String fileName, String type) {
         type = getObjectProfileType(type);
         String fileVariableName = "file" + type;
-        String sanitizedFileName = fileName.replaceAll("\\[", "\\\\\\\\[")
-                .replaceAll("\\]", "\\\\\\\\]");
+        String sanitizedFileName = fileName.replaceAll("\\[]", "_arr_");
         // Create file
         CtExpression<String> fileVariableExpression = factory.createCodeSnippetExpression(
                 "new File(classLoader.getResource(\"" + sanitizedFileName + "\").getFile())"

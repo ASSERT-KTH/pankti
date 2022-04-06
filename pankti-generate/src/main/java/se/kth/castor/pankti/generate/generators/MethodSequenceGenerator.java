@@ -87,8 +87,7 @@ public class MethodSequenceGenerator {
         CtBlock<?> blockWithStatementUnion = factory.createBlock();
         // Remove stubs and verifications, add everything else
         for (String s : commonStatements) {
-            if (!s.contains("Mockito.when(") & !s.contains("Mockito.verify(") &
-                    !s.contains("Assertions.assert"))
+                if (!s.contains("Mockito.verify(") & !s.contains("Assertions.assert"))
                 blockWithStatementUnion.addStatement(factory.createCodeSnippetStatement(s));
         }
         // Add assertion statements in the end after some changes
@@ -151,12 +150,7 @@ public class MethodSequenceGenerator {
             if (nested.getInvocationTimestamp().equals(sortedTimestamps.get(i))) {
                 // Mockito.verify(mockField, times(n)).mockedMethod(param1, param2)
                 String declaringTypeToMock = MethodInvocationUtil.getDeclaringTypeFromInvocationFQN(nested.getInvocationFQN());
-                CtTypeReference mockFieldType;
-                try {
-                    mockFieldType = factory.createCtTypeReference(Class.forName(declaringTypeToMock));
-                } catch (ClassNotFoundException e) {
-                    mockFieldType = MockGeneratorUtil.findTypeFromModel(declaringTypeToMock).get(0);
-                }
+                CtTypeReference mockFieldType = MockGeneratorUtil.findOrCreateTypeReference(declaringTypeToMock);
                 String mockField = String.format("mock%s", mockFieldType.getSimpleName());
                 String mockedMethodWithParams = MethodInvocationUtil.getMethodWithParamsFromInvocationFQN(nested.getInvocationFQN());
                 String mockedMethod = MethodInvocationUtil.getMethodName(mockedMethodWithParams);
@@ -164,10 +158,11 @@ public class MethodSequenceGenerator {
                 List<CtExecutableReference<?>> paramExecutables =
                         MockGeneratorUtil.convertParamsToMockitoArgumentMatchers(params);
 
+                String mockitoTimes = times > 1 ? ", Mockito.times(" + times + ")" : "";
                 verificationStatements.put(key,
                         factory.createCodeSnippetStatement(
-                                String.format("orderVerifier.verify(%s, Mockito.times(%d)).%s(%s)",
-                                        mockField, times, mockedMethod,
+                                String.format("orderVerifier.verify(%s%s).%s(%s)",
+                                        mockField, mockitoTimes, mockedMethod,
                                         paramExecutables.toString().substring(1,
                                                 paramExecutables.toString().lastIndexOf(']')))));
             }

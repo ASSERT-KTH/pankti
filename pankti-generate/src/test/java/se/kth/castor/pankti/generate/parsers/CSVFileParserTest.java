@@ -116,7 +116,7 @@ public class CSVFileParserTest {
         assertEquals("SetGraphicsStateParameters",
                 MethodInvocationUtil.getDeclaringTypeSimpleNameFromFQN(first.getObjectType(
                         first.getReceivingObject())));
-        assertEquals("032df387-1293-4900-8a3b-d3cb68e6203b", first.getUUID());
+        assertEquals("032df387129349008a3bd3cb68e6203b", first.getUUID());
         assertEquals(0, first.getNestedSerializedObjects().size());
     }
 

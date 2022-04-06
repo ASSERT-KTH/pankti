@@ -497,10 +497,22 @@ public class TestGenerator {
         return generatedMethod;
     }
 
-    public void generateMockMethod(InstrumentedMethod instrumentedMethod,
-                                   SerializedObject serializedObject,
-                                   CtMethod<?> mockMethod,
-                                   CtClass<?> generatedClass) throws ClassNotFoundException {
+    /**
+     * We generate three categories of tests for each invocation:
+     * <p>Output oracle (OO): Stubbing non-void mockable(s) + assert the output of the MUT</p>
+     * <p>Parameter oracle (PO): Stub non-void mockable(s) + verify parameters of mockables</p>
+     * <p>Call oracle (CO): Stub non-void mockable(s) + verify sequence and frequency of mockables</p>
+     *
+     * @param instrumentedMethod
+     * @param serializedObject
+     * @param mockMethod
+     * @param generatedClass
+     * @throws ClassNotFoundException
+     */
+    public void generateMockMethods(InstrumentedMethod instrumentedMethod,
+                                    SerializedObject serializedObject,
+                                    CtMethod<?> mockMethod,
+                                    CtClass<?> generatedClass) throws ClassNotFoundException {
         // If mocks can be used to test this method
         if (instrumentedMethod.hasMockableInvocations()) {
             MockGenerator mockGenerator = new MockGenerator(factory);
@@ -511,35 +523,47 @@ public class TestGenerator {
                 mockGenerator.addAnnotationToGeneratedClass(generatedClass);
 
             // Add @Mock, @InjectMocks fields, generate tests that use mocks
-            Set<CtMethod<?>> generatedTestsWithMocks = mockGenerator.generateMockInfrastructure(
-                    mockMethod, serializedObject, generatedClass, instrumentedMethod);
+            Set<CtMethod<?>> generatedTestsWithMocks = new LinkedHashSet<>();
 
-            Set<CtMethod<?>> testsWithStubsAndAssertions = mockGenerator.generateTestsWithStubsAndAssertions(generatedTestsWithMocks);
-            testsWithStubsAndAssertions.forEach(generatedClass::addMethod);
+            // Test - OO
+            if (!instrumentedMethod.getReturnType().equals("void") &
+                    MockGeneratorUtil.arePrimitiveOrString(List.of(instrumentedMethod.getReturnType()))) {
+                CtMethod<?> testOO = mockGenerator.generateTestByCategory("OO", mockMethod, serializedObject, generatedClass, instrumentedMethod);
+                generatedClass.addMethod(testOO);
+                generatedTestsWithMocks.add(testOO);
+                System.out.println("Generated 1 OO test for " + instrumentedMethod.getFullMethodPath());
+            }
 
-            int numberOfTestsWithMocksGenerated = generatedTestsWithMocks.size() + testsWithStubsAndAssertions.size();
-            System.out.println("Generated " + numberOfTestsWithMocksGenerated + " test(s) with mocks");
-            numberOfTestCasesWithMocksGenerated += numberOfTestsWithMocksGenerated;
+            // Test - PO
+            CtMethod<?> testPO = mockGenerator.generateTestByCategory("PO", mockMethod, serializedObject, generatedClass, instrumentedMethod);
+            generatedClass.addMethod(testPO);
+            generatedTestsWithMocks.add(testPO);
+            System.out.println("Generated 1 PO test for " + instrumentedMethod.getFullMethodPath());
 
             String uuid = serializedObject.getUUID().replace("-", "");
 
-            // Generate test to verify sequence of method invocations within each method invocation
-            if (generatedClass.getMethodsByName("testVerifyMethodSeq_" + uuid).size() == 0 &
+            // Test - CO
+            String methodNameCO = String.format("test_%s_CO_%s", instrumentedMethod.getMethodName(), uuid);
+            if (generatedClass.getMethodsByName(methodNameCO).size() == 0 &
                     serializedObject.getNestedSerializedObjects().size() > 0) {
                 MethodSequenceGenerator sequenceGenerator = new MethodSequenceGenerator(factory);
-                CtMethod<?> seqMethod = sequenceGenerator.generateTestToVerifyMethodSequence(generatedTestsWithMocks, serializedObject);
-                seqMethod.setSimpleName("testVerifyMethodSeq_" + uuid);
-                seqMethod.addAnnotation(testAnnotation);
-                generatedClass.addMethod(seqMethod);
-                numberOfTestCasesWithMocksGenerated++;
-                System.out.println("Generated 1 test to verify sequence of nested method calls within " + instrumentedMethod.getFullMethodPath());
+                CtMethod<?> testCO = sequenceGenerator.generateTestToVerifyMethodSequence(Set.of(testPO), serializedObject);
+                testCO.setSimpleName(methodNameCO);
+                testCO.addAnnotation(testAnnotation);
+                generatedClass.addMethod(testCO);
+                generatedTestsWithMocks.add(testCO);
+                System.out.println("Generated 1 CO test for " + instrumentedMethod.getFullMethodPath());
             }
 
+            numberOfTestCasesWithMocksGenerated += generatedTestsWithMocks.size();
+
+            // Add comments
             for (CtMethod<?> generatedTestWithMock : generatedTestsWithMocks) {
+                generatedTestWithMock.getBody().getStatement(0).addComment(factory.createInlineComment("Arrange"));
                 int indexWithCall = MockGeneratorUtil.findIndexOfStatementWithInvocationOnReceivingObject(generatedTestWithMock);
                 generatedTestWithMock.getBody().getStatement(indexWithCall).addComment(factory.createInlineComment("Act"));
-                generatedTestWithMock.getBody().getStatement(0).addComment(factory.createInlineComment("Arrange"));
-                generatedTestWithMock.getBody().getLastStatement().addComment(factory.createInlineComment("Assert"));
+                int indexWithOracle = MockGeneratorUtil.findIndexOfStatementWithAssertionOrVerification(generatedTestWithMock);
+                generatedTestWithMock.getBody().getStatement(indexWithOracle).addComment(factory.createInlineComment("Assert"));
                 generatedClass.addMethod(generatedTestWithMock);
             }
         }
@@ -577,9 +601,9 @@ public class TestGenerator {
                 if (!generateMocks)
                     generatedClass.addMethod(generatedMethod);
                 // If mocks can be used to test this method
-                if (generateMocks) {
+                if (generateMocks & serializedObject.getNestedSerializedObjects().size() > 0) {
                     CtMethod<?> baseMethod = generatedMethod.clone();
-                    generateMockMethod(instrumentedMethod, serializedObject, baseMethod, generatedClass);
+                    generateMockMethods(instrumentedMethod, serializedObject, baseMethod, generatedClass);
                 }
                 methodCounter++;
             }
