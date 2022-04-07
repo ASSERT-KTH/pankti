@@ -158,11 +158,10 @@ public class MethodSequenceGenerator {
                 List<CtExecutableReference<?>> paramExecutables =
                         MockGeneratorUtil.convertParamsToMockitoArgumentMatchers(params);
 
-                String mockitoTimes = times > 1 ? ", Mockito.times(" + times + ")" : "";
                 verificationStatements.put(key,
                         factory.createCodeSnippetStatement(
-                                String.format("orderVerifier.verify(%s%s).%s(%s)",
-                                        mockField, mockitoTimes, mockedMethod,
+                                String.format("orderVerifier.verify(%s, Mockito.times(%d)).%s(%s)",
+                                        mockField, times, mockedMethod,
                                         paramExecutables.toString().substring(1,
                                                 paramExecutables.toString().lastIndexOf(']')))));
             }
