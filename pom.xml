@@ -11,6 +11,7 @@
       <module>pankti-extract</module>
       <module>pankti-generate</module>
       <module>pankti-instrument</module>
+      <module>rick</module>
    </modules>
    <packaging>pom</packaging>
 
@@ -25,6 +26,7 @@
       <maven.javadoc.plugin.version>3.2.0</maven.javadoc.plugin.version>
       <maven.checkstyle.plugin.version>3.1.2</maven.checkstyle.plugin.version>
       <puppycrawl.checkstyle.version>8.40</puppycrawl.checkstyle.version>
+      <clover.version>4.4.1</clover.version>
    </properties>
 
    <dependencies>
@@ -45,6 +47,12 @@
          <artifactId>junit-jupiter-params</artifactId>
          <version>${junit.jupiter.params.version}</version>
          <scope>test</scope>
+      </dependency>
+      <dependency>
+         <groupId>org.openclover</groupId>
+         <artifactId>clover-maven-plugin</artifactId>
+         <version>${clover.version}</version>
+         <type>maven-plugin</type>
       </dependency>
    </dependencies>
 
@@ -93,6 +101,11 @@
                      <version>${puppycrawl.checkstyle.version}</version>
                   </dependency>
                </dependencies>
+            </plugin>
+            <plugin>
+               <groupId>org.openclover</groupId>
+               <artifactId>clover-maven-plugin</artifactId>
+               <version>${clover.version}</version>
             </plugin>
          </plugins>
       </pluginManagement>

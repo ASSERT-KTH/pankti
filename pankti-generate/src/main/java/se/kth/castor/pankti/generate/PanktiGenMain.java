@@ -43,15 +43,12 @@ public class PanktiGenMain implements Callable<Integer> {
     private TestFormat testFormat;
 
     @CommandLine.Option(
-            names = {"-r", "--rick"},
-            description = "Generate tests with mocks")
-    private boolean generateMocks;
-
-    @CommandLine.Option(
             names = {"-h", "--help"},
             description = "Display help/usage.",
             usageHelp = true)
     private boolean usageHelpRequested;
+
+    private boolean generateMocks;
 
     public PanktiGenMain() {}
 
@@ -75,6 +72,8 @@ public class PanktiGenMain implements Callable<Integer> {
         }
         final String path = this.projectPath.toString();
         final String name = this.projectPath.getFileName().toString();
+        testFormat = testFormat == null ? TestFormat.xml : testFormat;
+
         PanktiGenLauncher panktiGenLauncher = new PanktiGenLauncher();
         MavenLauncher launcher = panktiGenLauncher.getMavenLauncher(path, name);
         SpoonPom projectPom = launcher.getPomFile();
