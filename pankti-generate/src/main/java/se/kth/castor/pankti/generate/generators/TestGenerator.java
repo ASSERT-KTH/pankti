@@ -31,6 +31,8 @@ public class TestGenerator {
     private static final String JAVA_UTIL_ARRAYS_REFERENCE = "java.util.Arrays";
     private static final String JAVA_UTIL_SCANNER_REFERENCE = "java.util.Scanner";
     private static final String JAVA_IO_FILE_REFERENCE = "java.io.File";
+    private static final String serializedObjectSourcedFromString = "String";
+    private static final String serializedObjectSourcedFromFile = "File";
 
     private static final String TEST_CLASS_PREFIX = "Test";
     private static final String TEST_CLASS_POSTFIX = "PanktiGen";
@@ -120,18 +122,18 @@ public class TestGenerator {
     public List<CtMethod<?>> addDeserializationMethodsToTestClass() {
         List<CtMethod<?>> deserializationMethods = new ArrayList<>();
 
-        CtMethod<?> deserializeObjectFromString = testGenUtil.generateDeserializationMethod(factory);
-        CtParameter<?> parameter1 = factory.createParameter();
-        parameter1.setType(factory.createCtTypeReference(String.class));
-        parameter1.setSimpleName("serializedObjectString");
-        deserializeObjectFromString.setParameters(Collections.singletonList(parameter1));
+        CtMethod<?> deserializeObjectFromString = testGenUtil.generateDeserializationMethod(factory, serializedObjectSourcedFromString);
+        CtParameter<?> parameterWithSerializedString = factory.createParameter();
+        parameterWithSerializedString.setType(factory.createCtTypeReference(String.class));
+        parameterWithSerializedString.setSimpleName("serializedObjectString");
+        deserializeObjectFromString.setParameters(Collections.singletonList(parameterWithSerializedString));
 
-        CtMethod<?> deserializeObjectFromFile = testGenUtil.generateDeserializationMethod(factory);
+        CtMethod<?> deserializeObjectFromFile = testGenUtil.generateDeserializationMethod(factory, serializedObjectSourcedFromFile);
         deserializeObjectFromFile.addThrownType(factory.createCtTypeReference(Exception.class));
-        CtParameter<?> parameter2 = factory.createParameter();
-        parameter2.setType(factory.createCtTypeReference(File.class));
-        parameter2.setSimpleName("serializedObjectFile");
-        deserializeObjectFromFile.setParameters(Collections.singletonList(parameter2));
+        CtParameter<?> parameterWithSerializedFilePath = factory.createParameter();
+        parameterWithSerializedFilePath.setType(factory.createCtTypeReference(String.class));
+        parameterWithSerializedFilePath.setSimpleName("serializedObjectFilePath");
+        deserializeObjectFromFile.setParameters(Collections.singletonList(parameterWithSerializedFilePath));
         CtBlock<?> methodBody = deserializeObjectFromFile.getBody();
         methodBody.insertBegin(testGenUtil.addAndReadFromScannerInDeserializationMethod(factory));
         deserializeObjectFromFile.setBody(methodBody);
@@ -253,31 +255,20 @@ public class TestGenerator {
         return assertionStatements;
     }
 
-    public CtStatement parseReceivingObjectFromFileOrString(String receivingObjectType, String fileOrString) {
+    public CtStatement parseSerializedObjectFromFilePathOrString(String serializedObjectSource,
+                                                                 String serializedObjectType,
+                                                                 String serializedObjectVariable,
+                                                                 String filePathOrStringVariable) {
+        String deserializationMethodName = String.format("deserializeObjectFrom%s", serializedObjectSource);
+        if (serializedObjectSource.equals(serializedObjectSourcedFromFile))
+            filePathOrStringVariable = "\"" + filePathOrStringVariable + "\"";
         return factory.createCodeSnippetStatement(String.format(
-                "%s receivingObject = deserializeObject(%s)",
-                receivingObjectType,
-                fileOrString));
-    }
-
-    public CtStatement parseReceivingObjectPostFromFileOrString(String receivingObjectType, String fileOrString) {
-        return factory.createCodeSnippetStatement(String.format(
-                "%s receivingObjectPost = deserializeObject(%s)",
-                receivingObjectType,
-                fileOrString));
-    }
-
-    public CtStatement parseReturnedObjectFromFileOrString(String returnedObjectType, String fileOrString) {
-        return factory.createCodeSnippetStatement(String.format(
-                "%s expectedObject = deserializeObject(%s)",
-                returnedObjectType,
-                fileOrString));
-    }
-
-    public CtStatement parseParamObjectsFromFileOrString(String fileOrString) {
-        return factory.createCodeSnippetStatement(String.format(
-                "Object[] paramObjects = deserializeObject(%s)",
-                fileOrString));
+                "%s %s = %s(%s)",
+                serializedObjectType,
+                serializedObjectVariable,
+                deserializationMethodName,
+                filePathOrStringVariable
+        ));
     }
 
     public List<CtStatement> addAndParseMethodParams(String paramsObjectStr, CtMethod<?> method) {
@@ -285,7 +276,9 @@ public class TestGenerator {
         if (paramsObjectStr.length() <= 10000) {
             CtStatement paramsXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "paramsObjectStr", paramsObjectStr);
             paramStatements.add(paramsXMLStringDeclaration);
-            CtStatement parseParamObjectsFromString = parseParamObjectsFromFileOrString("paramsObjectStr");
+            CtStatement parseParamObjectsFromString = parseSerializedObjectFromFilePathOrString(
+                    serializedObjectSourcedFromString, "Object[]", "paramObjects",
+                    "paramsObjectStr");
             paramStatements.add(parseParamObjectsFromString);
         }
 
@@ -353,24 +346,22 @@ public class TestGenerator {
         List<CtStatement> methodBody = new ArrayList<>();
         String postfix = "";
         if (instrumentedMethod.isOverloaded()) {
-            postfix = testGenUtil.getParamListPostFix(instrumentedMethod.getParamList());
+            postfix = TestGeneratorUtil.getParamListPostFix(instrumentedMethod.getParamList());
         }
         String methodIdentifier = instrumentedMethod.getFullMethodPath() + postfix + methodCounter;
-        if (receivingObjectStr.length() > 10000 || returnedObjectStr.length() > 10000 || receivingObjectPostStr.length() > 10000 || paramsObjectStr.length() > 10000) {
-            CtStatement classLoaderDeclaration = testGenUtil.addClassLoaderVariableToTestMethod(factory);
-            methodBody.add(classLoaderDeclaration);
-        }
 
         if (receivingObjectStr.length() > 10000) {
             String type = "receiving";
             String fileName = testGenUtil.createLongObjectStringFile(methodIdentifier, type, receivingObjectStr);
-            CtStatement fileVariableDeclaration = testGenUtil.addFileVariableToTestMethod(factory, fileName, type);
-            CtStatement parseReceivingObjectFromFile = parseReceivingObjectFromFileOrString(receivingObjectType, "file" + testGenUtil.getObjectProfileType(type));
-            methodBody.add(fileVariableDeclaration);
+            CtStatement parseReceivingObjectFromFile = parseSerializedObjectFromFilePathOrString(
+                    serializedObjectSourcedFromFile, receivingObjectType, "receivingObject",
+                    fileName);
             methodBody.add(parseReceivingObjectFromFile);
         } else {
             CtStatement receivingXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "receivingObjectStr", receivingObjectStr);
-            CtStatement parseReceivingObjectFromString = parseReceivingObjectFromFileOrString(receivingObjectType, "receivingObjectStr");
+            CtStatement parseReceivingObjectFromString = parseSerializedObjectFromFilePathOrString(
+                    serializedObjectSourcedFromString, receivingObjectType, "receivingObject",
+                    "receivingObjectStr");
             methodBody.add(receivingXMLStringDeclaration);
             methodBody.add(parseReceivingObjectFromString);
         }
@@ -379,13 +370,15 @@ public class TestGenerator {
             if (receivingObjectPostStr.length() > 10000) {
                 String type = "receivingpost";
                 String fileName = testGenUtil.createLongObjectStringFile(methodIdentifier, type, receivingObjectPostStr);
-                CtStatement fileVariableDeclaration = testGenUtil.addFileVariableToTestMethod(factory, fileName, type);
-                CtStatement parseReceivingPostObjectPostFromFile = parseReceivingObjectPostFromFileOrString(receivingObjectType, "file" + testGenUtil.getObjectProfileType(type));
-                methodBody.add(fileVariableDeclaration);
-                methodBody.add(parseReceivingPostObjectPostFromFile);
+                CtStatement parseReceivingPostObjectFromFile = parseSerializedObjectFromFilePathOrString(
+                        serializedObjectSourcedFromFile, receivingObjectType, "receivingObjectPost",
+                        fileName);
+                methodBody.add(parseReceivingPostObjectFromFile);
             } else {
                 CtStatement receivingPostXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "receivingPostObjectStr", receivingObjectPostStr);
-                CtStatement parseReceivingPostObjectFromString = parseReceivingObjectPostFromFileOrString(receivingObjectType, "receivingPostObjectStr");
+                CtStatement parseReceivingPostObjectFromString = parseSerializedObjectFromFilePathOrString(
+                        serializedObjectSourcedFromString, receivingObjectType, "receivingObjectPost",
+                        "receivingPostObjectStr");
                 methodBody.add(receivingPostXMLStringDeclaration);
                 methodBody.add(parseReceivingPostObjectFromString);
             }
@@ -393,15 +386,17 @@ public class TestGenerator {
             if (returnedObjectStr.length() > 10000) {
                 String type = "returned";
                 String fileName = testGenUtil.createLongObjectStringFile(methodIdentifier, type, returnedObjectStr);
-                CtStatement fileVariableDeclaration = testGenUtil.addFileVariableToTestMethod(factory, fileName, type);
-                CtStatement parseReturnedObjectFromFile = parseReturnedObjectFromFileOrString(returnedObjectType, "file" + testGenUtil.getObjectProfileType(type));
-                methodBody.add(fileVariableDeclaration);
+                CtStatement parseReturnedObjectFromFile = parseSerializedObjectFromFilePathOrString(
+                        serializedObjectSourcedFromFile, returnedObjectType, "expectedObject",
+                        fileName);
                 methodBody.add(parseReturnedObjectFromFile);
             } else {
                 if (!method.getType().isPrimitive() & !testGenUtil.returnedObjectIsNull(returnedObjectStr)) {
                     CtStatement returnedXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "returnedObjectStr", returnedObjectStr);
                     methodBody.add(returnedXMLStringDeclaration);
-                    CtStatement parseReturnedObjectFromString = parseReturnedObjectFromFileOrString(returnedObjectType, "returnedObjectStr");
+                    CtStatement parseReturnedObjectFromString = parseSerializedObjectFromFilePathOrString(
+                            serializedObjectSourcedFromString, returnedObjectType, "expectedObject",
+                            "returnedObjectStr");
                     methodBody.add(parseReturnedObjectFromString);
                 }
             }
@@ -411,9 +406,9 @@ public class TestGenerator {
             if (paramsObjectStr.length() > 10000) {
                 String type = "params";
                 String fileName = testGenUtil.createLongObjectStringFile(methodIdentifier, type, paramsObjectStr);
-                CtStatement fileVariableDeclaration = testGenUtil.addFileVariableToTestMethod(factory, fileName, type);
-                CtStatement parseParamObjectsFromFile = parseParamObjectsFromFileOrString("file" + testGenUtil.getObjectProfileType(type));
-                methodBody.add(fileVariableDeclaration);
+                CtStatement parseParamObjectsFromFile = parseSerializedObjectFromFilePathOrString(
+                        serializedObjectSourcedFromFile, "Object[]", "paramObjects",
+                        fileName);
                 methodBody.add(parseParamObjectsFromFile);
             }
             if (!testGenUtil.allMethodParametersArePrimitive(method)) {
@@ -454,7 +449,9 @@ public class TestGenerator {
         CtMethod<?> generatedMethod = factory.createMethod();
         String postfix = "";
         if (instrumentedMethod.isOverloaded()) {
-            postfix = testGenUtil.getParamListPostFix(instrumentedMethod.getParamList()).replaceAll("[.,]", "_");
+            postfix = TestGeneratorUtil.getParamListPostFix(instrumentedMethod.getParamList())
+                    .replaceAll("\\[]", "_arr")
+                    .replaceAll("[.,]", "_");
         }
         generatedMethod.setSimpleName("test" + method.getSimpleName().substring(0, 1).toUpperCase() + method.getSimpleName().substring(1) + postfix + methodCounter);
         generatedMethod.addAnnotation(testAnnotation);
@@ -543,7 +540,13 @@ public class TestGenerator {
             String uuid = serializedObject.getUUID().replace("-", "");
 
             // Test - CO
-            String methodNameCO = String.format("test_%s_CO_%s", instrumentedMethod.getMethodName(), uuid);
+            String postfix = "";
+            if (instrumentedMethod.isOverloaded()) {
+                postfix = TestGeneratorUtil.getParamListPostFix(instrumentedMethod.getParamList())
+                        .replaceAll("\\[]", "_arr")
+                        .replaceAll("[.,]", "_");
+            }
+            String methodNameCO = String.format("test_%s%s_CO_%s", instrumentedMethod.getMethodName(), postfix, uuid);
             if (generatedClass.getMethodsByName(methodNameCO).size() == 0 &
                     serializedObject.getNestedSerializedObjects().size() > 0) {
                 MethodSequenceGenerator sequenceGenerator = new MethodSequenceGenerator(factory);
@@ -558,12 +561,17 @@ public class TestGenerator {
             numberOfTestCasesWithMocksGenerated += generatedTestsWithMocks.size();
 
             // Add comments
+            CtComment arrangeComment = factory.createInlineComment("Arrange");
+            CtComment actComment = factory.createInlineComment("Act");
+            CtComment assertComment = factory.createInlineComment("Assert");
+
             for (CtMethod<?> generatedTestWithMock : generatedTestsWithMocks) {
-                generatedTestWithMock.getBody().getStatement(0).addComment(factory.createInlineComment("Arrange"));
+                if (!generatedTestWithMock.getBody().getStatement(0).getComments().contains(arrangeComment))
+                    generatedTestWithMock.getBody().getStatement(0).addComment(arrangeComment);
                 int indexWithCall = MockGeneratorUtil.findIndexOfStatementWithInvocationOnReceivingObject(generatedTestWithMock);
-                generatedTestWithMock.getBody().getStatement(indexWithCall).addComment(factory.createInlineComment("Act"));
+                generatedTestWithMock.getBody().getStatement(indexWithCall).addComment(actComment);
                 int indexWithOracle = MockGeneratorUtil.findIndexOfStatementWithAssertionOrVerification(generatedTestWithMock);
-                generatedTestWithMock.getBody().getStatement(indexWithOracle).addComment(factory.createInlineComment("Assert"));
+                generatedTestWithMock.getBody().getStatement(indexWithOracle).addComment(assertComment);
                 generatedClass.addMethod(generatedTestWithMock);
             }
         }

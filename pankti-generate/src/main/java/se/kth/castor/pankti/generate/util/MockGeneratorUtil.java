@@ -6,6 +6,7 @@ import spoon.reflect.declaration.*;
 import spoon.reflect.factory.Factory;
 import spoon.reflect.reference.CtExecutableReference;
 import spoon.reflect.reference.CtTypeReference;
+import spoon.support.reflect.code.CtInvocationImpl;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -140,12 +141,10 @@ public class MockGeneratorUtil {
 
         CtBlock<?> methodBody = factory.createBlock();
         for (int i = 0; i < statements.size(); i++) {
-            if (!statements.get(i).toString().contains("getClass().getClassLoader()") &
-                    !statements.get(i).toString().contains("returnedObjectStr") &
-                    !statements.get(i).toString().contains("fileReturned") &
-                    !statements.get(i).toString().contains("receivingPostObjectStr =") &
-                    !statements.get(i).toString().contains("= deserializeObject(receivingPostObjectStr)") &
-                    !statements.get(i).toString().contains("fileReceivingpost"))
+            if (!statements.get(i).toString().contains("returnedObjectStr") &
+                    !statements.get(i).toString().contains("expectedObject = deserializeObjectFrom") &
+                    !statements.get(i).toString().contains("receivingPostObjectStr") &
+                    !statements.get(i).toString().contains("receivingObjectPost ="))
                 statementsToRetain.add(statements.get(i));
         }
 
@@ -165,6 +164,20 @@ public class MockGeneratorUtil {
             updatedBaseMethod.getBody().addStatement(updatedForNonPrimitiveReturn);
         }
         return updatedBaseMethod;
+    }
+
+    public static List<CtStatement> refactorAssertionStatementIntoActAndAssertion(String returnTypeMUT,
+                                                                                  CtStatement mutCallStatement) {
+        List<CtStatement> actAndAssertStatements = new ArrayList<>();
+        String action = mutCallStatement.toString().replaceAll("(.+)(receivingObject.+\\))\\)", "$2");
+        actAndAssertStatements.add(factory.createCodeSnippetStatement(String.format(
+                "%s expectedObject = %s",
+                returnTypeMUT, action)));
+        actAndAssertStatements.add(factory.createCodeSnippetStatement(
+                mutCallStatement.toString()
+                        .replaceAll("(.+)(receivingObject\\..+\\))\\)", "$1expectedObject)")
+        ));
+        return actAndAssertStatements;
     }
 
     /**
@@ -324,7 +337,7 @@ public class MockGeneratorUtil {
                     "nestedInvocationMode='",
                     "',nestedInvocationReturnType",
                     invocation);
-             modes.add(mode);
+            modes.add(mode);
         }
         return modes;
     }

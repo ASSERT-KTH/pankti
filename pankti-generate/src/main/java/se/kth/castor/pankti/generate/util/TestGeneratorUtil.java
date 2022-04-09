@@ -31,8 +31,8 @@ public class TestGeneratorUtil {
     public static Launcher launcher;
     public static String testFormat = "xml";
 
-    public CtMethod<?> generateDeserializationMethod(Factory factory) {
-        String methodName = "deserializeObject";
+    public CtMethod<?> generateDeserializationMethod(Factory factory, String serializedObjectSource) {
+        String methodName = String.format("deserializeObjectFrom%s", serializedObjectSource);
         CtTypeParameter typeParameter = factory.createTypeParameter().setSimpleName("T");
         CtTypeReference typeReference = factory.createCtTypeReference(Object.class).setSimpleName("T");
         CtMethod<?> deserializationMethod = factory.createMethod().setSimpleName(methodName);
@@ -95,6 +95,17 @@ public class TestGeneratorUtil {
         );
     }
 
+    public CtLocalVariable<?> addFileVariableToDeserializationMethod(Factory factory) {
+        CtExpression<String> fileVariableExpression = factory.createCodeSnippetExpression(
+                "new File(classLoader.getResource(serializedObjectFilePath).getFile())"
+        );
+        CtLocalVariable<?> fileVariable = factory.createLocalVariable(
+                factory.createCtTypeReference(File.class),
+                "serializedObjectFile",
+                fileVariableExpression);
+        return fileVariable;
+    }
+
     public CtStatement addFileVariableToTestMethod(Factory factory, String fileName, String type) {
         type = getObjectProfileType(type);
         String fileVariableName = "file" + type;
@@ -112,6 +123,10 @@ public class TestGeneratorUtil {
 
     public CtStatementList addAndReadFromScannerInDeserializationMethod(Factory factory) {
         CtStatementList scanningStatements = factory.createStatementList();
+        // ClassLoader classLoader = getClass().getClassLoader();
+        scanningStatements.addStatement(addClassLoaderVariableToTestMethod(factory));
+        // File serializedObjectFile = new File(classLoader.getResource(serializedObjectFilePath).getFile());
+        scanningStatements.addStatement(addFileVariableToDeserializationMethod(factory));
         String scannerVariableName = "scanner";
         String objectStringVariable = "serializedObjectString";
         // Create scanner
@@ -190,7 +205,7 @@ public class TestGeneratorUtil {
     }
 
     // Gets method param list as _param1,param2,param3
-    public String getParamListPostFix(List<String> paramList) {
+    public static String getParamListPostFix(List<String> paramList) {
         if (paramList.size() == 0)
             return "";
         return (paramList.size() == 1 & paramList.get(0).isEmpty())

@@ -5,6 +5,7 @@ import se.kth.castor.pankti.generate.util.MethodInvocationUtil;
 import se.kth.castor.pankti.generate.data.NestedInvocation;
 import se.kth.castor.pankti.generate.data.SerializedObject;
 import se.kth.castor.pankti.generate.util.MockGeneratorUtil;
+import se.kth.castor.pankti.generate.util.TestGeneratorUtil;
 import spoon.reflect.code.*;
 import spoon.reflect.declaration.CtAnnotation;
 import spoon.reflect.declaration.CtClass;
@@ -220,7 +221,15 @@ public class MockGenerator {
                 targetMUT.getReturnType().equals("void"),
                 false);
 
-        generatedTest.setSimpleName(String.format("test_%s_%s_%s", targetMUT.getMethodName(),
+        String postfix = "";
+        if (targetMUT.isOverloaded()) {
+            postfix = TestGeneratorUtil.getParamListPostFix(targetMUT.getParamList())
+                    .replaceAll("\\[]", "_arr")
+                    .replaceAll("[.,]", "_");
+        }
+
+        generatedTest.setSimpleName(String.format("test_%s%s_%s_%s", targetMUT.getMethodName(),
+                postfix,
                 testCategory, serializedObjectMUT.getUUID().replace("-", "")));
 
         CtStatement mutCallStatement = generatedTest.getBody().getLastStatement();
@@ -251,32 +260,25 @@ public class MockGenerator {
             }
         }
 
+        if (testCategory.equals("OO")) {
+            List<CtStatement> actAndAssertStatements = MockGeneratorUtil.refactorAssertionStatementIntoActAndAssertion(
+                    targetMUT.getReturnType(), mutCallStatement);
+            actAndAssertStatements.forEach(s -> generatedTest.getBody().addStatement(s));
+        }
+
         // remove assertion on MUT output for PO and CO tests
         if (!testCategory.equals("OO")) {
             mutCallStatement = factory.createCodeSnippetStatement(mutCallStatement.toString()
                     .replaceAll(".+\\(.+,\\s(receivingObject.+\\))\\)",
                             "$1"));
+            generatedTest.getBody().addStatement(mutCallStatement);
         }
-        generatedTest.getBody().addStatement(mutCallStatement);
 
         // For PO tests, add verification statements with concrete parameters
         if (testCategory.equals("PO")) {
             for (CtStatement statement : verificationStatementsPO) {
                 generatedTest.getBody().addStatement(statement);
             }
-        }
-
-        // Add classloader variable if reading xml from file(s)
-        CtStatement classLoaderVar = null;
-        List<CtStatement> statements = generatedTest.getBody().getStatements();
-        for (CtStatement statement : statements) {
-            if (statement.toString().contains("classLoader.getResource")) {
-                classLoaderVar = MockGeneratorUtil.delegateClassLoaderVariableCreation();
-                break;
-            }
-        }
-        if (classLoaderVar != null) {
-            generatedTest.getBody().insertBegin(classLoaderVar);
         }
 
         CtAnnotation<?> disabledAnnotation = factory.createAnnotation(

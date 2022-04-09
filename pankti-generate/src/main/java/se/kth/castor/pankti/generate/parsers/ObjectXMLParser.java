@@ -115,7 +115,7 @@ public class ObjectXMLParser {
         try {
             boolean hasParams = instrumentedMethod.hasParams();
             if (hasParams) {
-                postfix = util.getParamListPostFix(instrumentedMethod.getParamList());
+                postfix = TestGeneratorUtil.getParamListPostFix(instrumentedMethod.getParamList());
             }
 
             // Get objects from xxx-receiving.xml
@@ -164,7 +164,7 @@ public class ObjectXMLParser {
                     String mockedMethodWithParams = MethodInvocationUtil.getMethodWithParamsFromInvocationFQN(nestedInvocation.getInvocation());
                     String methodName = MethodInvocationUtil.getMethodName(mockedMethodWithParams);
                     List<String> params = MethodInvocationUtil.getMethodParams(mockedMethodWithParams);
-                    String nestedInvocationPostfix = util.getParamListPostFix(params);
+                    String nestedInvocationPostfix = TestGeneratorUtil.getParamListPostFix(params);
                     List<String> nestedParamObjects = new ArrayList<>();
                     List<String> nestedUuids = new ArrayList<>();
                     List<String> nestedReturnedObjects = new ArrayList<>();
