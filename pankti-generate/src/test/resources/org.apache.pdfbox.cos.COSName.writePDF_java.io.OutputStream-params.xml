@@ -1,0 +1,27 @@
+<object-array uuid="9f49beeb-d978-4611-a539-b87e2c1164b9">
+    <org.apache.pdfbox.pdfwriter.COSStandardOutputStream>
+        <out class="java.io.BufferedOutputStream">
+            <out class="java.io.FileOutputStream">
+                <fd>
+                    <fd>17</fd>
+                    <handle>-1</handle>
+                    <parent class="java.io.FileOutputStream" reference="../.."/>
+                    <closed>false</closed>
+                    <append>false</append>
+                    <cleanup class="java.io.FileCleanable"/>
+                </fd>
+                <path>./workload/000752-locked.pdf</path>
+                <closeLock/>
+                <closed>false</closed>
+            </out>
+            <closed>false</closed>
+            <closeLock/>
+            <buf>JVBERi0xLj=</buf>
+            <count>26</count>
+        </out>
+        <closed>false</closed>
+        <closeLock/>
+        <position>26</position>
+        <onNewLine>true</onNewLine>
+    </org.apache.pdfbox.pdfwriter.COSStandardOutputStream>
+</object-array>

@@ -29,8 +29,8 @@ public class CSVFileParserTest {
 
     @Test
     public void testThatInstrumentedMethodsAreFound() {
-        assertEquals(4, instrumentedMethods.size(),
-                "There are 4 instrumented methods in the invoked methods CSV file");
+        assertEquals(5, instrumentedMethods.size(),
+                "There are 5 instrumented methods in the invoked methods CSV file");
     }
 
     @Test
@@ -127,10 +127,5 @@ public class CSVFileParserTest {
         assertEquals(1, serializedObjects.size());
         SerializedObject first = (SerializedObject) serializedObjects.toArray()[0];
         assertEquals(0, first.getNestedSerializedObjects().size());
-    }
-
-    @Test
-    public void testThatNestedSerializedObjectsAreFoundIfTheyExistAndRickIsTrue() {
-        // TODO
     }
 }
