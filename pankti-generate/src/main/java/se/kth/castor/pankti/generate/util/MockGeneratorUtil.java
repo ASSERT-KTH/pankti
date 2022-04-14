@@ -171,11 +171,11 @@ public class MockGeneratorUtil {
         List<CtStatement> actAndAssertStatements = new ArrayList<>();
         String action = mutCallStatement.toString().replaceAll("(.+)(receivingObject.+\\))\\)", "$2");
         actAndAssertStatements.add(factory.createCodeSnippetStatement(String.format(
-                "%s expectedObject = %s",
+                "%s actual = %s",
                 returnTypeMUT, action)));
         actAndAssertStatements.add(factory.createCodeSnippetStatement(
                 mutCallStatement.toString()
-                        .replaceAll("(.+)(receivingObject\\..+\\))\\)", "$1expectedObject)")
+                        .replaceAll("(.+)(receivingObject\\..+\\))\\)", "$1actual)")
         ));
         return actAndAssertStatements;
     }

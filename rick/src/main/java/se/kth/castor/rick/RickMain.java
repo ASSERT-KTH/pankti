@@ -37,9 +37,10 @@ public class RickMain implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
+        boolean generateMocks = true;
         PanktiGenMain panktiGenMain = new PanktiGenMain(
                 projectPath, methodCSVFilePath, objectXMLDirectoryPath,
-                true, usageHelpRequested);
+                generateMocks, usageHelpRequested);
         panktiGenMain.call();
         return 0;
     }
