@@ -5,8 +5,9 @@ import org.apache.commons.csv.CSVPrinter;
 import se.kth.castor.pankti.extract.logging.CustomLogger;
 import se.kth.castor.pankti.extract.processors.CandidateTagger;
 import se.kth.castor.pankti.extract.processors.MethodProcessor;
+import se.kth.castor.pankti.extract.selector.MockableSelector;
+import se.kth.castor.pankti.extract.selector.NestedTarget;
 import se.kth.castor.pankti.extract.util.MethodUtil;
-import se.kth.castor.pankti.extract.util.NestedTarget;
 import spoon.JarLauncher;
 import spoon.Launcher;
 import spoon.MavenLauncher;
@@ -93,8 +94,8 @@ public class PanktiLauncher {
                     }
                 }
                 // Find nested method invocations that can be mocked
-                numberOfNestedInvocationsOnFieldsOrParameters += MethodUtil.getNumberOfNestedInvocations(method).size();
-                Set<NestedTarget> nestedMethodInvocations = MethodUtil.getNestedMethodInvocationSet(method);
+                numberOfNestedInvocationsOnFieldsOrParameters += MockableSelector.getNumberOfNestedInvocations(method).size();
+                Set<NestedTarget> nestedMethodInvocations = MockableSelector.getNestedMethodInvocationSet(method);
                 int methodLOC = method.getBody().getStatements().size();
                 boolean isMockable = !nestedMethodInvocations.isEmpty() && methodLOC > 1;
                 csvPrinter.printRecord(

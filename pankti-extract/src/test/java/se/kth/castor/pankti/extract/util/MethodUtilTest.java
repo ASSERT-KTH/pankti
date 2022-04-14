@@ -6,6 +6,8 @@ import se.kth.castor.pankti.extract.launchers.PanktiLauncher;
 import se.kth.castor.pankti.extract.processors.CandidateTagger;
 import se.kth.castor.pankti.extract.processors.MethodProcessor;
 import se.kth.castor.pankti.extract.runners.PanktiMain;
+import se.kth.castor.pankti.extract.selector.MockableSelector;
+import se.kth.castor.pankti.extract.selector.NestedTarget;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtMethod;
@@ -96,7 +98,7 @@ public class MethodUtilTest {
                 "#subPackage[name=org]#subPackage[name=jitsi]#subPackage[name=videobridge]#containedType[name=Conference]" +
                         "#method[signature=getDebugState(boolean,java.lang.String)]";
         CtMethod<?> method = findMethodByPath(methodPath);
-        assertEquals(0, MethodUtil.getNestedMethodInvocationSet(method).size(),
+        assertEquals(0, MockableSelector.getNestedMethodInvocationSet(method).size(),
                 String.format("%s has no nested method invocations that may be mocked",
                         method.getSignature()));
     }
@@ -123,10 +125,10 @@ public class MethodUtilTest {
                         "#method[signature=getTentacle()]";
         CtMethod<?> method1 = findMethodByPath(methodPath1);
         CtMethod<?> method2 = findMethodByPath(methodPath2);
-        assertEquals(1, MethodUtil.getNestedMethodInvocationSet(method1).size(),
+        assertEquals(1, MockableSelector.getNestedMethodInvocationSet(method1).size(),
                 String.format("%s has one nested method invocation that may be mocked",
                         method1.getSignature()));
-        assertEquals(0, MethodUtil.getNestedMethodInvocationSet(method2).size(),
+        assertEquals(0, MockableSelector.getNestedMethodInvocationSet(method2).size(),
                 String.format("%s has zero nested method invocations that may be mocked",
                         method2.getSignature()));
     }
@@ -134,7 +136,7 @@ public class MethodUtilTest {
     @Test
     public void testThatMethodsWithMockingCandidatesDoNotHaveNestedInvocationsOnJavaLibraryClassMethods() {
         for (CtMethod<?> thisMethod : allMethods) {
-            Set<NestedTarget> nestedTargets = MethodUtil.getNestedMethodInvocationSet(thisMethod);
+            Set<NestedTarget> nestedTargets = MockableSelector.getNestedMethodInvocationSet(thisMethod);
             for (NestedTarget nestedTarget : nestedTargets) {
                 String signature = nestedTarget.getNestedInvocationSignature();
                 String declaringTypeFQN = nestedTarget.getNestedInvocationDeclaringType();
@@ -151,7 +153,7 @@ public class MethodUtilTest {
     @Test
     public void testThatMockableMethodExecutableIsNotEqualsOrHashCode() {
         for (CtMethod<?> thisMethod : allMethods) {
-            Set<NestedTarget> nestedTargets = MethodUtil.getNestedMethodInvocationSet(thisMethod);
+            Set<NestedTarget> nestedTargets = MockableSelector.getNestedMethodInvocationSet(thisMethod);
             for (NestedTarget nestedTarget : nestedTargets) {
                 String signature = nestedTarget.getNestedInvocationSignature();
                 String executable = nestedTarget.getNestedInvocationMethod();
@@ -168,7 +170,7 @@ public class MethodUtilTest {
     @Test
     public void testThatMethodsWithMockingCandidatesAreNotDeclaredInAnAbstractClass() {
         for (CtMethod<?> method : allMethods) {
-            if (!MethodUtil.findNestedMethodCallsOnFields(method).isEmpty()) {
+            if (!MockableSelector.findNestedMethodCallsOnFields(method).isEmpty()) {
                 assertFalse(method.getDeclaringType().getModifiers().contains(ModifierKind.ABSTRACT),
                         String.format("The declaring type for %s should not be an abstract class to allow mock injections",
                                 method.getSignature()));
