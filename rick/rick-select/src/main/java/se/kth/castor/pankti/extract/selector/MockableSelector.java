@@ -1,5 +1,7 @@
 package se.kth.castor.pankti.extract.selector;
 
+import se.kth.castor.pankti.extract.reporter.MockableCategory;
+import se.kth.castor.pankti.extract.reporter.NestedMethodAnalysis;
 import spoon.reflect.code.CtInvocation;
 import spoon.reflect.code.CtLocalVariable;
 import spoon.reflect.declaration.*;
@@ -12,6 +14,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class MockableSelector {
+    public static boolean generateReport = false;
+    static NestedMethodAnalysis reportGenerator = new NestedMethodAnalysis();
 
     /**
      * Finds the number of nested invocations made on parameters of a target method
@@ -69,6 +73,93 @@ public class MockableSelector {
      */
     private static CtTypeReference<?> getDeclaringType(final CtExecutableReference<?> executable) {
         return executable.getDeclaringType();
+    }
+
+    public static void addToReport(CtMethod<?> outerMethod) {
+        List<CtInvocation<?>> invocationList = outerMethod.getElements(new TypeFilter<>(CtInvocation.class));
+
+        List<CtParameter<?>> parameters = outerMethod.getParameters().stream()
+                .filter(p -> !p.getType().isPrimitive())
+                .collect(Collectors.toList());
+
+        for (CtInvocation<?> invocation : invocationList) {
+            boolean invocationIsOnField = isNestedInvocationOnFieldMockable(outerMethod, invocation);
+            boolean invocationIsOnParameter = false;
+            if (!invocationIsOnField) {
+                invocationIsOnParameter = isInvocationTargetAnExternalParameter(
+                        outerMethod, invocation, parameters);
+            }
+            boolean invocationIsOnFieldOrParam = invocationIsOnField || invocationIsOnParameter;
+            CtExecutableReference<?> executable = getExecutable(invocation);
+            CtTypeReference<?> returnType = executable.getType();
+            if (returnType == null & executable.getDeclaringType() != null) {
+                if (executable.getDeclaringType().isInterface())
+                    if (executable.getExecutableDeclaration().getType() != null)
+                        returnType = executable.getExecutableDeclaration().getType();
+            }
+            boolean returnsPrimitive = returnType != null && returnType.isPrimitive();
+            boolean hasPrimitiveParams = areNestedInvocationParamsPrimitive(invocation);
+            int loc = getExecutableLOC(executable);
+            boolean isExecutableNonStatic = !executable.isStatic();
+
+            MockableCategory category = findCategory(outerMethod, executable);
+
+            reportGenerator.generateMockabilityReport(
+                    outerMethod.getDeclaringType().getQualifiedName() + "." + outerMethod.getSignature(),
+                    outerMethod.getBody().getStatements().size(),
+                    invocation.toString(),
+                    invocationIsOnFieldOrParam, returnsPrimitive, hasPrimitiveParams, loc, isExecutableNonStatic,
+                    category);
+        }
+    }
+
+    private static MockableCategory findCategory(CtMethod<?> outerMethod, CtExecutableReference<?> executable) {
+        CtType<?> outerMethodDeclaringType = outerMethod.getDeclaringType();
+        while (outerMethodDeclaringType.getQualifiedName().contains("$")) {
+            outerMethodDeclaringType = outerMethodDeclaringType.getDeclaringType();
+        }
+        String mutPackage = findTopLevelPackage(outerMethodDeclaringType.getPackage());
+
+        CtTypeReference<?> mockableDeclaringType = executable.getDeclaringType();
+
+        // this can happen if executable is something like toString
+        if (mockableDeclaringType == null)
+            return MockableCategory.NA;
+
+        while (mockableDeclaringType.getQualifiedName().contains("$")) {
+            mockableDeclaringType = mockableDeclaringType.getDeclaringType();
+        }
+
+        String mockablePackage = "";
+
+        if (mockableDeclaringType.getQualifiedName().startsWith("java"))
+            mockablePackage = mockableDeclaringType.getQualifiedName();
+
+        if (mockablePackage.isEmpty()) {
+            if (mockableDeclaringType.getPackage().getDeclaration() == null) {
+                mockablePackage = mockableDeclaringType.getPackage().getQualifiedName();
+            } else {
+                mockablePackage = findTopLevelPackage(mockableDeclaringType.getPackage().getDeclaration());
+            }
+        }
+        if (mockablePackage.startsWith("java")) {
+            return MockableCategory.STD_LIB;
+        } else if (mutPackage.equals(mockablePackage)) {
+            return MockableCategory.DOMAIN;
+        } else {
+            return MockableCategory.THIRD_PARTY;
+        }
+    }
+
+    private static String findTopLevelPackage(CtPackage declaringTypePackage) {
+        String packageName = declaringTypePackage.getQualifiedName();
+        while (packageName.split("\\.").length != 3) {
+            if (packageName.split("\\.").length == 2)
+                return packageName;
+            declaringTypePackage = declaringTypePackage.getDeclaringPackage();
+            packageName = declaringTypePackage.getQualifiedName();
+        }
+        return packageName;
     }
 
     /**
@@ -180,6 +271,20 @@ public class MockableSelector {
         return false;
     }
 
+    private static boolean isInvocationTargetAnExternalParameter(final CtMethod<?> method,
+                                                                 CtInvocation<?> invocation,
+                                                                 List<CtParameter<?>> parameters) {
+        for (CtParameter<?> parameter : parameters) {
+            if (invocation.getTarget() != null) {
+                if (invocation.getTarget().toString().equals(parameter.getSimpleName()) &
+                        !parameter.getType().getQualifiedName().equals(method.getDeclaringType().getQualifiedName()) &
+                        !isExecutableEqualsOrHashCode(invocation.getExecutable()))
+                    return true;
+            }
+        }
+        return false;
+    }
+
     private static String getFieldModifier(CtMethod<?> method,
                                            CtInvocation<?> invocation) {
         String target = invocation.getTarget().toString();
@@ -217,6 +322,9 @@ public class MockableSelector {
      */
     public static Set<NestedTarget> getNestedMethodInvocationSet(final CtMethod<?> method) {
         assert !method.isAbstract();
+
+        if (generateReport)
+            addToReport(method);
 
         Set<NestedTarget> nestedTargets = new LinkedHashSet<>();
 
@@ -281,6 +389,4 @@ public class MockableSelector {
         }
         return targetFieldVisibilityMap;
     }
-
-
 }

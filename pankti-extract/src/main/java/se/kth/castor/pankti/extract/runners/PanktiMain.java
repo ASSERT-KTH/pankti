@@ -40,6 +40,12 @@ public final class PanktiMain implements Callable<Integer> {
     private boolean sourceDirectory;
 
     @CommandLine.Option(
+            names = {"--report"},
+            defaultValue = "false",
+            description = "Generate nested method analysis report")
+    private boolean generateReport;
+
+    @CommandLine.Option(
             names = {"-h", "--help"},
             description = "Display help/usage",
             usageHelp = true)
@@ -60,11 +66,13 @@ public final class PanktiMain implements Callable<Integer> {
     public PanktiMain(final Path projectPath,
                       final boolean includeVoidMethods,
                       final boolean sourceDirectory,
-                      final boolean help) {
+                      final boolean help,
+                      final boolean generateReport) {
         this.projectPath = projectPath;
         this.includeVoidMethods = includeVoidMethods;
         this.sourceDirectory = sourceDirectory;
         this.usageHelpRequested = help;
+        this.generateReport = generateReport;
     }
 
     @Override
@@ -77,6 +85,8 @@ public final class PanktiMain implements Callable<Integer> {
         final String name = this.projectPath.getFileName().toString();
 
         PanktiLauncher panktiLauncher = new PanktiLauncher();
+
+        panktiLauncher.setReportGeneration(generateReport);
 
         // Process project
         LOGGER.info(String.format("Processing project: %s", name));

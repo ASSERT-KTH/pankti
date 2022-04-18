@@ -5,6 +5,7 @@ import org.apache.commons.csv.CSVPrinter;
 import se.kth.castor.pankti.extract.logging.CustomLogger;
 import se.kth.castor.pankti.extract.processors.CandidateTagger;
 import se.kth.castor.pankti.extract.processors.MethodProcessor;
+import se.kth.castor.pankti.extract.reporter.NestedMethodAnalysis;
 import se.kth.castor.pankti.extract.selector.MockableSelector;
 import se.kth.castor.pankti.extract.selector.NestedTarget;
 import se.kth.castor.pankti.extract.util.MethodUtil;
@@ -32,6 +33,10 @@ public class PanktiLauncher {
     private static String[] HEADERS =
             {"visibility", "parent-FQN", "method-name", "param-list", "return-type",
                     "param-signature", "has-mockable-invocations", "nested-invocations"};
+
+    public void setReportGeneration(boolean generateReport) {
+        MockableSelector.generateReport = generateReport;
+    }
 
     public Launcher getLauncher(final String projectPath, final String projectName) {
         PanktiLauncher.projectName = projectName;
@@ -128,6 +133,10 @@ public class PanktiLauncher {
         Map<CtMethod<?>, Map<String, Boolean>> allMethodTags = candidateTagger.getAllMethodTags();
         try {
             createCSVFile(allMethodTags);
+            if (MockableSelector.generateReport) {
+                NestedMethodAnalysis.createCSVFile();
+                LOGGER.info("Generated nested method analysis report ./nested-method-anlysis.csv");
+            }
         } catch (IOException e) {
             LOGGER.warning(e.getMessage());
         }
