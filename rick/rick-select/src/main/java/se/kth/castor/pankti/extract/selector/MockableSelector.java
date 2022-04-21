@@ -17,6 +17,10 @@ public class MockableSelector {
     public static boolean generateReport = false;
     static NestedMethodAnalysis reportGenerator = new NestedMethodAnalysis();
 
+    public static boolean isPrimitiveOrString(CtTypeReference<?> type) {
+        return type.isPrimitive() || type.getQualifiedName().equals("java.lang.String");
+    }
+
     /**
      * Finds the number of nested invocations made on parameters of a target method
      * or fields of the declaring type of the target method
@@ -97,7 +101,7 @@ public class MockableSelector {
                     if (executable.getExecutableDeclaration().getType() != null)
                         returnType = executable.getExecutableDeclaration().getType();
             }
-            boolean returnsPrimitive = returnType != null && returnType.isPrimitive();
+            boolean returnsPrimitiveOrString = returnType != null && isPrimitiveOrString(returnType);
             boolean hasPrimitiveParams = areNestedInvocationParamsPrimitive(invocation);
             int loc = getExecutableLOC(executable);
             boolean isExecutableNonStatic = !executable.isStatic();
@@ -108,7 +112,11 @@ public class MockableSelector {
                     outerMethod.getDeclaringType().getQualifiedName() + "." + outerMethod.getSignature(),
                     outerMethod.getBody().getStatements().size(),
                     invocation.toString(),
-                    invocationIsOnFieldOrParam, returnsPrimitive, hasPrimitiveParams, loc, isExecutableNonStatic,
+                    invocationIsOnFieldOrParam,
+                    returnsPrimitiveOrString,
+                    hasPrimitiveParams,
+                    loc,
+                    isExecutableNonStatic,
                     category);
         }
     }
@@ -175,13 +183,14 @@ public class MockableSelector {
         List<CtInvocation<?>> invocationList = outerMethod.getElements(new TypeFilter<>(CtInvocation.class));
         return invocationList.stream()
                 .filter(invocation -> isNestedInvocationOnFieldMockable(outerMethod, invocation))
-                .filter(invocation -> invocation.getExecutable().getType().isPrimitive())
+                .filter(invocation -> isPrimitiveOrString(invocation.getExecutable().getType()))
                 .filter(MockableSelector::areNestedInvocationParamsPrimitive)
                 .collect(Collectors.toList());
     }
 
-    private static boolean isExecutableEqualsOrHashCode(CtExecutableReference<?> executable) {
+    private static boolean isExecutableEqualsOrHashCodeOrToString(CtExecutableReference<?> executable) {
         return (executable.getSimpleName().equals("equals") ||
+                executable.getSimpleName().equals("toString") ||
                 executable.getSimpleName().equals("hashCode"));
 
     }
@@ -190,13 +199,10 @@ public class MockableSelector {
      * Instrumentation fails for java.lang.String and java.util.Collection,
      * so we exclude them
      *
-     * @param executable
+     * @param executableDeclaringType
      * @return true if executable declaring type is String or Collection
      */
-    private static boolean isExecutableDeclaringTypeStringOrCollection(CtExecutableReference<?> executable) {
-        CtTypeReference<?> executableDeclaringType = executable.getDeclaringType();
-        if (executableDeclaringType == null || executable.getType() == null)
-            return true;
+    private static boolean isExecutableDeclaringTypeStringOrCollection(CtTypeReference<?> executableDeclaringType) {
         return executableDeclaringType.getQualifiedName().equals("java.lang.String") ||
                 executableDeclaringType.getQualifiedName().equals("java.util.Collection");
 
@@ -233,10 +239,10 @@ public class MockableSelector {
                 if (Objects.requireNonNull(invocation.getTarget()).toString().equals(parameterName) &
                         !parameterFQN.equals(method.getDeclaringType().getQualifiedName())) {
                     CtExecutableReference<?> executable = getExecutable(invocation);
-                    if (!isExecutableDeclaringTypeStringOrCollection(executable)
+                    if (!isExecutableDeclaringTypeStringOrCollection(getDeclaringType(executable))
                             & executable.getType() != null) {
-                        if (!isExecutableEqualsOrHashCode(executable) &
-                                executable.getType().isPrimitive() & getExecutableLOC(executable) != 1) {
+                        if (!isExecutableEqualsOrHashCodeOrToString(executable) &
+                                isPrimitiveOrString(executable.getType()) & getExecutableLOC(executable) != 1) {
                             nestedTargets.add(new NestedTarget(
                                     executable.getType().getQualifiedName(),
                                     TargetType.PARAMETER,
@@ -260,11 +266,13 @@ public class MockableSelector {
     private static boolean isNestedInvocationOnFieldMockable(final CtMethod<?> method,
                                                              final CtInvocation<?> invocation) {
         CtExecutableReference<?> executable = getExecutable(invocation);
-        if (isExecutableDeclaringTypeStringOrCollection(executable))
-            return false;
         CtTypeReference<?> executableDeclaringType = getDeclaringType(executable);
+        if (executableDeclaringType == null || executable.getType() == null)
+            return false;
+        if (isExecutableDeclaringTypeStringOrCollection(executableDeclaringType))
+            return false;
         CtType<?> methodDeclaringType = method.getDeclaringType();
-        if (!isExecutableEqualsOrHashCode(executable) &
+        if (!isExecutableEqualsOrHashCodeOrToString(executable) &
                 !isMethodDeclaringTypeSameAsExecutableDeclaringType(methodDeclaringType, executableDeclaringType)) {
             return isInvocationTargetAField(method, invocation);
         }
@@ -278,7 +286,7 @@ public class MockableSelector {
             if (invocation.getTarget() != null) {
                 if (invocation.getTarget().toString().equals(parameter.getSimpleName()) &
                         !parameter.getType().getQualifiedName().equals(method.getDeclaringType().getQualifiedName()) &
-                        !isExecutableEqualsOrHashCode(invocation.getExecutable()))
+                        !isExecutableEqualsOrHashCodeOrToString(invocation.getExecutable()))
                     return true;
             }
         }

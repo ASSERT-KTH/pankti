@@ -27,7 +27,7 @@ public class NestedMethodAnalysis {
                                           int methodLoc,
                                           String invocation,
                                           boolean invocationOnFieldOrParam,
-                                          boolean returnsPrimitive,
+                                          boolean returnsPrimitiveOrString,
                                           boolean paramsArePrimitive,
                                           int loc, boolean isNonStatic,
                                           MockableCategory category) {
@@ -36,7 +36,7 @@ public class NestedMethodAnalysis {
         methodLocs.add(methodLoc);
         c1.add(invocationOnFieldOrParam);
         c2.add(paramsArePrimitive);
-        c3.add(returnsPrimitive);
+        c3.add(returnsPrimitiveOrString);
         c4.add(loc);
         c5.add(isNonStatic);
         categoryList.add(category);
@@ -57,7 +57,7 @@ public class NestedMethodAnalysis {
                         c3.get(i) ? "C3" : "!C3",
                         c4.get(i),
                         c5.get(i) ? "C5" : "!C5",
-                        (methodLocs.get(i) > 1) & c1.get(i) & c2.get(i) & c3.get(i) & (c4.get(i) != 1) & c5.get(i),
+                        (methodLocs.get(i) > 1) & c1.get(i) & c3.get(i) & (c4.get(i) != 1) & c5.get(i),
                         categoryList.get(i));
             }
         }

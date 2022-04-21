@@ -16,10 +16,7 @@ import spoon.reflect.declaration.ModifierKind;
 
 import java.net.URISyntaxException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -174,6 +171,21 @@ public class MethodUtilTest {
                 assertFalse(method.getDeclaringType().getModifiers().contains(ModifierKind.ABSTRACT),
                         String.format("The declaring type for %s should not be an abstract class to allow mock injections",
                                 method.getSignature()));
+            }
+        }
+    }
+
+    @Test
+    public void testThatMockableMethodsOnlyReturnVoidOrPrimitiveOrString() {
+        List<String> allowedTypes = List.of("void", "boolean", "byte",
+                "char", "double", "float", "int", "long", "short", "java.lang.String");
+        for (CtMethod<?> method : allMethods) {
+            Set<NestedTarget> mockableInvocations = MockableSelector.getNestedMethodInvocationSet(method);
+            for (NestedTarget mockable : mockableInvocations) {
+                assertTrue(allowedTypes.contains(mockable.getNestedInvocationReturnType()),
+                        String.format("%s returns %s, which is not void, a primitive, or a String",
+                                mockable.getNestedInvocationSignature(),
+                                mockable.getNestedInvocationReturnType()));
             }
         }
     }

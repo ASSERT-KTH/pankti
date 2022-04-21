@@ -157,8 +157,10 @@ public class TestGenerator {
         if (method.getType().getSimpleName().equals("void")) {
             // for void methods, assertion on post receiving object
             assertExpectedObject = factory.createCodeSnippetExpression(String.format("%s.toXML(receivingObjectPost)", XSTREAM_VARIABLE));
-        } else if (method.getType().isPrimitive()) {
+        } else if (method.getType().isPrimitive() || method.getType().getQualifiedName().equals("java.lang.String")) {
             String value = serializedObject.getReturnedObject().replaceAll("</?\\w+>", "");
+            if (method.getType().getQualifiedName().equals("java.lang.String"))
+                value = "\"" + value + "\"";
             assertExpectedObject = factory.createCodeSnippetExpression(
                     method.getType().getSimpleName().equals("char") ?
                             "'" + value + "'" :
