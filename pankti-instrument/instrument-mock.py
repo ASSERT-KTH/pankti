@@ -22,7 +22,7 @@ def get_method_from_invocation_string(invocation):
 
 
 def get_parameters_from_invocation_string(invocation):
-  args = re.sub(r"(.+nestedInvocationParams='\[)(.*)(\].+)", r"\2", invocation).replace("\s", "")
+  args = re.sub(r"(.+nestedInvocationParams='\[)(.*)(\]'.+)", r"\2", invocation).replace("\s", "")
   return args
 
 

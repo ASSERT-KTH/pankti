@@ -74,7 +74,8 @@ public class MockGenerator {
         } else if (MockGeneratorUtil.arePrimitiveOrString(paramTypes)) {
             nestedParams = MockGeneratorUtil.extractParamsOfNestedInvocation(paramTypes, nestedSerializedObject);
         } else {
-            nestedParams = nestedSerializedObject.getParamObjects();
+            nestedParams = MockGeneratorUtil.handleNonPrimitiveParamsOfNestedInvocation(
+                    paramTypes, nestedSerializedObject);
         }
         return nestedParams;
     }

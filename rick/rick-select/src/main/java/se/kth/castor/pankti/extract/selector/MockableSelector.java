@@ -102,7 +102,6 @@ public class MockableSelector {
                         returnType = executable.getExecutableDeclaration().getType();
             }
             boolean returnsPrimitiveOrString = returnType != null && isPrimitiveOrString(returnType);
-            boolean hasPrimitiveParams = areNestedInvocationParamsPrimitive(invocation);
             int loc = getExecutableLOC(executable);
             boolean isExecutableNonStatic = !executable.isStatic();
 
@@ -114,7 +113,6 @@ public class MockableSelector {
                     invocation.toString(),
                     invocationIsOnFieldOrParam,
                     returnsPrimitiveOrString,
-                    hasPrimitiveParams,
                     loc,
                     isExecutableNonStatic,
                     category);
@@ -184,7 +182,6 @@ public class MockableSelector {
         return invocationList.stream()
                 .filter(invocation -> isNestedInvocationOnFieldMockable(outerMethod, invocation))
                 .filter(invocation -> isPrimitiveOrString(invocation.getExecutable().getType()))
-                .filter(MockableSelector::areNestedInvocationParamsPrimitive)
                 .collect(Collectors.toList());
     }
 
@@ -229,7 +226,6 @@ public class MockableSelector {
         List<CtInvocation> invocations = method.getElements(new TypeFilter<>(CtInvocation.class))
                 .stream()
                 .filter(ctInvocation -> ctInvocation.getTarget() != null)
-                .filter(MockableSelector::areNestedInvocationParamsPrimitive)
                 .collect(Collectors.toList());
         for (CtParameter<?> parameter : parameters) {
             String parameterFQN = parameter.getType().getQualifiedName();

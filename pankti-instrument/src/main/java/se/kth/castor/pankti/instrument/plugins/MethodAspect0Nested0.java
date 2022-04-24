@@ -106,10 +106,49 @@ public class MethodAspect0Nested0 {
             }
         }
 
-        public static synchronized void writeObjectXMLToFile(Object objectToWrite, String objectFilePath) {
+        public static String handleNonPrimitiveParamSerialization(Object objectToWrite) {
+            List<String> primitives = List.of("boolean", "byte", "char", "double", "float",
+                    "int", "long", "short", "java.lang.String");
+            String[] paramTypes = TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodParameterTypes();
+
+            if (paramTypes.length == 0 ||
+                    Arrays.stream(paramTypes).allMatch(primitives::contains)) {
+                return xStream.toXML(objectToWrite);
+            }
+
+            Object[] paramObjectArray = (Object[]) objectToWrite;
+            StringBuilder serializedParams = new StringBuilder();
+            serializedParams.append("<object-array>\n");
+            for (int i = 0; i < paramTypes.length; i++) {
+                if (!primitives.contains(paramTypes[i])) {
+                    paramTypes[i] = paramTypes[i].replaceAll("\\[]", "-array")
+                            .replaceAll("\\$", ".");
+
+                    serializedParams.append("  <")
+                            .append(paramTypes[i])
+                            .append("/>").append("\n");
+                } else {
+                    serializedParams.append("  ")
+                            .append(xStream.toXML(paramObjectArray[i]))
+                            .append("\n");
+                }
+            }
+            serializedParams.append("</object-array>\n");
+            return serializedParams.toString();
+        }
+
+        public static synchronized void writeObjectXMLToFile(boolean isParameter,
+                                                             Object objectToWrite,
+                                                             String objectFilePath) {
             try {
                 FileWriter objectFileWriter = new FileWriter(objectFilePath, true);
-                String xml = xStream.toXML(objectToWrite);
+                String xml;
+                if (isParameter) {
+                    // We don't want to serialize non-primitive parameters
+                    xml = handleNonPrimitiveParamSerialization(objectToWrite);
+                } else {
+                    xml = xStream.toXML(objectToWrite);
+                }
                 xml = xml.replaceAll("(&#x)(\\w+;)", "&amp;#x$2");
                 xml = xml.replaceFirst("(\\/*)>",
                         " parent-uuid=\"" + invocationUuid +
@@ -198,7 +237,7 @@ public class MethodAspect0Nested0 {
             if (fileSizeWithinLimits) {
                 invocationTimestamp = Instant.now().toEpochMilli();
                 profileSizePre = getObjectProfileSize();
-                writeObjectXMLToFile(parameterObjects, paramObjectsFilePath);
+                writeObjectXMLToFile(true, parameterObjects, paramObjectsFilePath);
                 INVOCATION_COUNT++;
             }
             MessageSupplier messageSupplier = MessageSupplier.create(
@@ -213,7 +252,7 @@ public class MethodAspect0Nested0 {
         public static void onReturn(@BindReturn Object returnedObject,
                                     @BindTraveler TraceEntry traceEntry) {
             if (fileSizeWithinLimits) {
-                writeObjectXMLToFile(returnedObject, returnedObjectFilePath);
+                writeObjectXMLToFile(false, returnedObject, returnedObjectFilePath);
                 writeObjectProfileSizeToFile(getObjectProfileSize() - profileSizePre);
                 checkFileSizeLimit();
             }

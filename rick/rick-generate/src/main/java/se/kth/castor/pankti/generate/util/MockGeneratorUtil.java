@@ -6,7 +6,6 @@ import spoon.reflect.declaration.*;
 import spoon.reflect.factory.Factory;
 import spoon.reflect.reference.CtExecutableReference;
 import spoon.reflect.reference.CtTypeReference;
-import spoon.support.reflect.code.CtInvocationImpl;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -21,12 +20,12 @@ public class MockGeneratorUtil {
     private static final List<String> primitives = List.of(
             "boolean", "byte", "char", "double", "float", "int", "long", "short", "java.lang.String");
 
-    public static CtTypeReference findOrCreateTypeReference(String type) {
-        CtTypeReference typeToFind;
+    public static CtTypeReference<?> findOrCreateTypeReference(String type) {
+        CtTypeReference<?> typeToFind;
         try {
             typeToFind = factory.createCtTypeReference(Class.forName(type));
         } catch (ClassNotFoundException e) {
-            List<CtTypeReference> foundTypes = findTypeFromModel(type);
+            List<CtTypeReference<?>> foundTypes = findTypeFromModel(type);
             if (foundTypes.size() > 0)
                 typeToFind = foundTypes.get(0);
             else return findOrCreateTypeReference("java.lang.Object");
@@ -290,7 +289,7 @@ public class MockGeneratorUtil {
      * @param typeToFind
      * @return a list of types found for the given name
      */
-    public static List<CtTypeReference> findTypeFromModel(final String typeToFind) {
+    public static List<CtTypeReference<?>> findTypeFromModel(final String typeToFind) {
         return factory.getModel()
                 .getAllTypes()
                 .stream()
@@ -360,7 +359,8 @@ public class MockGeneratorUtil {
             } else if (primitives.contains(param)) {
                 mockitoArgumentMatchers.add(createArgumentMatcher("any" + param.substring(0, 1).toUpperCase() + param.substring(1)));
             } else {
-                mockitoArgumentMatchers.add(createArgumentMatcher("any"));
+                param = param.replaceAll("\\$", ".");
+                mockitoArgumentMatchers.add(createArgumentMatcher("(" + param + ") " + "any"));
             }
         }
         return mockitoArgumentMatchers;
@@ -374,7 +374,41 @@ public class MockGeneratorUtil {
         return true;
     }
 
-    public static String extractParamsOfNestedInvocation(List<String> params,
+    public static String handleNonPrimitiveParamsOfNestedInvocation(List<String> paramTypes,
+                                                                    SerializedObject serializedObject) {
+        StringBuilder arguments = new StringBuilder();
+        List<String> params = List.of(serializedObject.getParamObjects()
+                .replaceAll("</?object-array/?>", "")
+                .trim()
+                .split("\\n"));
+
+        for (int i = 1; i <= paramTypes.size(); i++) {
+            if (primitives.contains(paramTypes.get(i - 1))) {
+                arguments.append(params.get(i - 1)
+                        .replaceAll("<char>(.{1})<\\/char>", "<char>'$1'</char>")
+                        .replaceAll("<string>(.+)<\\/string>", "<string>\"$1\"</string>")
+                        .replaceAll("<long>(.+)<\\/long>", "<long>$1L</long>")
+                        .replaceAll("<float>(.+)<\\/float>", "<float>$1F</float>")
+                        .replaceAll("<\\w+>(.+)<\\/\\w+>", "eq($1)")
+                        .replaceAll("\\s", ""));
+            } else {
+                String nonPrimitive = params.get(i - 1);
+                if (nonPrimitive.contains("-array")) {
+                    nonPrimitive = nonPrimitive.replaceAll("-array", "[]")
+                            .replaceAll("<(.+)\\/>", "($1) any()");
+                } else {
+                    nonPrimitive = nonPrimitive.replaceAll("<(.+)\\/>", "any($1.class)");
+                }
+                arguments.append(nonPrimitive);
+            }
+            if (i != paramTypes.size()) {
+                arguments.append(", ");
+            }
+        }
+        return arguments.toString();
+    }
+
+    public static String extractParamsOfNestedInvocation(List<String> paramTypes,
                                                          SerializedObject serializedObject) {
         StringBuilder arguments = new StringBuilder();
         List<String> primitiveParams = List.of(serializedObject.getParamObjects()
@@ -440,7 +474,6 @@ public class MockGeneratorUtil {
         }
         return statements;
     }
-
 
     public static String extractReturnedValueOfNestedInvocation(SerializedObject serializedObject,
                                                                 String returnType) {
