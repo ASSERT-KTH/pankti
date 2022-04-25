@@ -2,6 +2,7 @@ package se.kth.castor.pankti.generate.parsers;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
+import se.kth.castor.pankti.generate.data.InstrumentedMethod;
 
 import java.io.FileReader;
 import java.io.Reader;
@@ -15,6 +16,8 @@ public class CSVFileParser {
     static final String csvParamListField = "param-list";
     static final String csvReturnTypeField = "return-type";
     static final String csvVisibilityField = "visibility";
+    static final String csvMockableInvocationsField = "has-mockable-invocations";
+    static final String csvNestedMethodInvocationsField = "nested-invocations";
 
     public static List<InstrumentedMethod> parseCSVFile(String filePath) {
         List<InstrumentedMethod> instrumentedMethods = new ArrayList<>();
@@ -27,6 +30,11 @@ public class CSVFileParser {
                 String params = record.get(csvParamListField);
                 String returnType = record.get(csvReturnTypeField);
                 String visibility = record.get(csvVisibilityField);
+                boolean hasMockableInvocations = record.get(csvMockableInvocationsField)
+                        .equalsIgnoreCase("true");
+                String nestedMethodMap = "";
+                if (hasMockableInvocations)
+                    nestedMethodMap = record.get(csvNestedMethodInvocationsField);
 
                 List<String> paramList = new ArrayList<>();
                 if (!params.isEmpty()) {
@@ -34,12 +42,14 @@ public class CSVFileParser {
                     paramList = new ArrayList<>(Arrays.asList(params.split(",")));
                 }
 
-                instrumentedMethods.add(new InstrumentedMethod(parentFQN, methodName, paramList, returnType, visibility));
+                instrumentedMethods.add(new InstrumentedMethod(parentFQN, methodName,
+                        paramList, returnType, visibility, hasMockableInvocations,
+                        nestedMethodMap));
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        System.out.println(instrumentedMethods);
+//        System.out.println(instrumentedMethods);
         return instrumentedMethods;
     }
 }

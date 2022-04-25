@@ -22,18 +22,9 @@ def create_final_df(df, cols):
     final_df.loc[index, 'param-list'] = row['param-list'].lstrip('[').rsplit(']', 1)[0]
     final_df.loc[index, 'return-type'] = row['return-type']
     final_df.loc[index, 'param-signature'] = row['param-signature']
+    final_df.loc[index, 'has-mockable-invocations'] = row['has-mockable-invocations']
     final_df.loc[index, 'nested-invocations'] = row['nested-invocations']
-    final_df.loc[index, 'noparam-constructor'] = row['default-constructor']
-    final_df.loc[index, 'local-variables'] = extract_from_tags("local_variables", str(row['tags']))
-    final_df.loc[index, 'conditionals'] = extract_from_tags("conditionals", str(row['tags']))
-    final_df.loc[index, 'multiple-statements'] = extract_from_tags("multiple_statements", str(row['tags']))
-    final_df.loc[index, 'loops'] = extract_from_tags("loops", str(row['tags']))
-    final_df.loc[index, 'parameters'] = extract_from_tags("parameters", str(row['tags']))
-    final_df.loc[index, 'returns'] = extract_from_tags("returns", str(row['tags']))
-    final_df.loc[index, 'switches'] = extract_from_tags("switches", str(row['tags']))
-    final_df.loc[index, 'ifs'] = extract_from_tags("ifs", str(row['tags']))
-    final_df.loc[index, 'static'] = extract_from_tags("static", str(row['tags']))
-    final_df.loc[index, 'returns-primitives'] = extract_from_tags("returns_primitives", str(row['tags']))
+    final_df.loc[index, 'noparam-constructor'] = row['noparam-constructor']
   return final_df.sort_values(by=['parent-FQN', 'method-name'])
 
 def find_instrumentation_candidates(final_df, cols, name, json_files):
@@ -44,7 +35,7 @@ def find_instrumentation_candidates(final_df, cols, name, json_files):
       descartes_output = json.load(f)
       for i in range(len(descartes_output['methods'])):
         method = descartes_output['methods'][i]
-        if (method['classification'] == "pseudo-tested"):
+        if (method['classification'] == "not-covered") or (method['classification'] == "pseudo-tested"):
           parent_fqn = method['package'].replace('/', '.') + '.' + method['class']
           method_name = method['name']
           param_signature = re.search('\((.*)\)', method['description']).group(1)
@@ -66,9 +57,8 @@ def main(argv):
     name = argv[1]
     json_files = list(argv[2:])
     cols = ["visibility", "parent-FQN", "method-name", "param-list", "return-type",
-            "param-signature", "nested-invocations", "noparam-constructor",
-            "local-variables", "conditionals", "multiple-statements", "loops",
-            "parameters", "returns","switches", "ifs", "static", "returns-primitives"]
+            "param-signature", "has-mockable-invocations", "nested-invocations", "noparam-constructor",
+            "constructor"]
     df = pd.read_csv(name)
     print("input (rows, columns):", df.shape)
     final_df = create_final_df(df, cols)

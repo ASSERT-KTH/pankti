@@ -1,12 +1,12 @@
 package se.kth.castor.pankti.generate.generators;
 
 import se.kth.castor.pankti.generate.parsers.CSVFileParser;
-import se.kth.castor.pankti.generate.parsers.InstrumentedMethod;
+import se.kth.castor.pankti.generate.data.InstrumentedMethod;
 import se.kth.castor.pankti.generate.parsers.ObjectXMLParser;
-import se.kth.castor.pankti.generate.parsers.SerializedObject;
-import spoon.MavenLauncher;
-import spoon.compiler.SpoonResource;
-import spoon.compiler.SpoonResourceHelper;
+import se.kth.castor.pankti.generate.data.SerializedObject;
+import se.kth.castor.pankti.generate.util.MockGeneratorUtil;
+import se.kth.castor.pankti.generate.util.TestGeneratorUtil;
+import spoon.Launcher;
 import spoon.reflect.CtModel;
 import spoon.reflect.code.*;
 import spoon.reflect.declaration.*;
@@ -14,7 +14,6 @@ import spoon.reflect.factory.Factory;
 import spoon.reflect.reference.CtExecutableReference;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,47 +24,80 @@ public class TestGenerator {
     private static final String XSTREAM_DRIVER_REFERENCE = "com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver";
     private static final String XSTREAM_CONSTRUCTOR = "new XStream()";
     private static final String XSTREAM_VARIABLE = "xStream";
-    private static final String JUNIT_TEST_REFERENCE = "org.junit.Test";
+    private static final String JUNIT_JUPITER_TEST_REFERENCE = "org.junit.jupiter.api.Test";
+    private static final String JUNIT_JUPITER_DISABLED_REFERENCE = "org.junit.jupiter.api.Disabled";
     private static final String JUNIT_BEFORE_REFERENCE = "org.junit.Before";
-    private static final String JUNIT_ASSERT_REFERENCE = "org.junit.Assert";
+    private static final String JUNIT_ASSERT_REFERENCE = "org.junit.jupiter.api.Assertions";
     private static final String JAVA_UTIL_ARRAYS_REFERENCE = "java.util.Arrays";
     private static final String JAVA_UTIL_SCANNER_REFERENCE = "java.util.Scanner";
     private static final String JAVA_IO_FILE_REFERENCE = "java.io.File";
+    private static final String serializedObjectSourcedFromString = "String";
+    private static final String serializedObjectSourcedFromFile = "File";
 
     private static final String TEST_CLASS_PREFIX = "Test";
     private static final String TEST_CLASS_POSTFIX = "PanktiGen";
-    private static int numberOfTestCasesGenerated;
-    private String testFormat;
+    private static int numberOfTestCasesWithMocksGenerated;
+    private final String testFormat;
+    private final boolean generateMocks;
+    private static CtAnnotation<?> testAnnotation;
+    private static CtAnnotation<?> disabledAnnotation;
+    Set<CtClass<?>> generatedTestClasses = new LinkedHashSet<>();
 
     private final TestGeneratorUtil testGenUtil = new TestGeneratorUtil();
 
-    public TestGenerator(String testFormat) {
+    public TestGenerator(String testFormat, Launcher launcher, boolean generateMocks) {
+        this.generateMocks = generateMocks;
         this.testFormat = testFormat;
+        TestGeneratorUtil.launcher = launcher;
+        if (!testFormat.equals("xml")) {
+            TestGeneratorUtil.testFormat = testFormat;
+        }
+    }
+
+    public static void generateTestAndDisabledAnnotations() throws ClassNotFoundException {
+        testAnnotation = factory.createAnnotation(factory.createCtTypeReference(Class.forName(JUNIT_JUPITER_TEST_REFERENCE)));
+        disabledAnnotation = factory.createAnnotation(factory.createCtTypeReference(Class.forName(JUNIT_JUPITER_DISABLED_REFERENCE)));
     }
 
     public String getGeneratedClassName(CtPackage ctPackage, String className) {
         return String.format("%s.%s%s%s", ctPackage, TEST_CLASS_PREFIX, className, TEST_CLASS_POSTFIX);
     }
 
+    /**
+     * Generates a test class within the specified package
+     *
+     * @param ctPackage for the generated test class
+     * @param className the name of the class that defines the target method
+     * @return a new test class for the target method
+     */
     public CtClass<?> generateTestClass(CtPackage ctPackage, String className) {
         CtClass<?> generatedClass = factory.createClass(ctPackage, TEST_CLASS_PREFIX + className + TEST_CLASS_POSTFIX);
         generatedClass.addModifier(ModifierKind.PUBLIC);
         return generatedClass;
     }
 
+    /**
+     * Adds all imports to a class
+     *
+     * @param generatedClass the test class to add imports to
+     */
     public void addImportsToGeneratedClass(CtClass<?> generatedClass) {
         generatedClass.getFactory().createUnresolvedImport(XSTREAM_REFERENCE, false);
         if (this.testFormat.equals("json")) {
             generatedClass.getFactory().createUnresolvedImport(XSTREAM_DRIVER_REFERENCE, false);
         }
-        generatedClass.getFactory().createUnresolvedImport(JUNIT_TEST_REFERENCE, false);
+        generatedClass.getFactory().createUnresolvedImport(JUNIT_JUPITER_TEST_REFERENCE, false);
         generatedClass.getFactory().createUnresolvedImport(JUNIT_BEFORE_REFERENCE, false);
-        generatedClass.getFactory().createUnresolvedImport(JUNIT_ASSERT_REFERENCE, false);
         generatedClass.getFactory().createUnresolvedImport(JAVA_UTIL_ARRAYS_REFERENCE, false);
         generatedClass.getFactory().createUnresolvedImport(JAVA_UTIL_SCANNER_REFERENCE, false);
         generatedClass.getFactory().createUnresolvedImport(JAVA_IO_FILE_REFERENCE, false);
     }
 
+    /**
+     * Adds and sets up XStream for deserialization
+     *
+     * @return the generated xStream field
+     */
     public CtField<?> addXStreamFieldToGeneratedClass() throws ClassNotFoundException {
         CtField<?> xStreamField = null;
 
@@ -90,18 +122,18 @@ public class TestGenerator {
     public List<CtMethod<?>> addDeserializationMethodsToTestClass() {
         List<CtMethod<?>> deserializationMethods = new ArrayList<>();
 
-        CtMethod<?> deserializeObjectFromString = testGenUtil.generateDeserializationMethod(factory);
-        CtParameter<?> parameter1 = factory.createParameter();
-        parameter1.setType(factory.createCtTypeReference(String.class));
-        parameter1.setSimpleName("serializedObjectString");
-        deserializeObjectFromString.setParameters(Collections.singletonList(parameter1));
+        CtMethod<?> deserializeObjectFromString = testGenUtil.generateDeserializationMethod(factory, serializedObjectSourcedFromString);
+        CtParameter<?> parameterWithSerializedString = factory.createParameter();
+        parameterWithSerializedString.setType(factory.createCtTypeReference(String.class));
+        parameterWithSerializedString.setSimpleName("serializedObjectString");
+        deserializeObjectFromString.setParameters(Collections.singletonList(parameterWithSerializedString));
 
-        CtMethod<?> deserializeObjectFromFile = testGenUtil.generateDeserializationMethod(factory);
+        CtMethod<?> deserializeObjectFromFile = testGenUtil.generateDeserializationMethod(factory, serializedObjectSourcedFromFile);
         deserializeObjectFromFile.addThrownType(factory.createCtTypeReference(Exception.class));
-        CtParameter<?> parameter2 = factory.createParameter();
-        parameter2.setType(factory.createCtTypeReference(File.class));
-        parameter2.setSimpleName("serializedObjectFile");
-        deserializeObjectFromFile.setParameters(Collections.singletonList(parameter2));
+        CtParameter<?> parameterWithSerializedFilePath = factory.createParameter();
+        parameterWithSerializedFilePath.setType(factory.createCtTypeReference(String.class));
+        parameterWithSerializedFilePath.setSimpleName("serializedObjectFilePath");
+        deserializeObjectFromFile.setParameters(Collections.singletonList(parameterWithSerializedFilePath));
         CtBlock<?> methodBody = deserializeObjectFromFile.getBody();
         methodBody.insertBegin(testGenUtil.addAndReadFromScannerInDeserializationMethod(factory));
         deserializeObjectFromFile.setBody(methodBody);
@@ -111,14 +143,24 @@ public class TestGenerator {
         return deserializationMethods;
     }
 
+    /**
+     * Generates assertions in a generated test method
+     *
+     * @param method           target for test generation
+     * @param serializedObject a single object profile
+     * @return a list of statements for profile deserialization and the assertion itself
+     */
     @SuppressWarnings("unchecked")
     public List<CtStatement> generateAssertionInTestMethod(CtMethod<?> method, SerializedObject serializedObject) throws ClassNotFoundException {
         List<CtStatement> assertionStatements = new ArrayList<>();
         CtExpression<?> assertExpectedObject;
         if (method.getType().getSimpleName().equals("void")) {
+            // for void methods, assertion on post receiving object
             assertExpectedObject = factory.createCodeSnippetExpression(String.format("%s.toXML(receivingObjectPost)", XSTREAM_VARIABLE));
-        } else if (method.getType().isPrimitive()) {
+        } else if (method.getType().isPrimitive() || method.getType().getQualifiedName().equals("java.lang.String")) {
             String value = serializedObject.getReturnedObject().replaceAll("</?\\w+>", "");
+            if (method.getType().getQualifiedName().equals("java.lang.String"))
+                value = "\"" + value + "\"";
             assertExpectedObject = factory.createCodeSnippetExpression(
                     method.getType().getSimpleName().equals("char") ?
                             "'" + value + "'" :
@@ -134,6 +176,7 @@ public class TestGenerator {
 
         boolean hasOnlyPrimitiveParams = testGenUtil.allMethodParametersArePrimitive(method);
 
+        // If parameters are primitives
         List<String> primitiveParams = new ArrayList<>();
         if (parameters.size() > 0 & hasOnlyPrimitiveParams) {
             primitiveParams = Arrays.asList(
@@ -148,6 +191,8 @@ public class TestGenerator {
             if (hasOnlyPrimitiveParams) {
                 arguments.append(primitiveParams.get(i - 1)
                         .replaceAll("<char>(.{1})<\\/char>", "<char>'$1'</char>")
+                        .replaceAll("<long>(.+)<\\/long>", "<long>$1L</long>")
+                        .replaceAll("<float>(.+)<\\/float>", "<float>$1F</float>")
                         .replaceAll("<\\w+>(.+)<\\/\\w+>", "$1")
                         .replaceAll("\\s", ""));
             } else {
@@ -162,7 +207,7 @@ public class TestGenerator {
 
         String assertionStatement = String.format("receivingObject.%s(%s)",
                 method.getSimpleName(),
-                arguments.toString());
+                arguments);
         if (method.getType().getSimpleName().equals("void")) {
             CtStatement methodInvocation = factory.createCodeSnippetStatement(assertionStatement);
             assertionStatements.add(methodInvocation);
@@ -171,15 +216,17 @@ public class TestGenerator {
             assertActualObject = factory.createCodeSnippetExpression(assertionStatement);
         }
 
+        // Reflection for private methods
         if (method.getVisibility().equals(ModifierKind.PRIVATE)) {
             assertActualObject = factory.createCodeSnippetExpression(
                     String.format("%s%s.invoke(%s, %s)",
                             method.getType().isArray() ? "(" + method.getType() + ") " : "",
                             method.getSimpleName(),
                             "receivingObject",
-                            arguments.toString()));
+                            arguments));
         }
 
+        // Generate JUnit assert invocation
         CtExecutableReference<?> executableReferenceForAssertion = factory.createExecutableReference();
         executableReferenceForAssertion.setStatic(true);
         executableReferenceForAssertion.setDeclaringType(factory.createCtTypeReference(Class.forName(JUNIT_ASSERT_REFERENCE)));
@@ -210,48 +257,20 @@ public class TestGenerator {
         return assertionStatements;
     }
 
-    public String createLongObjectStringFile(String methodIdentifier, String profileType, String longObjectStr, MavenLauncher launcher) {
-        String fileName = "";
-        try {
-            File longObjectStrFile = new File("./output/object-data/" + methodIdentifier + "-" + profileType + "." + this.testFormat);
-            longObjectStrFile.getParentFile().mkdirs();
-            FileWriter myWriter = new FileWriter(longObjectStrFile);
-            myWriter.write(longObjectStr);
-            myWriter.close();
-            SpoonResource newResource = SpoonResourceHelper.createResource(longObjectStrFile);
-            launcher.addInputResource(longObjectStrFile.getAbsolutePath());
-            fileName = newResource.getName();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return fileName;
-    }
-
-    public CtStatement parseReceivingObjectFromFileOrString(String receivingObjectType, String fileOrString) {
+    public CtStatement parseSerializedObjectFromFilePathOrString(String serializedObjectSource,
+                                                                 String serializedObjectType,
+                                                                 String serializedObjectVariable,
+                                                                 String filePathOrStringVariable) {
+        String deserializationMethodName = String.format("deserializeObjectFrom%s", serializedObjectSource);
+        if (serializedObjectSource.equals(serializedObjectSourcedFromFile))
+            filePathOrStringVariable = "\"" + filePathOrStringVariable + "\"";
         return factory.createCodeSnippetStatement(String.format(
-                "%s receivingObject = deserializeObject(%s)",
-                receivingObjectType,
-                fileOrString));
-    }
-
-    public CtStatement parseReceivingObjectPostFromFileOrString(String receivingObjectType, String fileOrString) {
-        return factory.createCodeSnippetStatement(String.format(
-                "%s receivingObjectPost = deserializeObject(%s)",
-                receivingObjectType,
-                fileOrString));
-    }
-
-    public CtStatement parseReturnedObjectFromFileOrString(String returnedObjectType, String fileOrString) {
-        return factory.createCodeSnippetStatement(String.format(
-                "%s expectedObject = deserializeObject(%s)",
-                returnedObjectType,
-                fileOrString));
-    }
-
-    public CtStatement parseParamObjectsFromFileOrString(String fileOrString) {
-        return factory.createCodeSnippetStatement(String.format(
-                "Object[] paramObjects = deserializeObject(%s)",
-                fileOrString));
+                "%s %s = %s(%s)",
+                serializedObjectType,
+                serializedObjectVariable,
+                deserializationMethodName,
+                filePathOrStringVariable
+        ));
     }
 
     public List<CtStatement> addAndParseMethodParams(String paramsObjectStr, CtMethod<?> method) {
@@ -259,7 +278,9 @@ public class TestGenerator {
         if (paramsObjectStr.length() <= 10000) {
             CtStatement paramsXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "paramsObjectStr", paramsObjectStr);
             paramStatements.add(paramsXMLStringDeclaration);
-            CtStatement parseParamObjectsFromString = parseParamObjectsFromFileOrString("paramsObjectStr");
+            CtStatement parseParamObjectsFromString = parseSerializedObjectFromFilePathOrString(
+                    serializedObjectSourcedFromString, "Object[]", "paramObjects",
+                    "paramsObjectStr");
             paramStatements.add(parseParamObjectsFromString);
         }
 
@@ -323,29 +344,26 @@ public class TestGenerator {
                                                             String returnedObjectStr,
                                                             String returnedObjectType,
                                                             String receivingObjectPostStr,
-                                                            String paramsObjectStr,
-                                                            MavenLauncher launcher) throws ClassNotFoundException {
+                                                            String paramsObjectStr) throws ClassNotFoundException {
         List<CtStatement> methodBody = new ArrayList<>();
         String postfix = "";
         if (instrumentedMethod.isOverloaded()) {
-            postfix = testGenUtil.getParamListPostFix(instrumentedMethod);
+            postfix = TestGeneratorUtil.getParamListPostFix(instrumentedMethod.getParamList());
         }
         String methodIdentifier = instrumentedMethod.getFullMethodPath() + postfix + methodCounter;
-        if (receivingObjectStr.length() > 10000 || returnedObjectStr.length() > 10000 || receivingObjectPostStr.length() > 10000 || paramsObjectStr.length() > 10000) {
-            CtStatement classLoaderDeclaration = testGenUtil.addClassLoaderVariableToTestMethod(factory);
-            methodBody.add(classLoaderDeclaration);
-        }
 
         if (receivingObjectStr.length() > 10000) {
             String type = "receiving";
-            String fileName = createLongObjectStringFile(methodIdentifier, type, receivingObjectStr, launcher);
-            CtStatement fileVariableDeclaration = testGenUtil.addFileVariableToTestMethod(factory, fileName, type);
-            CtStatement parseReceivingObjectFromFile = parseReceivingObjectFromFileOrString(receivingObjectType, "file" + testGenUtil.getObjectProfileType(type));
-            methodBody.add(fileVariableDeclaration);
+            String fileName = testGenUtil.createLongObjectStringFile(methodIdentifier, type, receivingObjectStr);
+            CtStatement parseReceivingObjectFromFile = parseSerializedObjectFromFilePathOrString(
+                    serializedObjectSourcedFromFile, receivingObjectType, "receivingObject",
+                    fileName);
             methodBody.add(parseReceivingObjectFromFile);
         } else {
             CtStatement receivingXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "receivingObjectStr", receivingObjectStr);
-            CtStatement parseReceivingObjectFromString = parseReceivingObjectFromFileOrString(receivingObjectType, "receivingObjectStr");
+            CtStatement parseReceivingObjectFromString = parseSerializedObjectFromFilePathOrString(
+                    serializedObjectSourcedFromString, receivingObjectType, "receivingObject",
+                    "receivingObjectStr");
             methodBody.add(receivingXMLStringDeclaration);
             methodBody.add(parseReceivingObjectFromString);
         }
@@ -353,30 +371,34 @@ public class TestGenerator {
         if (method.getType().getSimpleName().equals("void")) {
             if (receivingObjectPostStr.length() > 10000) {
                 String type = "receivingpost";
-                String fileName = createLongObjectStringFile(methodIdentifier, type, receivingObjectPostStr, launcher);
-                CtStatement fileVariableDeclaration = testGenUtil.addFileVariableToTestMethod(factory, fileName, type);
-                CtStatement parseReceivingPostObjectPostFromFile = parseReceivingObjectPostFromFileOrString(receivingObjectType, "file" + testGenUtil.getObjectProfileType(type));
-                methodBody.add(fileVariableDeclaration);
-                methodBody.add(parseReceivingPostObjectPostFromFile);
+                String fileName = testGenUtil.createLongObjectStringFile(methodIdentifier, type, receivingObjectPostStr);
+                CtStatement parseReceivingPostObjectFromFile = parseSerializedObjectFromFilePathOrString(
+                        serializedObjectSourcedFromFile, receivingObjectType, "receivingObjectPost",
+                        fileName);
+                methodBody.add(parseReceivingPostObjectFromFile);
             } else {
                 CtStatement receivingPostXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "receivingPostObjectStr", receivingObjectPostStr);
-                CtStatement parseReceivingPostObjectFromString = parseReceivingObjectPostFromFileOrString(receivingObjectType, "receivingPostObjectStr");
+                CtStatement parseReceivingPostObjectFromString = parseSerializedObjectFromFilePathOrString(
+                        serializedObjectSourcedFromString, receivingObjectType, "receivingObjectPost",
+                        "receivingPostObjectStr");
                 methodBody.add(receivingPostXMLStringDeclaration);
                 methodBody.add(parseReceivingPostObjectFromString);
             }
         } else {
             if (returnedObjectStr.length() > 10000) {
                 String type = "returned";
-                String fileName = createLongObjectStringFile(methodIdentifier, type, returnedObjectStr, launcher);
-                CtStatement fileVariableDeclaration = testGenUtil.addFileVariableToTestMethod(factory, fileName, type);
-                CtStatement parseReturnedObjectFromFile = parseReturnedObjectFromFileOrString(returnedObjectType, "file" + testGenUtil.getObjectProfileType(type));
-                methodBody.add(fileVariableDeclaration);
+                String fileName = testGenUtil.createLongObjectStringFile(methodIdentifier, type, returnedObjectStr);
+                CtStatement parseReturnedObjectFromFile = parseSerializedObjectFromFilePathOrString(
+                        serializedObjectSourcedFromFile, returnedObjectType, "expectedObject",
+                        fileName);
                 methodBody.add(parseReturnedObjectFromFile);
             } else {
                 if (!method.getType().isPrimitive() & !testGenUtil.returnedObjectIsNull(returnedObjectStr)) {
                     CtStatement returnedXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "returnedObjectStr", returnedObjectStr);
                     methodBody.add(returnedXMLStringDeclaration);
-                    CtStatement parseReturnedObjectFromString = parseReturnedObjectFromFileOrString(returnedObjectType, "returnedObjectStr");
+                    CtStatement parseReturnedObjectFromString = parseSerializedObjectFromFilePathOrString(
+                            serializedObjectSourcedFromString, returnedObjectType, "expectedObject",
+                            "returnedObjectStr");
                     methodBody.add(parseReturnedObjectFromString);
                 }
             }
@@ -385,10 +407,10 @@ public class TestGenerator {
         if (!paramsObjectStr.isEmpty()) {
             if (paramsObjectStr.length() > 10000) {
                 String type = "params";
-                String fileName = createLongObjectStringFile(methodIdentifier, type, paramsObjectStr, launcher);
-                CtStatement fileVariableDeclaration = testGenUtil.addFileVariableToTestMethod(factory, fileName, type);
-                CtStatement parseParamObjectsFromFile = parseParamObjectsFromFileOrString("file" + testGenUtil.getObjectProfileType(type));
-                methodBody.add(fileVariableDeclaration);
+                String fileName = testGenUtil.createLongObjectStringFile(methodIdentifier, type, paramsObjectStr);
+                CtStatement parseParamObjectsFromFile = parseSerializedObjectFromFilePathOrString(
+                        serializedObjectSourcedFromFile, "Object[]", "paramObjects",
+                        fileName);
                 methodBody.add(parseParamObjectsFromFile);
             }
             if (!testGenUtil.allMethodParametersArePrimitive(method)) {
@@ -425,16 +447,19 @@ public class TestGenerator {
     public CtMethod<?> generateTestMethod(CtMethod<?> method,
                                           int methodCounter,
                                           InstrumentedMethod instrumentedMethod,
-                                          SerializedObject serializedObject,
-                                          MavenLauncher launcher) throws ClassNotFoundException {
+                                          SerializedObject serializedObject) throws ClassNotFoundException {
         CtMethod<?> generatedMethod = factory.createMethod();
         String postfix = "";
         if (instrumentedMethod.isOverloaded()) {
-            postfix = testGenUtil.getParamListPostFix(instrumentedMethod).replaceAll("[.,]", "_");
+            postfix = TestGeneratorUtil.getParamListPostFix(instrumentedMethod.getParamList())
+                    .replaceAll("\\[]", "_arr")
+                    .replaceAll("[.,]", "_");
         }
         generatedMethod.setSimpleName("test" + method.getSimpleName().substring(0, 1).toUpperCase() + method.getSimpleName().substring(1) + postfix + methodCounter);
-        CtAnnotation<?> testAnnotation = factory.createAnnotation(factory.createCtTypeReference(Class.forName(JUNIT_TEST_REFERENCE)));
         generatedMethod.addAnnotation(testAnnotation);
+        if (generateMocks) {
+            generatedMethod.addAnnotation(disabledAnnotation);
+        }
         generatedMethod.setModifiers(Collections.singleton(ModifierKind.PUBLIC));
         generatedMethod.setType(factory.createCtTypeReference(void.class));
         generatedMethod.addThrownType(factory.createCtTypeReference(Exception.class));
@@ -464,31 +489,111 @@ public class TestGenerator {
         List<CtStatement> statementsInMethodBody =
                 generateStatementsInMethodBody(instrumentedMethod, method, methodCounter, serializedObject,
                         receivingObjectStr, receivingObjectType, returnedObjectStr, returnedObjectType, receivingPostObjectStr,
-                        paramsObjectStr, launcher);
+                        paramsObjectStr);
 
         statementsInMethodBody.forEach(methodBody::addStatement);
         generatedMethod.setBody(methodBody);
         return generatedMethod;
     }
 
+    /**
+     * We generate three categories of tests for each invocation:
+     * <p>Output oracle (OO): Stubbing non-void mockable(s) + assert the output of the MUT</p>
+     * <p>Parameter oracle (PO): Stub non-void mockable(s) + verify parameters of mockables</p>
+     * <p>Call oracle (CO): Stub non-void mockable(s) + verify sequence and frequency of mockables</p>
+     *
+     * @param instrumentedMethod
+     * @param serializedObject
+     * @param mockMethod
+     * @param generatedClass
+     * @throws ClassNotFoundException
+     */
+    public void generateMockMethods(InstrumentedMethod instrumentedMethod,
+                                    SerializedObject serializedObject,
+                                    CtMethod<?> mockMethod,
+                                    CtClass<?> generatedClass) throws ClassNotFoundException {
+        // If mocks can be used to test this method
+        if (instrumentedMethod.hasMockableInvocations()) {
+            MockGenerator mockGenerator = new MockGenerator(factory);
+
+            // Annotate generated class with @ExtendWith(MockitoExtension.class)
+            if (generatedClass.getAnnotations()
+                    .stream().noneMatch(ctAnnotation -> ctAnnotation.toString().contains("ExtendWith")))
+                mockGenerator.addAnnotationToGeneratedClass(generatedClass);
+
+            // Add @Mock, @InjectMocks fields, generate tests that use mocks
+            Set<CtMethod<?>> generatedTestsWithMocks = new LinkedHashSet<>();
+
+            // Test - OO
+            if (!instrumentedMethod.getReturnType().equals("void") &
+                    MockGeneratorUtil.arePrimitiveOrString(List.of(instrumentedMethod.getReturnType()))) {
+                CtMethod<?> testOO = mockGenerator.generateTestByCategory("OO", mockMethod, serializedObject, generatedClass, instrumentedMethod);
+                generatedClass.addMethod(testOO);
+                generatedTestsWithMocks.add(testOO);
+                System.out.println("Generated 1 OO test for " + instrumentedMethod.getFullMethodPath());
+            }
+
+            // Test - PO
+            CtMethod<?> testPO = mockGenerator.generateTestByCategory("PO", mockMethod, serializedObject, generatedClass, instrumentedMethod);
+            generatedClass.addMethod(testPO);
+            generatedTestsWithMocks.add(testPO);
+            System.out.println("Generated 1 PO test for " + instrumentedMethod.getFullMethodPath());
+
+            String uuid = serializedObject.getUUID().replace("-", "");
+
+            // Test - CO
+            String postfix = "";
+            if (instrumentedMethod.isOverloaded()) {
+                postfix = TestGeneratorUtil.getParamListPostFix(instrumentedMethod.getParamList())
+                        .replaceAll("\\[]", "_arr")
+                        .replaceAll("[.,]", "_");
+            }
+            String methodNameCO = String.format("test_%s%s_CO_%s", instrumentedMethod.getMethodName(), postfix, uuid);
+            if (generatedClass.getMethodsByName(methodNameCO).size() == 0 &
+                    serializedObject.getNestedSerializedObjects().size() > 0) {
+                MethodSequenceGenerator sequenceGenerator = new MethodSequenceGenerator(factory);
+                CtMethod<?> testCO = sequenceGenerator.generateTestToVerifyMethodSequence(Set.of(testPO), serializedObject);
+                testCO.setSimpleName(methodNameCO);
+                testCO.addAnnotation(testAnnotation);
+                generatedClass.addMethod(testCO);
+                generatedTestsWithMocks.add(testCO);
+                System.out.println("Generated 1 CO test for " + instrumentedMethod.getFullMethodPath());
+            }
+
+            numberOfTestCasesWithMocksGenerated += generatedTestsWithMocks.size();
+
+            // Add comments
+            CtComment arrangeComment = factory.createInlineComment("Arrange");
+            CtComment actComment = factory.createInlineComment("Act");
+            CtComment assertComment = factory.createInlineComment("Assert");
+
+            for (CtMethod<?> generatedTestWithMock : generatedTestsWithMocks) {
+                if (!generatedTestWithMock.getBody().getStatement(0).getComments().contains(arrangeComment))
+                    generatedTestWithMock.getBody().getStatement(0).addComment(arrangeComment);
+                int indexWithCall = MockGeneratorUtil.findIndexOfStatementWithInvocationOnReceivingObject(generatedTestWithMock);
+                generatedTestWithMock.getBody().getStatement(indexWithCall).addComment(actComment);
+                int indexWithOracle = MockGeneratorUtil.findIndexOfStatementWithAssertionOrVerification(generatedTestWithMock);
+                generatedTestWithMock.getBody().getStatement(indexWithOracle).addComment(assertComment);
+                generatedClass.addMethod(generatedTestWithMock);
+            }
+        }
+    }
+
     public CtClass<?> generateFullTestClass(CtType<?> type,
                                             CtMethod<?> method,
                                             InstrumentedMethod instrumentedMethod,
-                                            MavenLauncher launcher,
                                             String objectXMLDirectoryPath) throws ClassNotFoundException {
-        String methodPath = instrumentedMethod.getFullMethodPath();
         ObjectXMLParser objectXMLParser = new ObjectXMLParser();
         Set<SerializedObject> serializedObjects = objectXMLParser.parseXML(
-                objectXMLDirectoryPath + File.separatorChar + methodPath, instrumentedMethod);
+                objectXMLDirectoryPath + File.separatorChar, instrumentedMethod, generateMocks);
         System.out.println("Number of unique pairs/triples of object values: " + serializedObjects.size());
 
         if (serializedObjects.size() == 0) {
             System.out.println("NO OBJECTS FOUND FOR " + instrumentedMethod.getFullMethodPath() + " - SKIPPING");
             return null;
         } else {
-            numberOfTestCasesGenerated += serializedObjects.size();
-
             factory = type.getFactory();
+            generateTestAndDisabledAnnotations();
             CtClass<?> generatedClass = factory.Class().get(getGeneratedClassName(type.getPackage(), type.getSimpleName()));
             if (generatedClass == null) {
                 generatedClass = generateTestClass(type.getPackage(), type.getSimpleName());
@@ -502,13 +607,25 @@ public class TestGenerator {
             // Create @Test method
             int methodCounter = 1;
             for (SerializedObject serializedObject : serializedObjects) {
-                CtMethod<?> generatedMethod = generateTestMethod(method, methodCounter, instrumentedMethod, serializedObject, launcher);
-                generatedClass.addMethod(generatedMethod);
+                CtMethod<?> generatedMethod = generateTestMethod(method, methodCounter, instrumentedMethod, serializedObject);
+                if (!generateMocks)
+                    generatedClass.addMethod(generatedMethod);
+                // If mocks can be used to test this method
+                if (generateMocks & serializedObject.getNestedSerializedObjects().size() > 0) {
+                    CtMethod<?> baseMethod = generatedMethod.clone();
+                    generateMockMethods(instrumentedMethod, serializedObject, baseMethod, generatedClass);
+                }
                 methodCounter++;
             }
-            return generatedClass;
+            if (generatedClass.getMethods().stream().anyMatch(m -> m.getAnnotations().contains(testAnnotation) &
+                    !m.getAnnotations().contains(disabledAnnotation)))
+                return generatedClass;
+            else {
+                System.out.println("No non-disabled test, not generating class " + generatedClass.getQualifiedName());
+                factory.Class().get(generatedClass.getQualifiedName()).delete();
+                return null;
+            }
         }
-
     }
 
     public List<CtType<?>> getTypesToProcess(CtModel ctModel) {
@@ -522,7 +639,8 @@ public class TestGenerator {
         return typesToProcess;
     }
 
-    private Map.Entry<CtMethod<?>, Boolean> findMethodToGenerateTestMethodsFor(List<CtMethod<?>> methodsByName, InstrumentedMethod instrumentedMethod) {
+    public Map.Entry<CtMethod<?>, Boolean> findMethodToGenerateTestMethodsFor(List<CtMethod<?>> methodsByName,
+                                                                              InstrumentedMethod instrumentedMethod) {
         if (methodsByName.size() > 1) {
             // match parameter list for overloaded methods
             for (CtMethod<?> method : methodsByName) {
@@ -539,7 +657,11 @@ public class TestGenerator {
         return new AbstractMap.SimpleEntry<>(methodsByName.get(0), false);
     }
 
-    public int process(CtModel ctModel, MavenLauncher launcher, String methodCSVFilePath, String objectXMLDirectoryPath) {
+    public int getNumberOfTestCasesWithMocksGenerated() {
+        return numberOfTestCasesWithMocksGenerated;
+    }
+
+    public int process(CtModel ctModel, String methodCSVFilePath, String objectXMLDirectoryPath) {
         // Get list of instrumented methods from CSV file
         List<InstrumentedMethod> instrumentedMethods = CSVFileParser.parseCSVFile(methodCSVFilePath);
         System.out.println("Number of instrumented methods: " + instrumentedMethods.size());
@@ -558,10 +680,10 @@ public class TestGenerator {
                                 instrumentedMethod.getParentFQN() + "." + instrumentedMethod.getMethodName());
                         try {
                             CtClass<?> generatedClass = generateFullTestClass(
-                                    type, methodToGenerateTestsFor, instrumentedMethod,
-                                    launcher, objectXMLDirectoryPath);
+                                    type, methodToGenerateTestsFor, instrumentedMethod, objectXMLDirectoryPath);
                             if (generatedClass != null) {
                                 System.out.println("Generated test class: " + generatedClass.getQualifiedName());
+                                generatedTestClasses.add(generatedClass);
                             }
                             System.out.println("--------------------------------------------------------------");
                         } catch (ClassNotFoundException e) {
@@ -571,6 +693,11 @@ public class TestGenerator {
                 }
             }
         }
-        return numberOfTestCasesGenerated;
+        int allGeneratedTests = 0;
+        for (CtClass<?> generated : generatedTestClasses) {
+            allGeneratedTests += generated.getMethods().stream()
+                    .filter(m -> m.getAnnotations().contains(testAnnotation)).count();
+        }
+        return allGeneratedTests - numberOfTestCasesWithMocksGenerated;
     }
 }

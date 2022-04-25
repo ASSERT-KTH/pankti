@@ -15,21 +15,23 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <spoon.core.version>8.0.0</spoon.core.version>
+    <maven.build.helper.plugin.version>3.0.0</maven.build.helper.plugin.version>
     <maven.compiler.plugin.version>3.8.1</maven.compiler.plugin.version>
     <maven.compiler.plugin.release>11</maven.compiler.plugin.release>
     <maven.surefire.plugin.version>2.22.2</maven.surefire.plugin.version>
     <maven.assembly.plugin.version>3.2.0</maven.assembly.plugin.version>
     <maven.jacoco.plugin.version>0.8.5</maven.jacoco.plugin.version>
-    <junit.jupiter.engine.version>5.5.2</junit.jupiter.engine.version>
-    <junit.platform.runner.version>1.5.2</junit.platform.runner.version>
-    <junit.jupiter.params.version>5.6.2</junit.jupiter.params.version>
-    <junit.version>4.13</junit.version>
+    <junit.jupiter.engine.version>5.8.2</junit.jupiter.engine.version>
+    <junit.platform.runner.version>1.8.2</junit.platform.runner.version>
+    <junit.jupiter.params.version>5.8.2</junit.jupiter.params.version>
+    <mockito.core.version>4.0.0</mockito.core.version>
+    <mockito.junit.jupiter.version>2.23.0</mockito.junit.jupiter.version>
     <info.picocli.picocli.version>4.2.0</info.picocli.picocli.version>
-    <sl4j.version>1.7.30</sl4j.version>
     <commons.csv.version>1.8</commons.csv.version>
     <xstream.version>1.4.12</xstream.version>
     <jettison.version>1.4.1</jettison.version>
     <commons-text.version>1.8</commons-text.version>
+    <commons-collections.version>4.4</commons-collections.version>
   </properties>
 
   <dependencies>
@@ -72,9 +74,15 @@
       <scope>runtime</scope>
     </dependency>
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.jupiter.engine.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <version>${junit.jupiter.engine.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
@@ -86,6 +94,23 @@
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-text</artifactId>
       <version>${commons-text.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>${mockito.core.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>${mockito.junit.jupiter.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-collections4</artifactId>
+      <version>${commons-collections.version}</version>
     </dependency>
   </dependencies>
 
@@ -118,6 +143,25 @@
               <descriptorRefs>
                 <descriptorRef>jar-with-dependencies</descriptorRef>
               </descriptorRefs>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>${maven.build.helper.plugin.version}</version>
+        <executions>
+          <execution>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>src/main/java</source>
+                <source>../rick/rick-generate/src/main/java</source>
+              </sources>
             </configuration>
           </execution>
         </executions>

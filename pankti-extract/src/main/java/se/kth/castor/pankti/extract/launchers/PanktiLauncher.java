@@ -5,14 +5,18 @@ import org.apache.commons.csv.CSVPrinter;
 import se.kth.castor.pankti.extract.logging.CustomLogger;
 import se.kth.castor.pankti.extract.processors.CandidateTagger;
 import se.kth.castor.pankti.extract.processors.MethodProcessor;
+import se.kth.castor.pankti.extract.reporter.NestedMethodAnalysis;
+import se.kth.castor.pankti.extract.selector.MockableSelector;
+import se.kth.castor.pankti.extract.selector.NestedTarget;
 import se.kth.castor.pankti.extract.util.MethodUtil;
+import spoon.JarLauncher;
+import spoon.Launcher;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtClass;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.CtParameter;
 import spoon.reflect.declaration.CtType;
-import spoon.reflect.path.CtPath;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -25,19 +29,42 @@ import java.util.logging.Logger;
 public class PanktiLauncher {
     private static final Logger LOGGER = CustomLogger.log(PanktiLauncher.class.getName());
     private static String projectName;
+    private static int numberOfNestedInvocationsOnFieldsOrParameters = 0;
     private static String[] HEADERS =
             {"visibility", "parent-FQN", "method-name", "param-list", "return-type",
-                    "param-signature", "nested-invocations", "noparam-constructor", "tags"};
+                    "param-signature", "has-mockable-invocations", "nested-invocations"};
+
+    public void setReportGeneration(boolean generateReport) {
+        MockableSelector.generateReport = generateReport;
+    }
+
+    public Launcher getLauncher(final String projectPath, final String projectName) {
+        PanktiLauncher.projectName = projectName;
+        LOGGER.info("Invoking launcher for source directory");
+        Launcher launcher = new Launcher();
+        launcher.addInputResource(projectPath);
+        return launcher;
+    }
 
     public MavenLauncher getMavenLauncher(final String projectPath, final String projectName) {
         PanktiLauncher.projectName = projectName;
+        LOGGER.info("Invoking launcher for Maven project");
         MavenLauncher launcher = new MavenLauncher(projectPath, MavenLauncher.SOURCE_TYPE.APP_SOURCE);
         launcher.getEnvironment().setAutoImports(true);
         launcher.getEnvironment().setCommentEnabled(false);
         return launcher;
     }
 
-    public CtModel buildSpoonModel(final MavenLauncher launcher) {
+    public JarLauncher getJarLauncher(final String projectPath, final String projectName) {
+        PanktiLauncher.projectName = projectName;
+        LOGGER.info("Invoking launcher for JAR");
+        JarLauncher launcher = new JarLauncher(projectPath);
+        launcher.getEnvironment().setAutoImports(true);
+        launcher.getEnvironment().setCommentEnabled(false);
+        return launcher;
+    }
+
+    public CtModel buildSpoonModel(final Launcher launcher) {
         launcher.buildModel();
         return launcher.getModel();
     }
@@ -72,8 +99,10 @@ public class PanktiLauncher {
                     }
                 }
                 // Find nested method invocations that can be mocked
-                Map<CtPath, String> nestedMethodInvocationMap = MethodUtil.getNestedMethodInvocationMap(method);
-                Map<String, Boolean> tags = entry.getValue();
+                numberOfNestedInvocationsOnFieldsOrParameters += MockableSelector.getNumberOfNestedInvocations(method).size();
+                Set<NestedTarget> nestedMethodInvocations = MockableSelector.getNestedMethodInvocationSet(method);
+                int methodLOC = method.getBody().getStatements().size();
+                boolean isMockable = !nestedMethodInvocations.isEmpty() && methodLOC > 1;
                 csvPrinter.printRecord(
                         method.getVisibility(),
                         method.getParent(CtClass.class).getQualifiedName(),
@@ -81,9 +110,8 @@ public class PanktiLauncher {
                         paramList,
                         method.getType().getQualifiedName(),
                         paramSignature.toString(),
-                        nestedMethodInvocationMap,
-                        MethodUtil.declaringTypeHasNoParamConstructor(method),
-                        tags);
+                        isMockable,
+                        nestedMethodInvocations);
             }
         }
     }
@@ -105,9 +133,15 @@ public class PanktiLauncher {
         Map<CtMethod<?>, Map<String, Boolean>> allMethodTags = candidateTagger.getAllMethodTags();
         try {
             createCSVFile(allMethodTags);
+            if (MockableSelector.generateReport) {
+                NestedMethodAnalysis.createCSVFile();
+                LOGGER.info("Generated nested method analysis report ./nested-method-anlysis.csv");
+            }
         } catch (IOException e) {
             LOGGER.warning(e.getMessage());
         }
+        LOGGER.info("Number of nested invocations on fields or parameters: "
+                + numberOfNestedInvocationsOnFieldsOrParameters);
         LOGGER.info("Output saved in ./extracted-methods-" + projectName + ".csv");
         return candidateMethods;
     }

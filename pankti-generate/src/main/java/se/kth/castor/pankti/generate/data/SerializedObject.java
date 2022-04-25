@@ -1,6 +1,8 @@
-package se.kth.castor.pankti.generate.parsers;
+package se.kth.castor.pankti.generate.data;
 
+import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -9,12 +11,23 @@ public class SerializedObject {
     Map<String, String> returnedObject = new HashMap<>();
     Map<String, String> receivingPostObject = new HashMap<>();
     Map<String, String> paramObjects = new HashMap<>();
+    Map<String, String> invocationUUID = new HashMap<>();
+    List<SerializedObject> nestedSerializedObjects;
+    Instant invocationTimestamp;
+    String invocationFQN;
 
-    public SerializedObject(String receivingObject, String returnedObject, String receivingPostObject, String paramObjects) {
+    public SerializedObject(String receivingObject, String returnedObject,
+                            String receivingPostObject, String paramObjects,
+                            String uuid, List<SerializedObject> nested,
+                            Instant invocationTimestamp, String invocationFQN) {
         this.receivingObject.put("receivingObject", receivingObject);
         this.returnedObject.put("returnedObject", returnedObject);
         this.receivingPostObject.put("receivingPostObject", receivingPostObject);
         this.paramObjects.put("paramObjects", paramObjects);
+        this.invocationUUID.put("invocationUUID", uuid);
+        this.nestedSerializedObjects = nested;
+        this.invocationTimestamp = invocationTimestamp;
+        this.invocationFQN = invocationFQN;
     }
 
     public String getReceivingObject() {
@@ -31,6 +44,22 @@ public class SerializedObject {
 
     public String getReceivingPostObject() {
         return this.receivingPostObject.get("receivingPostObject");
+    }
+
+    public String getUUID() {
+        return this.invocationUUID.get("invocationUUID");
+    }
+
+    public String getInvocationFQN() {
+        return invocationFQN;
+    }
+
+    public Instant getInvocationTimestamp() {
+        return invocationTimestamp;
+    }
+
+    public List<SerializedObject> getNestedSerializedObjects() {
+        return nestedSerializedObjects;
     }
 
     public String getObjectType(String objectXML) {
@@ -63,6 +92,10 @@ public class SerializedObject {
                 ", returnedObject=" + returnedObject +
                 ", receivingPostObject=" + receivingPostObject +
                 ", paramObjects=" + paramObjects +
+                ", invocationUUID=" + invocationUUID +
+                ", invocationTimestamp=" + invocationTimestamp +
+                ", invocationFQN=" + invocationFQN +
+                ", nestedSerializedObjects=" + nestedSerializedObjects +
                 '}';
     }
 }

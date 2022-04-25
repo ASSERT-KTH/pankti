@@ -5,9 +5,11 @@ import spoon.reflect.CtModel;
 
 public class PanktiGenLauncher {
     public MavenLauncher getMavenLauncher(final String projectPath, final String projectName) {
-        MavenLauncher launcher = new MavenLauncher(projectPath, MavenLauncher.SOURCE_TYPE.ALL_SOURCE);
+        MavenLauncher launcher = new MavenLauncher(projectPath, MavenLauncher.SOURCE_TYPE.APP_SOURCE);
         launcher.getEnvironment().setAutoImports(true);
-        launcher.getEnvironment().setCommentEnabled(false);
+        launcher.getEnvironment().disableConsistencyChecks();
+        System.out.println("Skip checks: " + launcher.getEnvironment().checksAreSkipped());
+        launcher.getEnvironment().setCommentEnabled(true);
         return launcher;
     }
 

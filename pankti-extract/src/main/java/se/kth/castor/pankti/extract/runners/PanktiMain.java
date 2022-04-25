@@ -3,6 +3,7 @@ package se.kth.castor.pankti.extract.runners;
 import picocli.CommandLine;
 import se.kth.castor.pankti.extract.launchers.PanktiLauncher;
 import se.kth.castor.pankti.extract.logging.CustomLogger;
+import spoon.Launcher;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtMethod;
@@ -25,17 +26,28 @@ public final class PanktiMain implements Callable<Integer> {
 
     @CommandLine.Parameters(
             paramLabel = "PATH",
-            description = "Path of the Maven project")
+            description = "Path of the Maven project or project JAR")
     private Path projectPath;
 
     @CommandLine.Option(
             names = {"-v", "--void"},
-            description = "Include void methods.")
+            description = "Include void methods")
     private boolean includeVoidMethods;
 
     @CommandLine.Option(
+            names = {"-s", "--source"},
+            description = "Directory with source files")
+    private boolean sourceDirectory;
+
+    @CommandLine.Option(
+            names = {"--report"},
+            defaultValue = "false",
+            description = "Generate nested method analysis report")
+    private boolean generateReport;
+
+    @CommandLine.Option(
             names = {"-h", "--help"},
-            description = "Display help/usage.",
+            description = "Display help/usage",
             usageHelp = true)
     private boolean usageHelpRequested;
 
@@ -53,10 +65,14 @@ public final class PanktiMain implements Callable<Integer> {
 
     public PanktiMain(final Path projectPath,
                       final boolean includeVoidMethods,
-                      final boolean help) {
+                      final boolean sourceDirectory,
+                      final boolean help,
+                      final boolean generateReport) {
         this.projectPath = projectPath;
         this.includeVoidMethods = includeVoidMethods;
+        this.sourceDirectory = sourceDirectory;
         this.usageHelpRequested = help;
+        this.generateReport = generateReport;
     }
 
     @Override
@@ -70,14 +86,25 @@ public final class PanktiMain implements Callable<Integer> {
 
         PanktiLauncher panktiLauncher = new PanktiLauncher();
 
+        panktiLauncher.setReportGeneration(generateReport);
+
         // Process project
         LOGGER.info(String.format("Processing project: %s", name));
-        MavenLauncher launcher =
-                panktiLauncher.getMavenLauncher(path, name);
-        SpoonPom projectPom = launcher.getPomFile();
-        LOGGER.info(String.format("POM found at: %s", projectPom.getPath()));
-        LOGGER.info(String.format("Number of Maven modules: %s",
-                projectPom.getModel().getModules().size()));
+        Launcher launcher;
+        if (sourceDirectory) {
+            launcher = panktiLauncher.getLauncher(path, name);
+        }
+        else {
+            if (path.endsWith(".jar")) {
+                launcher = panktiLauncher.getJarLauncher(path, name);
+            } else {
+                launcher = panktiLauncher.getMavenLauncher(path, name);
+                SpoonPom projectPom = ((MavenLauncher) launcher).getPomFile();
+                LOGGER.info(String.format("POM found at: %s", projectPom.getPath()));
+                LOGGER.info(String.format("Number of Maven modules: %s",
+                        projectPom.getModel().getModules().size()));
+            }
+        }
 
         // Build Spoon model
         CtModel model = panktiLauncher.buildSpoonModel(launcher);

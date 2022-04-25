@@ -48,16 +48,21 @@ public class PanktiGenMain implements Callable<Integer> {
             usageHelp = true)
     private boolean usageHelpRequested;
 
+    private boolean generateMocks;
+
     public PanktiGenMain() {}
 
     public Path getProjectPath() {
         return projectPath;
     }
 
-    public PanktiGenMain(final Path projectPath, final Path methodCSVFilePath, final Path objectXMLDirectoryPath, final boolean help) {
+    public PanktiGenMain(final Path projectPath, final Path methodCSVFilePath,
+                         final Path objectXMLDirectoryPath, final boolean generateMocks,
+                         final boolean help) {
         this.projectPath = projectPath;
         this.methodCSVFilePath = methodCSVFilePath;
         this.objectXMLDirectoryPath = objectXMLDirectoryPath;
+        this.generateMocks = generateMocks;
         this.usageHelpRequested = help;
     }
 
@@ -67,6 +72,8 @@ public class PanktiGenMain implements Callable<Integer> {
         }
         final String path = this.projectPath.toString();
         final String name = this.projectPath.getFileName().toString();
+        testFormat = testFormat == null ? TestFormat.xml : testFormat;
+
         PanktiGenLauncher panktiGenLauncher = new PanktiGenLauncher();
         MavenLauncher launcher = panktiGenLauncher.getMavenLauncher(path, name);
         SpoonPom projectPom = launcher.getPomFile();
@@ -75,9 +82,12 @@ public class PanktiGenMain implements Callable<Integer> {
         System.out.println("POM found at: " + projectPom.getPath());
         System.out.println("Number of Maven modules: " + projectPom.getModel().getModules().size());
 
-        TestGenerator testGenerator = new TestGenerator(testFormat.toString());
-        System.out.println("Number of new test cases: " + testGenerator.process(model, launcher,
+        TestGenerator testGenerator = new TestGenerator(testFormat.toString(), launcher, generateMocks);
+        System.out.println("Number of new test cases: " + testGenerator.process(model,
                 methodCSVFilePath.toString(), objectXMLDirectoryPath.toString()));
+
+        System.out.println("Number of new test cases with mocks: " +
+                testGenerator.getNumberOfTestCasesWithMocksGenerated());
 
         // Save model in outputdir/
 

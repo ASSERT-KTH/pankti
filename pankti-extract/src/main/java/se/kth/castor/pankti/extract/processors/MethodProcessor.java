@@ -20,7 +20,7 @@ import spoon.reflect.visitor.filter.ReferenceTypeFilter;
 )
 public class MethodProcessor extends AbstractProcessor<CtMethod<?>> implements Callable<String> {
 
-    private boolean includeVoidMethods;
+    final private boolean includeVoidMethods;
     List<CtMethod<?>> publicMethods = new ArrayList<>();
     List<CtMethod<?>> privateMethods = new ArrayList<>();
     List<CtMethod<?>> protectedMethods = new ArrayList<>();

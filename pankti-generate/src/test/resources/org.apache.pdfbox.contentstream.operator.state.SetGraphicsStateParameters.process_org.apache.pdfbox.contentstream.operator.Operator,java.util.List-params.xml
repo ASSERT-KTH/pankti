@@ -1,0 +1,12 @@
+<object-array uuid="032df387-1293-4900-8a3b-d3cb68e6203b">
+    <org.apache.pdfbox.contentstream.operator.Operator>
+        <theOperator>gs</theOperator>
+    </org.apache.pdfbox.contentstream.operator.Operator>
+    <list>
+        <org.apache.pdfbox.cos.COSName>
+            <direct>false</direct>
+            <name>GS1</name>
+            <hashCode>70853</hashCode>
+        </org.apache.pdfbox.cos.COSName>
+    </list>
+</object-array>

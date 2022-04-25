@@ -1,8 +1,10 @@
 *.csv
+!**/src/test/resources/**/*.csv
 .idea/
 *.iml
 output/
 spooned/
 target/
 *.tmp
+**/__pycache__/
 

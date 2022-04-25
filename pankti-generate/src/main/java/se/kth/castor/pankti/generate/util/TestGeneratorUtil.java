@@ -1,4 +1,4 @@
-package se.kth.castor.pankti.generate.generators;
+package se.kth.castor.pankti.generate.util;
 
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
@@ -7,7 +7,9 @@ import com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver;
 import com.thoughtworks.xstream.io.xml.XppReader;
 import org.apache.commons.text.StringEscapeUtils;
 import org.xmlpull.mxp1.MXParser;
-import se.kth.castor.pankti.generate.parsers.InstrumentedMethod;
+import spoon.Launcher;
+import spoon.compiler.SpoonResource;
+import spoon.compiler.SpoonResourceHelper;
 import spoon.reflect.code.*;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.CtParameter;
@@ -17,6 +19,7 @@ import spoon.reflect.factory.Factory;
 import spoon.reflect.reference.CtTypeReference;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -25,8 +28,11 @@ import java.util.List;
 import java.util.Scanner;
 
 public class TestGeneratorUtil {
-    public CtMethod<?> generateDeserializationMethod(Factory factory) {
-        String methodName = "deserializeObject";
+    public static Launcher launcher;
+    public static String testFormat = "xml";
+
+    public CtMethod<?> generateDeserializationMethod(Factory factory, String serializedObjectSource) {
+        String methodName = String.format("deserializeObjectFrom%s", serializedObjectSource);
         CtTypeParameter typeParameter = factory.createTypeParameter().setSimpleName("T");
         CtTypeReference typeReference = factory.createCtTypeReference(Object.class).setSimpleName("T");
         CtMethod<?> deserializationMethod = factory.createMethod().setSimpleName(methodName);
@@ -38,6 +44,28 @@ public class TestGeneratorUtil {
         methodBody.addStatement(returnStatement);
         deserializationMethod.setBody(methodBody);
         return deserializationMethod;
+    }
+
+
+    /**
+     * Creates a resource file for long serialized XML profiles
+     */
+    public String createLongObjectStringFile(String methodIdentifier, String profileType, String longObjectStr) {
+        String fileName = "";
+        try {
+            methodIdentifier = methodIdentifier.replaceAll("\\[]", "_arr_");
+            File longObjectStrFile = new File("./output/object-data/" + methodIdentifier + "-" + profileType + "." + testFormat);
+            longObjectStrFile.getParentFile().mkdirs();
+            FileWriter myWriter = new FileWriter(longObjectStrFile);
+            myWriter.write(longObjectStr);
+            myWriter.close();
+            SpoonResource newResource = SpoonResourceHelper.createResource(longObjectStrFile);
+            launcher.addInputResource(longObjectStrFile.getAbsolutePath());
+            fileName = newResource.getName();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return fileName;
     }
 
     public CtLocalVariable<String> addStringVariableToTestMethod(Factory factory, String fieldName, String fieldValue) {
@@ -67,12 +95,24 @@ public class TestGeneratorUtil {
         );
     }
 
+    public CtLocalVariable<?> addFileVariableToDeserializationMethod(Factory factory) {
+        CtExpression<String> fileVariableExpression = factory.createCodeSnippetExpression(
+                "new File(classLoader.getResource(serializedObjectFilePath).getFile())"
+        );
+        CtLocalVariable<?> fileVariable = factory.createLocalVariable(
+                factory.createCtTypeReference(File.class),
+                "serializedObjectFile",
+                fileVariableExpression);
+        return fileVariable;
+    }
+
     public CtStatement addFileVariableToTestMethod(Factory factory, String fileName, String type) {
         type = getObjectProfileType(type);
         String fileVariableName = "file" + type;
+        String sanitizedFileName = fileName.replaceAll("\\[]", "_arr_");
         // Create file
         CtExpression<String> fileVariableExpression = factory.createCodeSnippetExpression(
-                "new File(classLoader.getResource(\"" + fileName + "\").getFile())"
+                "new File(classLoader.getResource(\"" + sanitizedFileName + "\").getFile())"
         );
         CtLocalVariable<?> fileVariable = factory.createLocalVariable(
                 factory.createCtTypeReference(File.class),
@@ -83,6 +123,10 @@ public class TestGeneratorUtil {
 
     public CtStatementList addAndReadFromScannerInDeserializationMethod(Factory factory) {
         CtStatementList scanningStatements = factory.createStatementList();
+        // ClassLoader classLoader = getClass().getClassLoader();
+        scanningStatements.addStatement(addClassLoaderVariableToTestMethod(factory));
+        // File serializedObjectFile = new File(classLoader.getResource(serializedObjectFilePath).getFile());
+        scanningStatements.addStatement(addFileVariableToDeserializationMethod(factory));
         String scannerVariableName = "scanner";
         String objectStringVariable = "serializedObjectString";
         // Create scanner
@@ -148,6 +192,12 @@ public class TestGeneratorUtil {
         );
     }
 
+    public CtStatement parseParamObjectsFromFileOrString(Factory factory, String fileOrString) {
+        return factory.createCodeSnippetStatement(String.format(
+                "Object[] paramObjects = deserializeObject(%s)",
+                fileOrString));
+    }
+
     public String findObjectBoxType(CtTypeReference typeReference) {
         if (typeReference.isPrimitive())
             return typeReference.box().getSimpleName();
@@ -155,8 +205,11 @@ public class TestGeneratorUtil {
     }
 
     // Gets method param list as _param1,param2,param3
-    public String getParamListPostFix(InstrumentedMethod instrumentedMethod) {
-        return "_" + String.join(",", instrumentedMethod.getParamList());
+    public static String getParamListPostFix(List<String> paramList) {
+        if (paramList.size() == 0)
+            return "";
+        return (paramList.size() == 1 & paramList.get(0).isEmpty())
+                ? "" : "_" + String.join(",", paramList);
     }
 
     public boolean allMethodParametersArePrimitive(CtMethod<?> method) {

@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -40,11 +41,13 @@ public class MethodAspect0 {
         private static Logger logger = Logger.getLogger(TargetMethodAdvice.class);
         private static String rowInCSVFile = "";
         private static final boolean isReturnTypeVoid = false;
+        private static final boolean hasMockableInvocations = false;
         private static final String methodParamTypesString = String.join(",", TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodParameterTypes());
         private static final String postfix = methodParamTypesString.isEmpty() ? "" : "_" + methodParamTypesString;
-        private static final String methodFQN = TargetMethodAdvice.class.getAnnotation(Pointcut.class).className() + "."
+        public static final String methodFQN = TargetMethodAdvice.class.getAnnotation(Pointcut.class).className() + "."
                 + TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodName() + postfix;
-        private static final String invocationString = String.format("Invocation count for %s: ", methodFQN);
+        static UUID invocationUuid = null;
+        private static final String invocationString = String.format("Invocation count for %s: ", methodFQN.replaceAll("\\[\\]", "%5b%5d"));
         private static File[] allObjectFiles;
 
         private static void setup() {
@@ -88,6 +91,10 @@ public class MethodAspect0 {
                 FileWriter objectFileWriter = new FileWriter(objectFilePath, true);
                 String xml = xStream.toXML(objectToWrite);
                 xml = xml.replaceAll("(&#x)(\\w+;)", "&amp;#x$2");
+                // Add attributes if method has mockable invocations
+                if (hasMockableInvocations) {
+                    xml = xml.replaceFirst("(\\/*)>", " uuid=\"" + invocationUuid + "\"$1>");
+                }
                 BufferedReader reader = new BufferedReader(new StringReader(xml));
                 BufferedWriter writer = new BufferedWriter(objectFileWriter);
                 while ((xml = reader.readLine()) != null) {
@@ -164,6 +171,12 @@ public class MethodAspect0 {
             }
         }
 
+        @IsEnabled
+        public static boolean enableProfileCollection() {
+            invocationUuid = null;
+            return INVOCATION_COUNT < 1;
+        }
+
         @OnBefore
         public static TraceEntry onBefore(OptionalThreadContext context,
                                           @BindReceiver Object receivingObject,
@@ -171,6 +184,10 @@ public class MethodAspect0 {
                                           @BindMethodName String methodName) {
             setup();
             if (fileSizeWithinLimits) {
+                if (hasMockableInvocations) {
+                    invocationUuid = UUID.randomUUID();
+                    Thread.currentThread().setName(methodFQN);
+                }
                 profileSizePre = getObjectProfileSize();
                 writeObjectXMLToFile(receivingObject, receivingObjectFilePath);
                 writeObjectXMLToFile(parameterObjects, paramObjectsFilePath);
@@ -197,6 +214,7 @@ public class MethodAspect0 {
                 appendRowToInvokedCSVFile();
             }
             writeInvocationCountToFile();
+            invocationUuid = null;
             traceEntry.end();
         }
 
@@ -212,7 +230,7 @@ public class MethodAspect0 {
             String pattern = "type\\s+:\\s+(\\S*)\\n";
             Pattern r = Pattern.compile(pattern);
             Matcher m = r.matcher(exceptionMessage);
-            if (m.find( )) {
+            if (m.find()) {
                 className = m.group(1);
             }
 
