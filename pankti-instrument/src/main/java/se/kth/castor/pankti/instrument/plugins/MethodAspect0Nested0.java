@@ -208,7 +208,7 @@ public class MethodAspect0Nested0 {
 
         // For mocking: instrument and collect parameters and returned values if this invocation is nested
         @IsEnabled
-        public static boolean isNestedInvocation() {
+        public synchronized static boolean isNestedInvocation() {
             invocationUuid = null;
             if (INVOCATION_COUNT >= 10)
                 return false;

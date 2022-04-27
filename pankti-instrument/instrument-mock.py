@@ -121,10 +121,11 @@ def generate_aspect_class(template_file_path, new_file_path, count, row, df):
 
 
 # Generate aspect classes
-def generate_aspects(df):
+def generate_aspects(df, cut):
   base_path = "./src/main/java/se/kth/castor/pankti/instrument/plugins/MethodAspect"
   found_aspects = sorted(glob.glob(base_path + "*.java"), key=lambda x: float(re.findall("(\d+)", x)[0]))
-  count = int(re.search(r"(\d+)", found_aspects[-1]).group())
+  original_count = int(re.search(r"(\d+)", found_aspects[-1]).group())
+  count = original_count
   aspects = []
   template_file_path = base_path + str(0) + ".java"
   mock_template_file_path = base_path + "0Nested0.java"
@@ -132,7 +133,7 @@ def generate_aspects(df):
   for index, row in df.iterrows():
     # temporarily, instrument classes with mockable invocations
     #     if row['visibility'] == "public":
-    if row['has-mockable-invocations']:
+    if row['has-mockable-invocations'] and (row['parent-FQN'] == cut if cut else True):
       count += 1
       aspects.append(str(count))
       new_file_path = base_path + str(count) + ".java"
@@ -150,7 +151,11 @@ def generate_aspects(df):
           generate_mock_aspect_class(mock_template_file_path, new_file_path, count, nested_count,
                                      nested_invocations[i],
                                      invocation_on_library_method)
-  print("New aspect classes added in se.kth.castor.pankti.instrument.plugins")
+  if (original_count == count):
+    print("No new aspect classes added in se.kth.castor.pankti.instrument.plugins - "
+          "You may want to check the CUT again.")
+  else:
+    print(f'{count - original_count} new aspect classes added in se.kth.castor.pankti.instrument.plugins')
   return aspects
 
 
@@ -200,12 +205,20 @@ def update_glowroot_plugin_json(aspects):
 
 def main(argv):
   try:
+    cut = ""
+    if len(argv) == 3:
+      cut = argv[2]
+      print("Attempting to generate aspects for target methods within", cut)
+    elif len(argv) == 2:
+      print("CUT not provided, will generate aspects for all target methods")
     df = pd.read_csv(argv[1])
     print("input (rows, columns): ", df.shape)
-    aspects = generate_aspects(df)
-    update_glowroot_plugin_json(aspects)
+    aspects = generate_aspects(df, cut)
+    if (len(aspects) > 0):
+      update_glowroot_plugin_json(aspects)
   except Exception as e:
-    print("USAGE: python instrument-mock.py </path/to/instrumentation/candidate/list>.csv")
+    print(
+      "USAGE: python instrument-mock.py </path/to/instrumentation/candidate/list>.csv <optional.fqn.of.class.under.test>")
     print(e)
     sys.exit()
 
