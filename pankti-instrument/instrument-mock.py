@@ -153,7 +153,7 @@ def generate_aspects(df, cut):
                                      invocation_on_library_method)
   if (original_count == count):
     print("No new aspect classes added in se.kth.castor.pankti.instrument.plugins - "
-          "You may want to check the CUT again.")
+          "You may want to check the CUT again. Escape $ signs in the CUT name with a \\")
   else:
     print(f'{count - original_count} new aspect classes added in se.kth.castor.pankti.instrument.plugins')
   return aspects
