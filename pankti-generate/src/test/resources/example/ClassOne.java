@@ -18,7 +18,7 @@ public class ClassOne {
 
     // Overloaded method
     public String methodWithNoNestedInvocation() {
-        return String.format("Never gonna give, never gonna give!");
+        return "Never gonna give, never gonna give!";
     }
 
     // Nested method call on object of external class which is a field

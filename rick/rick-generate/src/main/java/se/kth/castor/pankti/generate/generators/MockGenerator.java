@@ -130,6 +130,7 @@ public class MockGenerator {
         List<String> mockParameterFQNs = new ArrayList<>();
         List<String> mockParameterNames = new ArrayList<>();
         Set<String> mockVariableNames = new LinkedHashSet<>();
+        List<Integer> mockedParamIndices = new ArrayList<>();
 
         // Stub all mockable methods
         for (SerializedObject nestedSerializedObject : nestedSerializedObjects) {
@@ -190,6 +191,7 @@ public class MockGenerator {
                                 mockVariableTypeSimple);
                         mockParameterFQNs.add(mockVariableTypeFQN);
                         mockParameterNames.add(mockVariableName);
+                        mockedParamIndices.add(nestedInvocation.getInvocationParamIndex());
                         if (testOOBody.getStatements().stream()
                                 .noneMatch(s -> s.toString().equals(mockParameterStatement.toString()))) {
                             testOOBody.addStatement(mockParameterStatement);
@@ -220,6 +222,7 @@ public class MockGenerator {
         generatedTest = MockGeneratorUtil.cleanUpBaseMethodCloneForMocking(baseMethod,
                 MockGeneratorUtil.arePrimitiveOrString(List.of(targetMUT.getReturnType())),
                 targetMUT.getReturnType().equals("void"),
+                new LinkedHashSet<>(mockedParamIndices),
                 false);
 
         String postfix = "";
@@ -245,20 +248,10 @@ public class MockGenerator {
             }
         }
 
-        Set<String> intersectionBetweenParamListAndMockFQNs = targetMUT.getParamList().stream()
-                .distinct().filter(mockParameterFQNs::contains)
-                .collect(Collectors.toSet());
-        if (intersectionBetweenParamListAndMockFQNs.size() == 0 & mockParameterFQNs.size() > 0) {
-            // TODO: This is very makeshift
-            for (int i = 0; i < targetMUT.getParamList().size(); i++) {
-                mutCallStatement = MockGeneratorUtil.updateAssertionForInvocationOnParameters(mutCallStatement,
-                        targetMUT.getParamList(), targetMUT.getParamList().get(i), mockParameterNames.get(i));
-            }
-        } else {
-            for (int i = 0; i < mockParameterFQNs.size(); i++) {
-                mutCallStatement = MockGeneratorUtil.updateAssertionForInvocationOnParameters(mutCallStatement,
-                        targetMUT.getParamList(), mockParameterFQNs.get(i), mockParameterNames.get(i));
-            }
+        // mut(param1, param2, ...)
+        for (int i = 0; i < mockedParamIndices.size(); i++) {
+            mutCallStatement = MockGeneratorUtil.updateAssertionForInvocationOnParametersBasedOnIndex(mutCallStatement,
+                    targetMUT.getParamList(), mockedParamIndices.get(i), mockParameterNames.get(i));
         }
 
         if (testCategory.equals("OO")) {

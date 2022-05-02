@@ -1,0 +1,12 @@
+<object-array uuid="b1d403f8-97ee-46a6-9ddc-1b8f4e0bd7c2">
+  <org.apache.pdfbox.io.RandomAccessInputStream>
+    <pageSize>4096</pageSize>
+    <pageHandler></pageHandler>
+  </org.apache.pdfbox.io.RandomAccessInputStream>
+  <org.apache.pdfbox.io.RandomAccessOutputStream>
+  </org.apache.pdfbox.io.RandomAccessOutputStream>
+  <org.apache.pdfbox.cos.COSStream>
+  </org.apache.pdfbox.cos.COSStream>
+  <org.apache.pdfbox.filter.DecodeOptions>
+  </org.apache.pdfbox.filter.DecodeOptions>
+</object-array>

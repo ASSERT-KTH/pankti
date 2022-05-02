@@ -7,17 +7,20 @@ public class NestedInvocation {
     String invocationReturnType;
     String invocationTargetType;
     Map<String, String> invocationFieldsVisibilityMap;
+    Integer invocationParamIndex;
     String invocationMode;
 
     public NestedInvocation(String invocation,
                             String invocationReturnType,
                             String invocationTargetType,
                             Map<String, String> invocationFieldsVisibilityMap,
+                            Integer invocationParamIndex,
                             String invocationMode) {
         this.invocation = invocation;
         this.invocationReturnType = invocationReturnType;
         this.invocationTargetType = invocationTargetType;
         this.invocationFieldsVisibilityMap = invocationFieldsVisibilityMap;
+        this.invocationParamIndex = invocationParamIndex;
         this.invocationMode = invocationMode;
     }
 
@@ -45,6 +48,10 @@ public class NestedInvocation {
         return invocationFieldsVisibilityMap;
     }
 
+    public Integer getInvocationParamIndex() {
+        return invocationParamIndex;
+    }
+
     public String getInvocationMode() {
         return invocationMode;
     }
@@ -57,6 +64,7 @@ public class NestedInvocation {
                 ", invocationReturnType='" + invocationReturnType + '\'' +
                 ", invocationTargetType='" + invocationTargetType + '\'' +
                 ", invocationFieldsVisibilityMap=" + invocationFieldsVisibilityMap +
+                ", invocationParamIndex=" + invocationParamIndex +
                 '}';
     }
 }

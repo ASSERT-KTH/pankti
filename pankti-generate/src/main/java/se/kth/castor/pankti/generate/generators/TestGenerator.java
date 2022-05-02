@@ -275,7 +275,7 @@ public class TestGenerator {
 
     public List<CtStatement> addAndParseMethodParams(String paramsObjectStr, CtMethod<?> method) {
         List<CtStatement> paramStatements = new ArrayList<>();
-        if (paramsObjectStr.length() <= 10000) {
+        if (paramsObjectStr.length() <= 100) {
             CtStatement paramsXMLStringDeclaration = testGenUtil.addStringVariableToTestMethod(factory, "paramsObjectStr", paramsObjectStr);
             paramStatements.add(paramsXMLStringDeclaration);
             CtStatement parseParamObjectsFromString = parseSerializedObjectFromFilePathOrString(
@@ -352,7 +352,7 @@ public class TestGenerator {
         }
         String methodIdentifier = instrumentedMethod.getFullMethodPath() + postfix + methodCounter;
 
-        if (receivingObjectStr.length() > 10000) {
+        if (receivingObjectStr.length() > 100) {
             String type = "receiving";
             String fileName = testGenUtil.createLongObjectStringFile(methodIdentifier, type, receivingObjectStr);
             CtStatement parseReceivingObjectFromFile = parseSerializedObjectFromFilePathOrString(
@@ -369,7 +369,7 @@ public class TestGenerator {
         }
 
         if (method.getType().getSimpleName().equals("void")) {
-            if (receivingObjectPostStr.length() > 10000) {
+            if (receivingObjectPostStr.length() > 100) {
                 String type = "receivingpost";
                 String fileName = testGenUtil.createLongObjectStringFile(methodIdentifier, type, receivingObjectPostStr);
                 CtStatement parseReceivingPostObjectFromFile = parseSerializedObjectFromFilePathOrString(
@@ -385,7 +385,7 @@ public class TestGenerator {
                 methodBody.add(parseReceivingPostObjectFromString);
             }
         } else {
-            if (returnedObjectStr.length() > 10000) {
+            if (returnedObjectStr.length() > 100) {
                 String type = "returned";
                 String fileName = testGenUtil.createLongObjectStringFile(methodIdentifier, type, returnedObjectStr);
                 CtStatement parseReturnedObjectFromFile = parseSerializedObjectFromFilePathOrString(
@@ -405,7 +405,7 @@ public class TestGenerator {
         }
 
         if (!paramsObjectStr.isEmpty()) {
-            if (paramsObjectStr.length() > 10000) {
+            if (paramsObjectStr.length() > 100) {
                 String type = "params";
                 String fileName = testGenUtil.createLongObjectStringFile(methodIdentifier, type, paramsObjectStr);
                 CtStatement parseParamObjectsFromFile = parseSerializedObjectFromFilePathOrString(
@@ -590,6 +590,9 @@ public class TestGenerator {
 
         if (serializedObjects.size() == 0) {
             System.out.println("NO OBJECTS FOUND FOR " + instrumentedMethod.getFullMethodPath() + " - SKIPPING");
+            return null;
+        } else if (generateMocks & serializedObjects.stream().noneMatch(s -> s.getNestedSerializedObjects().size() > 0)) {
+            System.out.println("NO MOCKABLE INVOCATIONS FOUND FOR " + instrumentedMethod.getFullMethodPath() + " - SKIPPING");
             return null;
         } else {
             factory = type.getFactory();

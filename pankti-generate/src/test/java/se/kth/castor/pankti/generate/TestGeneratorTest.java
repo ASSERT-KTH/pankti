@@ -14,8 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * These tests verify that the project model has expected types,
@@ -54,7 +53,7 @@ public class TestGeneratorTest {
 
     @Test
     public void getListOfInstrumentedMethodsFromInvokedCSV() {
-        assertEquals(9, instrumentedMethods.size());
+        assertEquals(10, instrumentedMethods.size());
     }
 
     @Test
@@ -70,6 +69,7 @@ public class TestGeneratorTest {
         assertTrue(typeWithOverloadedMethod.isPresent());
 
         List<CtMethod<?>> methodsByName = typeWithOverloadedMethod.get().getMethodsByName(overloadedInstrumentedMethod.getMethodName());
+        assertEquals(2, methodsByName.size());
 
         Map.Entry<CtMethod<?>, Boolean> methodAndOverload = testGeneratorWithMocks.findMethodToGenerateTestMethodsFor(methodsByName, overloadedInstrumentedMethod);
         assertEquals("java.lang.String",

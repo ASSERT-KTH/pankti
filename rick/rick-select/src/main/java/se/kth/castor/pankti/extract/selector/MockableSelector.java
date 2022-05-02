@@ -188,8 +188,9 @@ public class MockableSelector {
     private static boolean isExecutableEqualsOrHashCodeOrToString(CtExecutableReference<?> executable) {
         return (executable.getSimpleName().equals("equals") ||
                 executable.getSimpleName().equals("toString") ||
+                (executable.getSimpleName().equals("containsKey") &
+                        getDeclaringType(executable).getQualifiedName().equals("java.util.Map")) ||
                 executable.getSimpleName().equals("hashCode"));
-
     }
 
     /**
@@ -201,6 +202,7 @@ public class MockableSelector {
      */
     private static boolean isExecutableDeclaringTypeStringOrCollection(CtTypeReference<?> executableDeclaringType) {
         return executableDeclaringType.getQualifiedName().equals("java.lang.String") ||
+                executableDeclaringType.getQualifiedName().toLowerCase().contains("log") ||
                 executableDeclaringType.getQualifiedName().equals("java.util.Collection");
 
     }
@@ -220,20 +222,28 @@ public class MockableSelector {
      */
     public static Set<NestedTarget> getMockableInvocationsOnParameters(final CtMethod<?> method) {
         Set<NestedTarget> nestedTargets = new LinkedHashSet<>();
-        List<CtParameter<?>> parameters = method.getParameters().stream()
-                .filter(p -> !p.getType().isPrimitive())
-                .collect(Collectors.toList());
+
+        // Get invocations in MUT
         List<CtInvocation> invocations = method.getElements(new TypeFilter<>(CtInvocation.class))
                 .stream()
                 .filter(ctInvocation -> ctInvocation.getTarget() != null)
                 .collect(Collectors.toList());
-        for (CtParameter<?> parameter : parameters) {
-            String parameterFQN = parameter.getType().getQualifiedName();
-            String parameterName = parameter.getSimpleName();
+
+        // Prepare a map with the index of non-primitive params of external type
+        List<CtParameter<?>> mutParams = method.getParameters();
+        Map<Integer, CtParameter<?>> indexParametersMap = new LinkedHashMap<>();
+        for (int i = 0; i < mutParams.size(); i++) {
+            if (!mutParams.get(i).getType().isPrimitive() &
+                    !mutParams.get(i).getType().getQualifiedName().equals(method.getDeclaringType().getQualifiedName())) {
+                indexParametersMap.put(i, mutParams.get(i));
+            }
+        }
+
+        for (Map.Entry<Integer, CtParameter<?>> indexParam : indexParametersMap.entrySet()) {
+            String parameterName = indexParam.getValue().getSimpleName();
             for (CtInvocation<?> invocation : invocations) {
-                // If invocation is called on parameter and parameter declaring type is different from method's
-                if (Objects.requireNonNull(invocation.getTarget()).toString().equals(parameterName) &
-                        !parameterFQN.equals(method.getDeclaringType().getQualifiedName())) {
+                // If invocation is called on parameter
+                if (Objects.requireNonNull(invocation.getTarget()).toString().equals(parameterName)) {
                     CtExecutableReference<?> executable = getExecutable(invocation);
                     if (!isExecutableDeclaringTypeStringOrCollection(getDeclaringType(executable))
                             & executable.getType() != null) {
@@ -243,6 +253,7 @@ public class MockableSelector {
                                     executable.getType().getQualifiedName(),
                                     TargetType.PARAMETER,
                                     null,
+                                    indexParam.getKey(),
                                     getDeclaringType(executable).getQualifiedName(),
                                     executable.getSimpleName(),
                                     executable.getParameters().stream().map(CtTypeInformation::getQualifiedName).collect(Collectors.toList()).toString(),
@@ -348,6 +359,7 @@ public class MockableSelector {
                         executable.getType().getQualifiedName(),
                         TargetType.FIELD,
                         invocationFieldVisibility.toString(),
+                        null,
                         getDeclaringType(executable).getQualifiedName(),
                         executable.getSimpleName(),
                         executable.getParameters().stream().map(CtTypeInformation::getQualifiedName)

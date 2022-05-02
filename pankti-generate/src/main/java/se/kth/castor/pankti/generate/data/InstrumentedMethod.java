@@ -96,6 +96,7 @@ public class InstrumentedMethod {
         List<String> nestedReturnTypes = MockGeneratorUtil.getReturnTypeFromInvocationMap(nestedMethodMap);
         List<String> invocationTargetTypes = MockGeneratorUtil.getNestedInvocationTargetTypesFromNestedMethodMap(nestedMethodMap);
         List<Map<String, String>> fieldVisibilityMaps = MockGeneratorUtil.getNestedInvocationTargetFieldVisibilityMap(invocationTargetTypes, nestedMethodMap);
+        List<Integer> parameterIndices = MockGeneratorUtil.getNestedInvocationParameterIndex(invocationTargetTypes, nestedMethodMap);
         List<String> invocationMode = MockGeneratorUtil.getInvocationMode(nestedMethodMap);
 
         assert (sanitizedInvocations.size() == nestedReturnTypes.size() &
@@ -107,6 +108,7 @@ public class InstrumentedMethod {
                     sanitizedInvocations.get(i), nestedReturnTypes.get(i),
                     invocationTargetTypes.get(i),
                     !fieldVisibilityMaps.get(i).toString().equals("{=}") ? fieldVisibilityMaps.get(i): null,
+                    parameterIndices.get(i),
                     invocationMode.get(i)));
         }
     }

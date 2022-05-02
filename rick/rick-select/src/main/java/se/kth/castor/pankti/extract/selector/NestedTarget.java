@@ -16,6 +16,7 @@ public class NestedTarget {
     String nestedInvocationReturnType;
     TargetType nestedInvocationTargetType;
     String nestedInvocationFieldName;
+    Integer nestedInvocationParameterIndex;
     String nestedInvocationDeclaringType;
     String nestedInvocationMethod;
     String nestedInvocationParams;
@@ -25,6 +26,7 @@ public class NestedTarget {
     public NestedTarget(String nestedInvocationReturnType,
                         TargetType nestedInvocationTargetType,
                         String nestedInvocationFieldName,
+                        Integer nestedInvocationParameterIndex,
                         String nestedInvocationDeclaringType,
                         String nestedInvocationMethod,
                         String nestedInvocationParams,
@@ -32,6 +34,7 @@ public class NestedTarget {
         this.nestedInvocationReturnType = nestedInvocationReturnType;
         this.nestedInvocationTargetType = nestedInvocationTargetType;
         this.nestedInvocationFieldName = nestedInvocationFieldName;
+        this.nestedInvocationParameterIndex = nestedInvocationParameterIndex;
         this.nestedInvocationDeclaringType = nestedInvocationDeclaringType;
         this.nestedInvocationMethod = nestedInvocationMethod;
         this.nestedInvocationParams = nestedInvocationParams;
@@ -58,7 +61,8 @@ public class NestedTarget {
                 "nestedInvocationMode='" + mode + '\'' +
                 ", nestedInvocationReturnType='" + nestedInvocationReturnType + '\'' +
                 ", nestedInvocationTargetType=" + nestedInvocationTargetType +
-                ", nestedInvocationFieldName='" + nestedInvocationFieldName + '\'' +
+                (nestedInvocationTargetType.equals(TargetType.FIELD) ? ", nestedInvocationFieldName='" + nestedInvocationFieldName + '\'' : "") +
+                (nestedInvocationTargetType.equals(TargetType.PARAMETER) ? ", nestedInvocationParameterIndex='" + nestedInvocationParameterIndex + '\'' : "") +
                 ", nestedInvocationDeclaringType='" + nestedInvocationDeclaringType + '\'' +
                 ", nestedInvocationMethod='" + nestedInvocationMethod + '\'' +
                 ", nestedInvocationParams='" + nestedInvocationParams + '\'' +

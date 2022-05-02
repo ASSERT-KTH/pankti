@@ -128,6 +128,7 @@ public class MockGeneratorUtil {
     public static CtMethod<?> cleanUpBaseMethodCloneForMocking(CtMethod<?> baseMethod,
                                                                boolean targetReturnsPrimitive,
                                                                boolean targetReturnsVoid,
+                                                               Set<Integer> paramIndices,
                                                                boolean invocationMadeOnLibraryMethod) {
         CtMethod<?> updatedBaseMethod = factory.createMethod();
         baseMethod.getAnnotations().forEach(updatedBaseMethod::addAnnotation);
@@ -138,8 +139,32 @@ public class MockGeneratorUtil {
         List<CtStatement> statements = baseMethod.getBody().getStatements();
         List<CtStatement> statementsToRetain = new ArrayList<>();
 
+        // Remove parameter variables that are to be mocked
+        List<Integer> indicesToIgnore = new ArrayList<>();
+        List<Integer> deserializationStatementIndices = new ArrayList<>();
+        for (int i = 0; i < statements.size(); i++) {
+            int finalI = i;
+            if (statements.get(i).toString().contains(" paramObjects["))
+                deserializationStatementIndices.add(i);
+            if (paramIndices.stream().anyMatch(ind -> statements.get(finalI).toString().contains(
+                    String.format(" paramObjects[%d]", ind))))
+                indicesToIgnore.add(i);
+        }
+
+        // If there are no other parameter deserializations, remove parameters altogether
+        if (deserializationStatementIndices.equals(indicesToIgnore)) {
+            for (int i = 0; i < statements.size(); i++) {
+                if (statements.get(i).toString().contains("String paramsObjectStr =") |
+                        statements.get(i).toString().contains("Object[] paramObjects =")) {
+                    indicesToIgnore.add(i);
+                }
+            }
+        }
+
+        // Remove unrequired statements
         CtBlock<?> methodBody = factory.createBlock();
         for (int i = 0; i < statements.size(); i++) {
+            if (indicesToIgnore.contains(i)) continue;
             if (!statements.get(i).toString().contains("returnedObjectStr") &
                     !statements.get(i).toString().contains("expectedObject = deserializeObjectFrom") &
                     !statements.get(i).toString().contains("receivingPostObjectStr") &
@@ -192,13 +217,13 @@ public class MockGeneratorUtil {
         return mockParameterVariable;
     }
 
-    public static CtStatement updateAssertionForInvocationOnParameters(CtStatement assertionStatement,
-                                                                       List<String> paramList,
-                                                                       String mockFieldFQN,
-                                                                       String mockFieldName) {
+    public static CtStatement updateAssertionForInvocationOnParametersBasedOnIndex(CtStatement assertionStatement,
+                                                                                   List<String> paramList,
+                                                                                   int paramIndex,
+                                                                                   String mockFieldName) {
         CtStatement updatedAssertStatement = null;
         for (int i = 0; i < paramList.size(); i++) {
-            if (paramList.get(i).equals(mockFieldFQN)) {
+            if (i == paramIndex) {
                 String paramBeingReplaced = "paramObject" + (i + 1);
                 updatedAssertStatement = factory.createCodeSnippetStatement(
                         assertionStatement.toString().replace(paramBeingReplaced, mockFieldName));
@@ -228,13 +253,36 @@ public class MockGeneratorUtil {
         List<String> methodInvocations = List.of(nestedMethodMap.split(",\\{"));
         List<String> targetTypes = new ArrayList<>();
         for (String invocation : methodInvocations) {
+            String endString = invocation.contains("PARAMETER") ?
+                    ",nestedInvocationParameterIndex" :
+                    ",nestedInvocationFieldName";
             String targetType = findInString(
                     "nestedInvocationTargetType=",
-                    ",nestedInvocationFieldName",
+                    endString,
                     invocation);
             targetTypes.add(targetType);
         }
         return targetTypes;
+    }
+
+    public static List<Integer> getNestedInvocationParameterIndex(List<String> targetTypes, String nestedMethodMap) {
+        List<String> methodInvocations = List.of(nestedMethodMap.split(",\\{"));
+        List<Integer> paramIndices = new ArrayList<>();
+
+        for (int i = 0; i < targetTypes.size(); i++) {
+            if (targetTypes.get(i).equals("PARAMETER")) {
+                // {field1=visibility, field2=visibility, field3=visibility}
+                String paramIndex = findInString(
+                        "nestedInvocationParameterIndex='",
+                        "',nestedInvocationDeclaringType",
+                        methodInvocations.get(i));
+                paramIndices.add(Integer.parseInt(paramIndex));
+            } else {
+                paramIndices.add(null);
+            }
+        }
+        return paramIndices;
+
     }
 
     public static List<Map<String, String>> getNestedInvocationTargetFieldVisibilityMap(List<String> targetTypes, String nestedMethodMap) {

@@ -158,7 +158,9 @@ public class ObjectXMLParser {
             // Get nested xml if --rick
             if (generateMocks & instrumentedMethod.hasMockableInvocations()) {
                 List<NestedInvocation> nestedInvocations = instrumentedMethod.getNestedInvocations();
-                System.out.println("List of nested invocations to mock: " + nestedInvocations);
+                System.out.printf("%d nested invocations to mock: %s%n",
+                        nestedInvocations.size(),
+                        nestedInvocations);
                 for (NestedInvocation nestedInvocation : nestedInvocations) {
                     String declaringType = MethodInvocationUtil.getDeclaringTypeFromInvocationFQN(nestedInvocation.getInvocation());
                     String mockedMethodWithParams = MethodInvocationUtil.getMethodWithParamsFromInvocationFQN(nestedInvocation.getInvocation());

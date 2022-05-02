@@ -24,7 +24,7 @@ public class SerializedObjectTest {
     public static void readCSVFileAndFindParentAndNestedSerializedObjects() {
         instrumentedMethods = CSVFileParser.parseCSVFile("src/test/resources/invoked-methods-example.csv");
         serializedObjects = objectXMLParser.parseXML(
-                "src/test/resources/", instrumentedMethods.get(4), true);
+                "src/test/resources/", instrumentedMethods.get(3), true);
         parent = (SerializedObject) serializedObjects.toArray()[0];
         nested = parent.getNestedSerializedObjects();
     }
@@ -36,12 +36,12 @@ public class SerializedObjectTest {
 
     @Test
     public void testThatNestedSerializedObjectsAreFoundIfTheyExistAndRickIsTrue() {
-        assertEquals(6, nested.size());
+        assertEquals(1, nested.size());
     }
 
     @Test
     public void testThatNestedSerializedObjectsAreOrderedByTimestamp() {
-        assertEquals("2022-04-03T19:29:29.679Z", nested.get(0).getInvocationTimestamp().toString());
+        assertEquals("2022-05-01T12:35:39.509Z", nested.get(0).getInvocationTimestamp().toString());
         for (int i = 1; i < nested.size(); i++) {
             assertTrue(nested.get(i - 1).getInvocationTimestamp().isBefore(nested.get(i).getInvocationTimestamp()));
         }
@@ -49,14 +49,13 @@ public class SerializedObjectTest {
 
     @Test
     public void testThatSerializedObjectFQNsAreFound() {
-        assertEquals("java.io.OutputStream.write(int)",
+        assertEquals("java.io.OutputStream.write(byte[])",
                 nested.get(0).getInvocationFQN());
     }
 
     @Test
     public void testThatParentReceivingObjectTypeIsIdentified() {
-        assertEquals("org.apache.pdfbox.cos.COSName", parent.getObjectType(parent.getReceivingObject()));
-        assertEquals("org.apache.pdfbox.cos.COSName", parent.getObjectType(parent.getReceivingPostObject()));
+        assertEquals("org.apache.pdfbox.filter.DCTFilter", parent.getObjectType(parent.getReceivingObject()));
     }
 
     @Test
@@ -64,7 +63,7 @@ public class SerializedObjectTest {
         assertNull(nested.get(0).getReceivingObject());
         assertNull(nested.get(0).getNestedSerializedObjects(),
                 "nested serialized object should not have its own nested objects");
-        assertEquals("<object-array><int>47</int></object-array>",
+        assertEquals("<object-array><byte-array/></object-array>",
                 nested.get(0).getParamObjects().replaceAll("\\s", ""));
         assertEquals("<null/>", nested.get(0).getReturnedObject(),
                 "The returned object for this serialized object should be null," +
