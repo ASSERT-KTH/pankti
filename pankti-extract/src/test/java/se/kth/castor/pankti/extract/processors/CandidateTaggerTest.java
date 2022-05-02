@@ -1,6 +1,7 @@
 package se.kth.castor.pankti.extract.processors;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import se.kth.castor.pankti.extract.launchers.PanktiLauncher;
 import se.kth.castor.pankti.extract.runners.PanktiMain;
@@ -11,7 +12,6 @@ import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.visitor.filter.TypeFilter;
 
 import java.net.URISyntaxException;
-import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -26,11 +26,10 @@ public class CandidateTaggerTest {
     @BeforeAll
     public static void setUpLauncherAndModel() throws URISyntaxException {
         methodProcessor = new MethodProcessor(true);
-        panktiMain = new PanktiMain(Path.of("src/test/resources/jitsi-videobridge"), false);
-        panktiLauncher = new PanktiLauncher();
-        mavenLauncher = panktiLauncher.getMavenLauncher(panktiMain.getProjectPath().toString(),
-                panktiMain.getProjectPath().getFileName().toString());
-        testModel = panktiLauncher.buildSpoonModel(mavenLauncher);
+        panktiMain = ModelBuilder.getPanktiMain();
+        panktiLauncher = ModelBuilder.getPanktiLauncher();
+        mavenLauncher = ModelBuilder.getMavenLauncher();
+        testModel = ModelBuilder.getModel();
         testModel.processWith(methodProcessor);
         panktiLauncher.addMetaDataToCandidateMethods(methodProcessor.getCandidateMethods());
         candidateTagger = new CandidateTagger();
@@ -39,6 +38,7 @@ public class CandidateTaggerTest {
 
     // Test the number of extracted methods that return a value
     @Test
+    @DisplayName("The correct number of non-void methods is found")
     public void testNumberOfMethodsRetuningAValue() {
         assertEquals(214, candidateTagger.methodsReturningAValue.size(),
                 "214 extracted methods in test resource should return a value");
@@ -47,6 +47,7 @@ public class CandidateTaggerTest {
 
     // Test that some extracted methods are void
     @Test
+    @DisplayName("Some methods in test resource are void")
     public void testSomeExtractedMethodsDoNotReturnAValue() {
         assertEquals(methodProcessor.candidateMethods.size() - candidateTagger.methodsReturningAValue.size(),
                 candidateTagger.methodsNotReturningAValue.size(),
