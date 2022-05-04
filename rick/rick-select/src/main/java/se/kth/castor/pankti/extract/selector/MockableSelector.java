@@ -8,6 +8,7 @@ import spoon.reflect.declaration.*;
 import spoon.reflect.reference.CtExecutableReference;
 import spoon.reflect.reference.CtTypeReference;
 import spoon.reflect.visitor.filter.TypeFilter;
+import spoon.support.reflect.reference.CtExecutableReferenceImpl;
 import spoon.support.reflect.reference.CtFieldReferenceImpl;
 
 import java.util.*;
@@ -61,6 +62,10 @@ public class MockableSelector {
         // Invocation target is a field and not a local variable
         return field != null &&
                 invocation.getTarget().getElements(new TypeFilter<>(CtFieldReferenceImpl.class)).size() == 1;
+    }
+
+    private static boolean isExecutablePrivate(final CtExecutableReference<?> executable) {
+        return ((CtExecutableReferenceImpl<?>) executable).getModifiers().contains(ModifierKind.PRIVATE);
     }
 
     /**
@@ -212,24 +217,7 @@ public class MockableSelector {
         return methodDeclaringType.getQualifiedName().equals(executableDeclaringType.getQualifiedName());
     }
 
-    /**
-     * Finds the invocations nested within a non-final, non-private, and non-abstract
-     * target method, that are made on a parameter object.
-     * The declaring type of the parameter should not be final or static.
-     *
-     * @param method The target method
-     * @return A set of nested invocations made on parameters of the target method
-     */
-    public static Set<NestedTarget> getMockableInvocationsOnParameters(final CtMethod<?> method) {
-        Set<NestedTarget> nestedTargets = new LinkedHashSet<>();
-
-        // Get invocations in MUT
-        List<CtInvocation> invocations = method.getElements(new TypeFilter<>(CtInvocation.class))
-                .stream()
-                .filter(ctInvocation -> ctInvocation.getTarget() != null)
-                .collect(Collectors.toList());
-
-        // Prepare a map with the index of non-primitive params of external type
+    public static Map<Integer, CtParameter<?>> getMapOfNonPrimitiveParamsAndTheirIndex(CtMethod<?> method) {
         List<CtParameter<?>> mutParams = method.getParameters();
         Map<Integer, CtParameter<?>> indexParametersMap = new LinkedHashMap<>();
         for (int i = 0; i < mutParams.size(); i++) {
@@ -238,6 +226,26 @@ public class MockableSelector {
                 indexParametersMap.put(i, mutParams.get(i));
             }
         }
+        return indexParametersMap;
+    }
+
+    /**
+     * Finds the invocations nested within a non-final, non-private, and non-abstract
+     * target method, that are made on a parameter object.
+     * The declaring type of the parameter should not be final or static.
+     *
+     * @param method The target method
+     * @return A set of nested invocations made on parameters of the target method
+     */
+    public static List<CtInvocation<?>> getMockableInvocationsOnParameters(final CtMethod<?> method,
+                                                                           Map<Integer, CtParameter<?>> indexParametersMap) {
+        List<CtInvocation<?>> invocationsOnParams = new LinkedList<>();
+
+        // Get invocations in MUT
+        List<CtInvocation> invocations = method.getElements(new TypeFilter<>(CtInvocation.class))
+                .stream()
+                .filter(ctInvocation -> ctInvocation.getTarget() != null)
+                .collect(Collectors.toList());
 
         for (Map.Entry<Integer, CtParameter<?>> indexParam : indexParametersMap.entrySet()) {
             String parameterName = indexParam.getValue().getSimpleName();
@@ -248,19 +256,60 @@ public class MockableSelector {
                     if (!isExecutableDeclaringTypeStringOrCollection(getDeclaringType(executable))
                             & executable.getType() != null) {
                         if (!isExecutableEqualsOrHashCodeOrToString(executable) &
+                                !isExecutablePrivate(executable) &
                                 isPrimitiveOrString(executable.getType()) & getExecutableLOC(executable) != 1) {
-                            nestedTargets.add(new NestedTarget(
-                                    executable.getType().getQualifiedName(),
-                                    TargetType.PARAMETER,
-                                    null,
-                                    indexParam.getKey(),
-                                    getDeclaringType(executable).getQualifiedName(),
-                                    executable.getSimpleName(),
-                                    executable.getParameters().stream().map(CtTypeInformation::getQualifiedName).collect(Collectors.toList()).toString(),
-                                    executable.getSignature()));
+                            invocationsOnParams.add(invocation);
                         }
                     }
                 }
+            }
+        }
+        return invocationsOnParams;
+    }
+
+    public static Set<NestedTarget> transformInvocationsOnFieldsIntoNestedTargets(List<CtInvocation<?>> invocationsOnFields,
+                                                                                  CtMethod<?> method) {
+        Set<NestedTarget> nestedTargets = new LinkedHashSet<>();
+        for (int i = 0; i < invocationsOnFields.size(); i++) {
+            CtExecutableReference<?> executable = getExecutable(invocationsOnFields.get(i));
+            String nestedInvocationSignature = getDeclaringType(executable).getQualifiedName() +
+                    "." + executable.getSignature();
+            Map<String, String> invocationFieldVisibility =
+                    getAllFieldsWithSameInvocationSignature(invocationsOnFields,
+                            method, nestedInvocationSignature);
+
+            if (getExecutableLOC(executable) != 1) {
+                nestedTargets.add(new NestedTarget(
+                        executable.getType().getQualifiedName(),
+                        TargetType.FIELD,
+                        invocationFieldVisibility.toString(),
+                        null,
+                        getDeclaringType(executable).getQualifiedName(),
+                        executable.getSimpleName(),
+                        executable.getParameters().stream().map(CtTypeInformation::getQualifiedName)
+                                .collect(Collectors.toList()).toString(),
+                        executable.getSignature()));
+            }
+        }
+        return nestedTargets;
+    }
+
+    public static Set<NestedTarget> transformInvocationsOnParamsIntoNestedTargets(List<CtInvocation<?>> invocationsOnParams,
+                                                                                  Map<Integer, CtParameter<?>> indexParamsMap) {
+        Set<NestedTarget> nestedTargets = new LinkedHashSet<>();
+        for (Map.Entry<Integer, CtParameter<?>> indexParam : indexParamsMap.entrySet()) {
+            String parameterName = indexParam.getValue().getSimpleName();
+            for (CtInvocation<?> invocation : invocationsOnParams) {
+                CtExecutableReference<?> executable = getExecutable(invocation);
+                nestedTargets.add(new NestedTarget(
+                        executable.getType().getQualifiedName(),
+                        TargetType.PARAMETER,
+                        null,
+                        indexParam.getKey(),
+                        getDeclaringType(executable).getQualifiedName(),
+                        executable.getSimpleName(),
+                        executable.getParameters().stream().map(CtTypeInformation::getQualifiedName).collect(Collectors.toList()).toString(),
+                        executable.getSignature()));
             }
         }
         return nestedTargets;
@@ -278,6 +327,8 @@ public class MockableSelector {
             return false;
         if (isExecutableDeclaringTypeStringOrCollection(executableDeclaringType))
             return false;
+        if (isExecutablePrivate(executable))
+            return false;
         CtType<?> methodDeclaringType = method.getDeclaringType();
         if (!isExecutableEqualsOrHashCodeOrToString(executable) &
                 !isMethodDeclaringTypeSameAsExecutableDeclaringType(methodDeclaringType, executableDeclaringType)) {
@@ -293,6 +344,7 @@ public class MockableSelector {
             if (invocation.getTarget() != null) {
                 if (invocation.getTarget().toString().equals(parameter.getSimpleName()) &
                         !parameter.getType().getQualifiedName().equals(method.getDeclaringType().getQualifiedName()) &
+                        !isExecutablePrivate(invocation.getExecutable()) &
                         !isExecutableEqualsOrHashCodeOrToString(invocation.getExecutable()))
                     return true;
             }
@@ -335,42 +387,26 @@ public class MockableSelector {
      * @return A set of the mockable nested invocations made on fields of the declaring type
      * of the target method, or parameters of the target method
      */
-    public static Set<NestedTarget> getNestedMethodInvocationSet(final CtMethod<?> method) {
+    public static LinkedHashSet<NestedTarget> getNestedMethodInvocationSet(final CtMethod<?> method) {
         assert !method.isAbstract();
 
         if (generateReport)
             addToReport(method);
 
-        Set<NestedTarget> nestedTargets = new LinkedHashSet<>();
+        LinkedHashSet<NestedTarget> nestedTargets = new LinkedHashSet<>();
 
         // Get invocations on fields
-        List<CtInvocation<?>> nestedMethodInvocations = findNestedMethodCallsOnFields(method);
-
-        for (int i = 0; i < nestedMethodInvocations.size(); i++) {
-            CtExecutableReference<?> executable = getExecutable(nestedMethodInvocations.get(i));
-            String nestedInvocationSignature = getDeclaringType(executable).getQualifiedName() +
-                    "." + executable.getSignature();
-            Map<String, String> invocationFieldVisibility =
-                    getAllFieldsWithSameInvocationSignature(nestedMethodInvocations,
-                            method, nestedInvocationSignature);
-
-            if (getExecutableLOC(executable) != 1) {
-                nestedTargets.add(new NestedTarget(
-                        executable.getType().getQualifiedName(),
-                        TargetType.FIELD,
-                        invocationFieldVisibility.toString(),
-                        null,
-                        getDeclaringType(executable).getQualifiedName(),
-                        executable.getSimpleName(),
-                        executable.getParameters().stream().map(CtTypeInformation::getQualifiedName)
-                                .collect(Collectors.toList()).toString(),
-                        executable.getSignature()));
-            }
-        }
+        List<CtInvocation<?>> nestedMethodInvocationsOnFields = findNestedMethodCallsOnFields(method);
+        Set<NestedTarget> nestedTargetsOnFields = transformInvocationsOnFieldsIntoNestedTargets(nestedMethodInvocationsOnFields, method);
+        nestedTargets.addAll(nestedTargetsOnFields);
 
         // Get invocations on parameters
-        Set<NestedTarget> nestedInvocationsOnParameters = getMockableInvocationsOnParameters(method);
-        nestedTargets.addAll(nestedInvocationsOnParameters);
+        Map<Integer, CtParameter<?>> indexParametersMap = getMapOfNonPrimitiveParamsAndTheirIndex(method);
+        List<CtInvocation<?>> nestedInvocationsOnParameters =
+                getMockableInvocationsOnParameters(method, indexParametersMap);
+        Set<NestedTarget> nestedTargetsOnParameters =
+                transformInvocationsOnParamsIntoNestedTargets(nestedInvocationsOnParameters, indexParametersMap);
+        nestedTargets.addAll(nestedTargetsOnParameters);
         return nestedTargets;
     }
 

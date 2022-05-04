@@ -20,10 +20,7 @@ import spoon.reflect.declaration.CtType;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class PanktiLauncher {
@@ -100,7 +97,7 @@ public class PanktiLauncher {
                 }
                 // Find nested method invocations that can be mocked
                 numberOfNestedInvocationsOnFieldsOrParameters += MockableSelector.getNumberOfNestedInvocations(method).size();
-                Set<NestedTarget> nestedMethodInvocations = MockableSelector.getNestedMethodInvocationSet(method);
+                LinkedHashSet<NestedTarget> nestedMethodInvocations = MockableSelector.getNestedMethodInvocationSet(method);
                 int methodLOC = method.getBody().getStatements().size();
                 boolean isMockable = !nestedMethodInvocations.isEmpty() && methodLOC > 1;
                 csvPrinter.printRecord(

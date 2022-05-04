@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import se.kth.castor.pankti.extract.launchers.PanktiLauncher;
 import se.kth.castor.pankti.extract.processors.CandidateTagger;
 import se.kth.castor.pankti.extract.processors.MethodProcessor;
+import se.kth.castor.pankti.extract.processors.ModelBuilder;
 import se.kth.castor.pankti.extract.runners.PanktiMain;
 import se.kth.castor.pankti.extract.selector.MockableSelector;
 import se.kth.castor.pankti.extract.selector.NestedTarget;
@@ -21,6 +22,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static se.kth.castor.pankti.extract.processors.ModelBuilder.findMethodByPath;
 
 public class MethodUtilTest {
     static PanktiMain panktiMain;
@@ -46,15 +48,8 @@ public class MethodUtilTest {
         allMethods = getListOfMethods();
     }
 
-    private static CtMethod<?> findMethodByPath(final String path) {
-        Optional<CtMethod<?>> optionalCtMethod =
-                candidateTagger
-                        .getAllMethodTags()
-                        .keySet()
-                        .stream()
-                        .filter(k -> k.getPath().toString().equals(path))
-                        .findFirst();
-        return optionalCtMethod.get();
+    private static CtMethod<?> findMethodByPath(String methodPath) {
+        return ModelBuilder.findMethodByPath(methodPath, candidateTagger);
     }
 
     private static List<String> getAllExtractedMethodPathsAsString() {
@@ -182,12 +177,10 @@ public class MethodUtilTest {
 
     @Test
     public void testThatMockableMethodsOnlyReturnVoidOrPrimitiveOrString() {
-        List<String> allowedTypes = List.of("void", "boolean", "byte",
-                "char", "double", "float", "int", "long", "short", "java.lang.String");
         for (CtMethod<?> method : allMethods) {
             Set<NestedTarget> mockableInvocations = MockableSelector.getNestedMethodInvocationSet(method);
             for (NestedTarget mockable : mockableInvocations) {
-                assertTrue(allowedTypes.contains(mockable.getNestedInvocationReturnType()),
+                assertTrue(ModelBuilder.primitives.contains(mockable.getNestedInvocationReturnType()),
                         String.format("%s returns %s, which is not void, a primitive, or a String",
                                 mockable.getNestedInvocationSignature(),
                                 mockable.getNestedInvocationReturnType()));

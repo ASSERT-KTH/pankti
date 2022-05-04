@@ -4,8 +4,11 @@ import se.kth.castor.pankti.extract.launchers.PanktiLauncher;
 import se.kth.castor.pankti.extract.runners.PanktiMain;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
+import spoon.reflect.declaration.CtMethod;
 
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
 
 public class ModelBuilder {
     static PanktiMain panktiMain;
@@ -36,4 +39,18 @@ public class ModelBuilder {
     public static PanktiMain getPanktiMain() {
         return panktiMain;
     }
+
+    public static CtMethod<?> findMethodByPath(final String path, final CandidateTagger candidateTagger) {
+        Optional<CtMethod<?>> optionalCtMethod =
+                candidateTagger
+                        .getAllMethodTags()
+                        .keySet()
+                        .stream()
+                        .filter(k -> k.getPath().toString().equals(path))
+                        .findFirst();
+        return optionalCtMethod.get();
+    }
+
+    public static final List<String> primitives = List.of("void", "boolean", "byte",
+            "char", "double", "float", "int", "long", "short", "java.lang.String");
 }
