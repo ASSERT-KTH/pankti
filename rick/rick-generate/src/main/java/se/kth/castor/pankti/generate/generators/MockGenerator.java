@@ -136,6 +136,7 @@ public class MockGenerator {
         for (SerializedObject nestedSerializedObject : nestedSerializedObjects) {
             for (NestedInvocation nestedInvocation : nestedInvocations) {
                 if (nestedSerializedObject.getInvocationFQN().equals(nestedInvocation.getInvocation())) {
+
                     System.out.println("- Processing invocation " + nestedInvocation.getInvocation());
                     String mockVariableTypeFQN = MethodInvocationUtil.getDeclaringTypeFromInvocationFQN(nestedInvocation.getInvocation());
                     String mockVariableTypeSimple = MethodInvocationUtil.getDeclaringTypeSimpleNameFromFQN(mockVariableTypeFQN);
@@ -278,6 +279,8 @@ public class MockGenerator {
         CtAnnotation<?> disabledAnnotation = factory.createAnnotation(
                 factory.createCtTypeReference(Class.forName(JUNIT_JUPITER_DISABLED_REFERENCE)));
         generatedTest.removeAnnotation(disabledAnnotation);
+        generatedTest.addAnnotation(
+                MockGeneratorUtil.generateDisplayName(testCategory, targetMUT.getMethodName()));
         return generatedTest;
     }
 

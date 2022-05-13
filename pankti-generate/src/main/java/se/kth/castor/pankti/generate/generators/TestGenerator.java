@@ -555,6 +555,7 @@ public class TestGenerator {
                 CtMethod<?> testCO = sequenceGenerator.generateTestToVerifyMethodSequence(Set.of(testPO), serializedObject);
                 testCO.setSimpleName(methodNameCO);
                 testCO.addAnnotation(testAnnotation);
+                testCO.addAnnotation(MockGeneratorUtil.generateDisplayName("CO", instrumentedMethod.getMethodName()));
                 generatedClass.addMethod(testCO);
                 generatedTestsWithMocks.add(testCO);
                 System.out.println("Generated 1 CO test for " + instrumentedMethod.getFullMethodPath());

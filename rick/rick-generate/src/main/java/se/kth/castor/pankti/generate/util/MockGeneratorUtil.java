@@ -16,6 +16,7 @@ public class MockGeneratorUtil {
     static TestGeneratorUtil testGenUtil = new TestGeneratorUtil();
 
     private static final String MOCKITO_ARGUMENT_MATCHER_REFERENCE = "org.mockito.ArgumentMatchers";
+    private static final String JUNIT_JUPITER_DISPLAYNAME_REFERENCE = "org.junit.jupiter.api.DisplayName";
     private static final String invocationRegex = "(.+?)(\\.[a-zA-Z0-9]+\\(.*\\))";
     private static final List<String> primitives = List.of(
             "boolean", "byte", "char", "double", "float", "int", "long", "short", "java.lang.String");
@@ -604,5 +605,15 @@ public class MockGeneratorUtil {
             }
         }
         return nestedParamsBuilder.toString();
+    }
+
+    public static CtAnnotation<?> generateDisplayName(String category, String mutName)
+            throws ClassNotFoundException {
+        CtAnnotation<?> displayNameAnnotation = factory.createAnnotation(
+                factory.createCtTypeReference(Class.forName(JUNIT_JUPITER_DISPLAYNAME_REFERENCE)));
+        CtLiteral<String> annotationLiteral = factory.createLiteral();
+        annotationLiteral.setValue(String.format("%s for MUT %s", category, mutName));
+        displayNameAnnotation.addValue("value", annotationLiteral);
+        return displayNameAnnotation;
     }
 }
