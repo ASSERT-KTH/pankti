@@ -1,4 +1,14 @@
-# pankti ![Build](https://github.com/castor-software/pankti//workflows/build-on-push/badge.svg)
+![Build](https://github.com/castor-software/pankti//workflows/build-on-push/badge.svg)
+
+# About
+
+This repository contains code for the following research tools:
+- **pankti**: Tests from production data ([documentation](#pankti))
+- **rick**: Tests + mocks from production data ([documentation](#rick))
+
+---
+
+# pankti
 
 Pankti transforms production workloads into test cases. The test generation pipeline consists of four phases:
 1. Extract
@@ -79,3 +89,52 @@ ___
 
 #### :telescope: Results and data: [pankti-experiments](https://github.com/castor-software/pankti-experiments)
 ___
+
+# rick
+
+Rick transforms production workloads into tests that use mocks.
+In addition to some functionalities and implementation shared with **pankti**,
+it supports the instrumentation of methods that can be mocked within a test. It also handles the generation of these mocks with data collected from production.
+
+---
+
+## Building
+1. Clone this repository
+2. `cd pankti/`
+3. `mvn clean install`
+---
+## Running
+
+To **extract** methods under test (MUTs) and mockable methods:
+1. `cd pankti/pankti-extract/`
+2. `java -jar target/pankti-extract-<version>-jar-with-dependencies.jar /path/to/maven/project`
+3. The output is `./extracted-methods-<project>.csv`
+
+---
+
+To **instrument** MUTs and mockable methods:
+1. `cd pankti/pankti-instrument/`
+2. Instrument all MUTs found across all classes:
+    - `python3 instrument-mock.py ../pankti-extract/extracted-methods-<project>.csv`
+3. Alternatively, instrument MUTs found in a specific class under test (CUT):
+    - `python3 instrument-mock.py ../pankti-extract/extracted-methods-<project>.csv fully.qualified.name.of.CUT`
+4. This generates aspect classes for MUTs and corresponding mockable methods in `se.kth.castor.pankti.instrument.plugins`
+5. It also updates `./src/main/resources/META-INF/glowroot.plugin.json`
+6. `mvn clean install`
+7. Drop `<pankti-instrument-<version>-jar-with-dependencies.jar` to `/path/to/glowroot/plugins/`
+
+---
+
+To **execute** the target project:
+1. `java -javaagent:/path/to/glowroot/glowroot.jar <project-jar-and-options>`
+    - The collected objects are stored at `/tmp/pankti-object-data/`
+    - A CSV with the list of invoked MUTs is at `/tmp/pankti-object-data/invoked-methods.csv`
+
+---
+
+To **generate** tests:
+1. `cd pankti/rick/`
+2. `java -jar target/rick-<version>-jar-with-depdendencies.jar /path/to/maven/project/ /tmp/pankti-object-data/invoked-methods.csv /tmp/pankti-object-data/`
+    - The generated tests (`Test*PanktiGen.java`) are at `./output/generated/<project>`
+
+---
