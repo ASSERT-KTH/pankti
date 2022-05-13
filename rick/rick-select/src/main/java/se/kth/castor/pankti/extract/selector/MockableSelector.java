@@ -64,10 +64,6 @@ public class MockableSelector {
                 invocation.getTarget().getElements(new TypeFilter<>(CtFieldReferenceImpl.class)).size() == 1;
     }
 
-    private static boolean isExecutablePrivate(final CtExecutableReference<?> executable) {
-        return ((CtExecutableReferenceImpl<?>) executable).getModifiers().contains(ModifierKind.PRIVATE);
-    }
-
     /**
      * @param invocation The method invocation
      * @return The executable
@@ -84,21 +80,15 @@ public class MockableSelector {
         return executable.getDeclaringType();
     }
 
-    public static void addToReport(CtMethod<?> outerMethod) {
-        List<CtInvocation<?>> invocationList = outerMethod.getElements(new TypeFilter<>(CtInvocation.class));
+    public static void addToReport(CtMethod<?> outerMethod, List<CtInvocation<?>> invocationsOnFields,
+                                   List<CtInvocation<?>> invocationsOnParameters) {
 
-        List<CtParameter<?>> parameters = outerMethod.getParameters().stream()
-                .filter(p -> !p.getType().isPrimitive())
-                .collect(Collectors.toList());
+        List<CtInvocation<?>> invocationsOnFieldsOrParamters = new ArrayList<>();
+        invocationsOnFieldsOrParamters.addAll(invocationsOnFields);
+        invocationsOnFieldsOrParamters.addAll(invocationsOnParameters);
 
-        for (CtInvocation<?> invocation : invocationList) {
-            boolean invocationIsOnField = isNestedInvocationOnFieldMockable(outerMethod, invocation);
-            boolean invocationIsOnParameter = false;
-            if (!invocationIsOnField) {
-                invocationIsOnParameter = isInvocationTargetAnExternalParameter(
-                        outerMethod, invocation, parameters);
-            }
-            boolean invocationIsOnFieldOrParam = invocationIsOnField || invocationIsOnParameter;
+        for (CtInvocation<?> invocation : invocationsOnFieldsOrParamters) {
+            boolean invocationIsOnFieldOrParam = true;
             CtExecutableReference<?> executable = getExecutable(invocation);
             CtTypeReference<?> returnType = executable.getType();
             if (returnType == null & executable.getDeclaringType() != null) {
@@ -256,7 +246,6 @@ public class MockableSelector {
                     if (!isExecutableDeclaringTypeStringOrCollection(getDeclaringType(executable))
                             & executable.getType() != null) {
                         if (!isExecutableEqualsOrHashCodeOrToString(executable) &
-                                !isExecutablePrivate(executable) &
                                 isPrimitiveOrString(executable.getType()) & getExecutableLOC(executable) != 1) {
                             invocationsOnParams.add(invocation);
                         }
@@ -327,8 +316,6 @@ public class MockableSelector {
             return false;
         if (isExecutableDeclaringTypeStringOrCollection(executableDeclaringType))
             return false;
-        if (isExecutablePrivate(executable))
-            return false;
         CtType<?> methodDeclaringType = method.getDeclaringType();
         if (!isExecutableEqualsOrHashCodeOrToString(executable) &
                 !isMethodDeclaringTypeSameAsExecutableDeclaringType(methodDeclaringType, executableDeclaringType)) {
@@ -344,7 +331,6 @@ public class MockableSelector {
             if (invocation.getTarget() != null) {
                 if (invocation.getTarget().toString().equals(parameter.getSimpleName()) &
                         !parameter.getType().getQualifiedName().equals(method.getDeclaringType().getQualifiedName()) &
-                        !isExecutablePrivate(invocation.getExecutable()) &
                         !isExecutableEqualsOrHashCodeOrToString(invocation.getExecutable()))
                     return true;
             }
@@ -390,9 +376,6 @@ public class MockableSelector {
     public static LinkedHashSet<NestedTarget> getNestedMethodInvocationSet(final CtMethod<?> method) {
         assert !method.isAbstract();
 
-        if (generateReport)
-            addToReport(method);
-
         LinkedHashSet<NestedTarget> nestedTargets = new LinkedHashSet<>();
 
         // Get invocations on fields
@@ -407,6 +390,10 @@ public class MockableSelector {
         Set<NestedTarget> nestedTargetsOnParameters =
                 transformInvocationsOnParamsIntoNestedTargets(nestedInvocationsOnParameters, indexParametersMap);
         nestedTargets.addAll(nestedTargetsOnParameters);
+
+        if (generateReport)
+            addToReport(method, nestedMethodInvocationsOnFields, nestedInvocationsOnParameters);
+
         return nestedTargets;
     }
 
