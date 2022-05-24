@@ -1,6 +1,6 @@
 {
-  "name": "pankti plugin to serialize objects",
-  "id": "panktiplugin",
+  "name": "pankti/rick plugin to serialize objects",
+  "id": "pankti-rick-plugin",
   "properties": [
     {
       "name": "stackTraceThresholdMillis",
