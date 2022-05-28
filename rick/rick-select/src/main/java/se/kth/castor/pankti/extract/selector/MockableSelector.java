@@ -240,7 +240,7 @@ public class MockableSelector {
         for (Map.Entry<Integer, CtParameter<?>> indexParam : indexParametersMap.entrySet()) {
             String parameterName = indexParam.getValue().getSimpleName();
             for (CtInvocation<?> invocation : invocations) {
-                // If invocation is called on parameter
+                // If invocation is made on parameter
                 if (Objects.requireNonNull(invocation.getTarget()).toString().equals(parameterName)) {
                     CtExecutableReference<?> executable = getExecutable(invocation);
                     if (!isExecutableDeclaringTypeStringOrCollection(getDeclaringType(executable))
@@ -289,6 +289,8 @@ public class MockableSelector {
         for (Map.Entry<Integer, CtParameter<?>> indexParam : indexParamsMap.entrySet()) {
             String parameterName = indexParam.getValue().getSimpleName();
             for (CtInvocation<?> invocation : invocationsOnParams) {
+                if (!invocationsOnParams.get(0).getTarget().toString().equals(parameterName))
+                    continue;
                 CtExecutableReference<?> executable = getExecutable(invocation);
                 nestedTargets.add(new NestedTarget(
                         executable.getType().getQualifiedName(),
