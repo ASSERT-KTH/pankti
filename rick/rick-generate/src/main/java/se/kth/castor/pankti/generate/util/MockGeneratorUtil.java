@@ -433,13 +433,7 @@ public class MockGeneratorUtil {
 
         for (int i = 1; i <= paramTypes.size(); i++) {
             if (primitives.contains(paramTypes.get(i - 1))) {
-                arguments.append(params.get(i - 1)
-                        .replaceAll("<char>(.{1})<\\/char>", "<char>'$1'</char>")
-                        .replaceAll("<string>(.+)<\\/string>", "<string>\"$1\"</string>")
-                        .replaceAll("<long>(.+)<\\/long>", "<long>$1L</long>")
-                        .replaceAll("<float>(.+)<\\/float>", "<float>$1F</float>")
-                        .replaceAll("<\\w+>(.+)<\\/\\w+>", "eq($1)")
-                        .replaceAll("\\s", ""));
+                arguments.append(TestGeneratorUtil.handlePrimitiveXMLValues(params.get(i - 1)));
             } else {
                 String nonPrimitive = params.get(i - 1);
                 if (nonPrimitive.contains("-array")) {
@@ -466,13 +460,7 @@ public class MockGeneratorUtil {
                 .split("\\n"));
 
         for (int i = 1; i <= primitiveParams.size(); i++) {
-            arguments.append(primitiveParams.get(i - 1)
-                    .replaceAll("<char>(.{1})<\\/char>", "<char>'$1'</char>")
-                    .replaceAll("<string>(.+)<\\/string>", "<string>\"$1\"</string>")
-                    .replaceAll("<long>(.+)<\\/long>", "<long>$1L</long>")
-                    .replaceAll("<float>(.+)<\\/float>", "<float>$1F</float>")
-                    .replaceAll("<\\w+>(.+)<\\/\\w+>", "$1")
-                    .replaceAll("\\s", ""));
+            arguments.append(TestGeneratorUtil.handlePrimitiveXMLValues(primitiveParams.get(i - 1)));
             if (i != primitiveParams.size()) {
                 arguments.append(", ");
             }
@@ -531,13 +519,7 @@ public class MockGeneratorUtil {
             return null;
         }
         if (primitives.contains(returnType)) {
-            returnedObject = returnedObject
-                    .replaceAll("<char>(.{1})<\\/char>", "<char>'$1'</char>")
-                    .replaceAll("<string>(.+)<\\/string>", "<string>\"$1\"</string>")
-                    .replaceAll("<long>(.+)<\\/long>", "<long>$1L</long>")
-                    .replaceAll("<float>(.+)<\\/float>", "<float>$1F</float>")
-                    .replaceAll("<\\w+>(.+)<\\/\\w+>", "$1")
-                    .replaceAll("\\s", "");
+            return TestGeneratorUtil.handlePrimitiveXMLValues(returnedObject);
         }
         return returnedObject;
     }

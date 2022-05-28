@@ -245,4 +245,16 @@ public class TestGeneratorUtil {
 
         return buffer.toString();
     }
+
+    public static String handlePrimitiveXMLValues(String objectXML) {
+        return objectXML.replaceAll("<byte>(.+)<\\/byte>", "<byte>(byte) $1</byte>")
+                .replaceAll("<short>(.+)<\\/short>", "<short>(short) $1</short>")
+                .replaceAll("<char>(.{1})<\\/char>", "<char>'$1'</char>")
+                .replaceAll("<string>(.+)<\\/string>", "<string>\"$1\"</string>")
+                .replaceAll("<long>(.+)<\\/long>", "<long>$1L</long>")
+                .replaceAll("<float>(.+)<\\/float>", "<float>$1F</float>")
+                .replaceAll("<\\w+>(.+)<\\/\\w+>", "$1")
+//                .replaceAll("\\s", "")
+                .replaceAll("\\n", "");
+    }
 }
