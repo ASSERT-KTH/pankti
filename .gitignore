@@ -1,5 +1,6 @@
 *.csv
 !**/src/test/resources/**/*.csv
+cuts*.txt
 .idea/
 *.iml
 output/
