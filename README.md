@@ -6,6 +6,10 @@ This repository contains code for the following research tools:
 - **pankti**: Tests from production data ([documentation](#pankti))
 - **rick**: Tests + mocks from production data ([documentation](#rick))
 
+#### 🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊
+#### `Head to the` [Wiki](https://github.com/castor-software/pankti/wiki) `for detailed tutorials!`
+#### 🌌🌌🌌🌌🌌🌌🌌🌌🌌🌌🌌🌌🌌🌌🌌🌌🌌🌌🌌🌌🌌🌌🌌🌌🌌🌌🌌
+
 ---
 
 # pankti
