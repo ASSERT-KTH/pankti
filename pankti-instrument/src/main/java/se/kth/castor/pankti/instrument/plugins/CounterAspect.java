@@ -19,7 +19,6 @@ import java.util.regex.Pattern;
  */
 public class CounterAspect {
     private static int INVOCATION_COUNT;
-    private static boolean fileSizeWithinLimits = true;
 
     @Pointcut(className = "fully.qualified.path.to.class",
             methodName = "methodToInstrument",
@@ -28,7 +27,6 @@ public class CounterAspect {
     public static class TargetMethodAdvice implements AdviceTemplate {
         private static final TimerName timer = Agent.getTimerName(TargetMethodAdvice.class);
         private static final String transactionType = "Target";
-        private static final int COUNT = 0;
         private static String invocationCountFilePath;
         private static String invokedMethodsCSVFilePath;
         private static final Logger logger = Logger.getLogger(TargetMethodAdvice.class);
@@ -36,7 +34,6 @@ public class CounterAspect {
         private static final String postfix = methodParamTypesString.isEmpty() ? "" : "_" + methodParamTypesString;
         public static final String methodFQN = TargetMethodAdvice.class.getAnnotation(Pointcut.class).className() + "."
                 + TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodName() + postfix;
-        static UUID invocationUuid = null;
         private static final String invocationString = String.format("Invocation count for %s: ", methodFQN.replaceAll("\\[\\]", "%5b%5d"));
 
         private static void setup() {
@@ -98,11 +95,6 @@ public class CounterAspect {
                                           @BindParameterArray Object parameterObjects,
                                           @BindMethodName String methodName) {
             setup();
-            if (fileSizeWithinLimits) {
-                invocationUuid = UUID.randomUUID();
-                Thread.currentThread().setName(methodFQN);
-
-            }
             MessageSupplier messageSupplier = MessageSupplier.create(
                     "className: {}, methodName: {}",
                     TargetMethodAdvice.class.getAnnotation(Pointcut.class).className(),
@@ -119,7 +111,6 @@ public class CounterAspect {
                 appendRowToInvokedCSVFile();
             }
             writeInvocationCountToFile();
-            invocationUuid = null;
             traceEntry.end();
         }
 
