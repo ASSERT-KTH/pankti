@@ -433,7 +433,7 @@ public class MockGeneratorUtil {
 
         for (int i = 1; i <= paramTypes.size(); i++) {
             if (primitives.contains(paramTypes.get(i - 1))) {
-                arguments.append(TestGeneratorUtil.handlePrimitiveXMLValues(params.get(i - 1)));
+                arguments.append(TestGeneratorUtil.handleArgumentMatcherForPrimitiveXMLValues(params.get(i - 1)));
             } else {
                 String nonPrimitive = params.get(i - 1);
                 if (nonPrimitive.contains("-array")) {
@@ -589,12 +589,15 @@ public class MockGeneratorUtil {
         return nestedParamsBuilder.toString();
     }
 
-    public static CtAnnotation<?> generateDisplayName(String category, String mutName)
+    public static CtAnnotation<?> generateDisplayName(int testMethodCounter,
+                                                      String category, String mutName,
+                                                      String mockables)
             throws ClassNotFoundException {
         CtAnnotation<?> displayNameAnnotation = factory.createAnnotation(
                 factory.createCtTypeReference(Class.forName(JUNIT_JUPITER_DISPLAYNAME_REFERENCE)));
         CtLiteral<String> annotationLiteral = factory.createLiteral();
-        annotationLiteral.setValue(String.format("%s for MUT %s", category, mutName));
+        annotationLiteral.setValue(String.format("%s-%s with %s, mocking %s",
+                mutName, testMethodCounter, category, mockables));
         displayNameAnnotation.addValue("value", annotationLiteral);
         return displayNameAnnotation;
     }

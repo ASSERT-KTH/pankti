@@ -108,7 +108,8 @@ public class MockGenerator {
      * @return
      * @throws ClassNotFoundException
      */
-    public CtMethod<?> generateTestByCategory(String testCategory,
+    public CtMethod<?> generateTestByCategory(int testMethodCounter,
+                                              String testCategory,
                                               CtMethod<?> baseMethod,
                                               SerializedObject serializedObjectMUT,
                                               CtClass<?> generatedTestClass,
@@ -280,7 +281,8 @@ public class MockGenerator {
                 factory.createCtTypeReference(Class.forName(JUNIT_JUPITER_DISABLED_REFERENCE)));
         generatedTest.removeAnnotation(disabledAnnotation);
         generatedTest.addAnnotation(
-                MockGeneratorUtil.generateDisplayName(testCategory, targetMUT.getMethodName()));
+                MockGeneratorUtil.generateDisplayName(testMethodCounter, testCategory, targetMUT.getMethodName(),
+                        targetMUT.getNestedInvocations().stream().map(NestedInvocation::getInvocation).collect(Collectors.toList()).toString()));
         return generatedTest;
     }
 

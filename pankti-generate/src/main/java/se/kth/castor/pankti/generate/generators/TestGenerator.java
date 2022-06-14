@@ -1,5 +1,6 @@
 package se.kth.castor.pankti.generate.generators;
 
+import se.kth.castor.pankti.generate.data.NestedInvocation;
 import se.kth.castor.pankti.generate.parsers.CSVFileParser;
 import se.kth.castor.pankti.generate.data.InstrumentedMethod;
 import se.kth.castor.pankti.generate.parsers.ObjectXMLParser;
@@ -503,7 +504,8 @@ public class TestGenerator {
      * @param generatedClass
      * @throws ClassNotFoundException
      */
-    public void generateMockMethods(InstrumentedMethod instrumentedMethod,
+    public void generateMockMethods(int testMethodCounter,
+                                    InstrumentedMethod instrumentedMethod,
                                     SerializedObject serializedObject,
                                     CtMethod<?> mockMethod,
                                     CtClass<?> generatedClass) throws ClassNotFoundException {
@@ -522,14 +524,14 @@ public class TestGenerator {
             // Test - OO
             if (!instrumentedMethod.getReturnType().equals("void") &
                     MockGeneratorUtil.arePrimitiveOrString(List.of(instrumentedMethod.getReturnType()))) {
-                CtMethod<?> testOO = mockGenerator.generateTestByCategory("OO", mockMethod, serializedObject, generatedClass, instrumentedMethod);
+                CtMethod<?> testOO = mockGenerator.generateTestByCategory(testMethodCounter, "OO", mockMethod, serializedObject, generatedClass, instrumentedMethod);
                 generatedClass.addMethod(testOO);
                 generatedTestsWithMocks.add(testOO);
                 System.out.println("Generated 1 OO test for " + instrumentedMethod.getFullMethodPath());
             }
 
             // Test - PO
-            CtMethod<?> testPO = mockGenerator.generateTestByCategory("PO", mockMethod, serializedObject, generatedClass, instrumentedMethod);
+            CtMethod<?> testPO = mockGenerator.generateTestByCategory(testMethodCounter, "PO", mockMethod, serializedObject, generatedClass, instrumentedMethod);
             generatedClass.addMethod(testPO);
             generatedTestsWithMocks.add(testPO);
             System.out.println("Generated 1 PO test for " + instrumentedMethod.getFullMethodPath());
@@ -550,7 +552,8 @@ public class TestGenerator {
                 CtMethod<?> testCO = sequenceGenerator.generateTestToVerifyMethodSequence(Set.of(testPO), serializedObject);
                 testCO.setSimpleName(methodNameCO);
                 testCO.addAnnotation(testAnnotation);
-                testCO.addAnnotation(MockGeneratorUtil.generateDisplayName("CO", instrumentedMethod.getMethodName()));
+                testCO.addAnnotation(MockGeneratorUtil.generateDisplayName(testMethodCounter, "CO", instrumentedMethod.getMethodName(),
+                        instrumentedMethod.getNestedInvocations().stream().map(NestedInvocation::getInvocation).collect(Collectors.toList()).toString()));
                 generatedClass.addMethod(testCO);
                 generatedTestsWithMocks.add(testCO);
                 System.out.println("Generated 1 CO test for " + instrumentedMethod.getFullMethodPath());
@@ -612,7 +615,7 @@ public class TestGenerator {
                 // If mocks can be used to test this method
                 if (generateMocks & serializedObject.getNestedSerializedObjects().size() > 0) {
                     CtMethod<?> baseMethod = generatedMethod.clone();
-                    generateMockMethods(instrumentedMethod, serializedObject, baseMethod, generatedClass);
+                    generateMockMethods(methodCounter, instrumentedMethod, serializedObject, baseMethod, generatedClass);
                 }
                 methodCounter++;
             }
