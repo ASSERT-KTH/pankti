@@ -1,5 +1,10 @@
 package se.kth.castor.pankti.instrument.plugins;
 
+import com.thoughtworks.xstream.converters.Converter;
+import com.thoughtworks.xstream.converters.MarshallingContext;
+import com.thoughtworks.xstream.converters.UnmarshallingContext;
+import com.thoughtworks.xstream.io.HierarchicalStreamReader;
+import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import org.glowroot.agent.plugin.api.*;
 import org.glowroot.agent.plugin.api.weaving.*;
 
@@ -17,8 +22,9 @@ import java.util.regex.Pattern;
  * This aspect class counts the number of invocations
  * of a specific method
  */
-public class CounterAspect {
+public class CounterAspect0 {
     private static int INVOCATION_COUNT;
+    private static boolean fileSizeWithinLimits = true;
 
     @Pointcut(className = "fully.qualified.path.to.class",
             methodName = "methodToInstrument",
@@ -27,20 +33,72 @@ public class CounterAspect {
     public static class TargetMethodAdvice implements AdviceTemplate {
         private static final TimerName timer = Agent.getTimerName(TargetMethodAdvice.class);
         private static final String transactionType = "Target";
+        private static final int COUNT = 0;
+        private static long profileSizePre;
+        private static String receivingObjectFilePath;
+        private static String receivingObjectPostFilePath;
+        private static String paramObjectsFilePath;
+        private static String returnedObjectFilePath;
         private static String invocationCountFilePath;
         private static String invokedMethodsCSVFilePath;
-        private static final Logger logger = Logger.getLogger(TargetMethodAdvice.class);
+        private static String objectProfileSizeFilePath;
+        private static Logger logger = Logger.getLogger(TargetMethodAdvice.class);
+        private static String rowInCSVFile = "";
+        private static final boolean isReturnTypeVoid = false;
+        private static final boolean hasMockableInvocations = false;
         private static final String methodParamTypesString = String.join(",", TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodParameterTypes());
         private static final String postfix = methodParamTypesString.isEmpty() ? "" : "_" + methodParamTypesString;
         public static final String methodFQN = TargetMethodAdvice.class.getAnnotation(Pointcut.class).className() + "."
                 + TargetMethodAdvice.class.getAnnotation(Pointcut.class).methodName() + postfix;
+        static UUID invocationUuid = null;
         private static final String invocationString = String.format("Invocation count for %s: ", methodFQN.replaceAll("\\[\\]", "%5b%5d"));
+        private static File[] allObjectFiles;
 
         private static void setup() {
             AdviceTemplate.setUpXStream();
             Map<Type, String> fileNameMap = AdviceTemplate.setUpFiles(methodFQN);
+            receivingObjectFilePath = fileNameMap.get(Type.RECEIVING_PRE);
+            receivingObjectPostFilePath = fileNameMap.get(Type.RECEIVING_POST);
+            paramObjectsFilePath = fileNameMap.get(Type.PARAMS);
+            returnedObjectFilePath = fileNameMap.get(Type.RETURNED);
             invocationCountFilePath = fileNameMap.get(Type.INVOCATION_COUNT);
             invokedMethodsCSVFilePath = fileNameMap.get(Type.INVOKED_METHODS);
+            objectProfileSizeFilePath = fileNameMap.get(Type.OBJECT_PROFILE_SIZE);
+            allObjectFiles = new File[]{
+                    new File(receivingObjectFilePath),
+                    new File(receivingObjectPostFilePath),
+                    new File(returnedObjectFilePath),
+                    new File(paramObjectsFilePath)};
+            checkFileSizeLimit();
+        }
+
+        public static long getObjectProfileSize() {
+            long objectProfileSize = 0L;
+            for (File file : allObjectFiles) {
+                objectProfileSize += file.length();
+            }
+            return objectProfileSize;
+        }
+
+        // Limit object XML files to ~200 MB
+        public static void checkFileSizeLimit() {
+            for (File file : allObjectFiles) {
+                if (file.exists() && (file.length() / (1024 * 1024) >= 200)) {
+                    fileSizeWithinLimits = false;
+                    break;
+                }
+            }
+        }
+
+        // Write size (in bytes) of individual object profile to file
+        public static synchronized void writeObjectProfileSizeToFile(long size) {
+            try {
+                FileWriter objectFileWriter = new FileWriter(objectProfileSizeFilePath, true);
+                objectFileWriter.write(size + "\n");
+                objectFileWriter.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         public static synchronized void writeInvocationCountToFile() {
@@ -73,7 +131,7 @@ public class CounterAspect {
                 boolean found = false;
                 while (scanner.hasNextLine()) {
                     String lineFromFile = scanner.nextLine();
-                    if (lineFromFile.contains(methodFQN)) {
+                    if (lineFromFile.contains(rowInCSVFile)) {
                         found = true;
                         break;
                     }
@@ -81,12 +139,18 @@ public class CounterAspect {
                 if (!found) {
                     FileWriter fr = new FileWriter(invokedMethodsCSVFile, true);
                     fr.write("\n");
-                    fr.write(methodFQN);
+                    fr.write(rowInCSVFile);
                     fr.close();
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
+
+        @IsEnabled
+        public static boolean enableProfileCollection() {
+            invocationUuid = null;
+            return true;
         }
 
         @OnBefore
@@ -95,6 +159,12 @@ public class CounterAspect {
                                           @BindParameterArray Object parameterObjects,
                                           @BindMethodName String methodName) {
             setup();
+            if (fileSizeWithinLimits) {
+                if (hasMockableInvocations) {
+                    invocationUuid = UUID.randomUUID();
+                    Thread.currentThread().setName(methodFQN);
+                }
+            }
             MessageSupplier messageSupplier = MessageSupplier.create(
                     "className: {}, methodName: {}",
                     TargetMethodAdvice.class.getAnnotation(Pointcut.class).className(),
@@ -103,6 +173,7 @@ public class CounterAspect {
             return context.startTransaction(transactionType, methodName, messageSupplier, timer, OptionalThreadContext.AlreadyInTransactionBehavior.CAPTURE_NEW_TRANSACTION);
         }
 
+        // Replaced with @BindReceiver for void methods
         @OnReturn
         public static void onReturn(@BindReturn Object returnedObject,
                                     @BindTraveler TraceEntry traceEntry) {
@@ -111,6 +182,7 @@ public class CounterAspect {
                 appendRowToInvokedCSVFile();
             }
             writeInvocationCountToFile();
+            invocationUuid = null;
             traceEntry.end();
         }
 
@@ -118,6 +190,37 @@ public class CounterAspect {
         public static void onThrow(@BindThrowable Throwable throwable,
                                    @BindTraveler TraceEntry traceEntry) {
             traceEntry.endWithError(throwable);
+        }
+
+        public static String extractClassNameFromTheExceptionMessage(String exceptionMessage) {
+            String className = "";
+
+            String pattern = "type\\s+:\\s+(\\S*)\\n";
+            Pattern r = Pattern.compile(pattern);
+            Matcher m = r.matcher(exceptionMessage);
+            if (m.find()) {
+                className = m.group(1);
+            }
+
+            return className;
+        }
+
+        public static void registerConverterAtRuntime(String className) {
+            xStream.registerConverter(new Converter() {
+                @Override
+                public void marshal(Object o, HierarchicalStreamWriter hierarchicalStreamWriter, MarshallingContext marshallingContext) {
+                }
+
+                @Override
+                public Object unmarshal(HierarchicalStreamReader hierarchicalStreamReader, UnmarshallingContext unmarshallingContext) {
+                    return null;
+                }
+
+                @Override
+                public boolean canConvert(Class aClass) {
+                    return aClass.getCanonicalName().equals(className);
+                }
+            });
         }
     }
 }
