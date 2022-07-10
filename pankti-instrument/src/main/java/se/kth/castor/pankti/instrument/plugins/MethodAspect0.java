@@ -206,7 +206,7 @@ public class MethodAspect0 {
                                     @BindTraveler TraceEntry traceEntry) {
             if (fileSizeWithinLimits) {
                 writeObjectXMLToFile(returnedObject, returnedObjectFilePath);
-                writeObjectProfileSizeToFile(getObjectProfileSize() - profileSizePre);
+//                writeObjectProfileSizeToFile(getObjectProfileSize() - profileSizePre);
                 checkFileSizeLimit();
             }
             INVOCATION_COUNT++;

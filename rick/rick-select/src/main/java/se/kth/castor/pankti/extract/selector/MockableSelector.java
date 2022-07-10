@@ -8,9 +8,9 @@ import spoon.reflect.declaration.*;
 import spoon.reflect.reference.CtExecutableReference;
 import spoon.reflect.reference.CtTypeReference;
 import spoon.reflect.visitor.filter.TypeFilter;
-import spoon.support.reflect.reference.CtExecutableReferenceImpl;
 import spoon.support.reflect.reference.CtFieldReferenceImpl;
 
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -180,12 +180,27 @@ public class MockableSelector {
                 .collect(Collectors.toList());
     }
 
-    private static boolean isExecutableEqualsOrHashCodeOrToString(CtExecutableReference<?> executable) {
+    private static boolean isExecutableNonInstrumentableOrNonMockable(CtExecutableReference<?> executable) {
         return (executable.getSimpleName().equals("equals") ||
                 executable.getSimpleName().equals("toString") ||
-                (executable.getSimpleName().equals("containsKey") &
-                        getDeclaringType(executable).getQualifiedName().equals("java.util.Map")) ||
-                executable.getSimpleName().equals("hashCode"));
+                executable.getSimpleName().equals("hashCode") ||
+                (executable.getSimpleName().equals("accept") &
+                        getDeclaringType(executable).getQualifiedName().equals("java.util.function.Consumer")) ||
+                ((executable.getSimpleName().equals("contains") ||
+                        executable.getSimpleName().equals("add")) &
+                        (getDeclaringType(executable).getQualifiedName().equals("java.util.Set") ||
+                                (getDeclaringType(executable).getQualifiedName().equals("java.util.HashSet")))) ||
+                ((executable.getSimpleName().equals("isEmpty") ||
+                        executable.getSimpleName().equals("size")) &
+                        getDeclaringType(executable).getQualifiedName().equals("java.util.List")) ||
+                (executable.getSimpleName().toLowerCase(Locale.ROOT).contains("lock") || getDeclaringType(executable).getQualifiedName().contains("lock")) ||
+                ((executable.getSimpleName().equals("containsKey") ||
+                        executable.getSimpleName().equals("put") ||
+                        executable.getSimpleName().equals("putAll") ||
+                        executable.getSimpleName().equals("get") ||
+                        executable.getSimpleName().equals("remove")) &
+                        (getDeclaringType(executable).getQualifiedName().equals("java.util.Map") ||
+                                getDeclaringType(executable).getQualifiedName().equals("java.util.HashMap"))));
     }
 
     /**
@@ -245,7 +260,10 @@ public class MockableSelector {
                     CtExecutableReference<?> executable = getExecutable(invocation);
                     if (!isExecutableDeclaringTypeStringOrCollection(getDeclaringType(executable))
                             & executable.getType() != null) {
-                        if (!isExecutableEqualsOrHashCodeOrToString(executable) &
+                        if (!isExecutableNonInstrumentableOrNonMockable(executable) &
+                                !isMUTParentAnonymousOrPrivate(method) &
+                                !isMockableParentPrivateOrStatic(invocation) &
+                                !isMockablePrivate(invocation) &
                                 isPrimitiveOrString(executable.getType()) & getExecutableLOC(executable) != 1) {
                             invocationsOnParams.add(invocation);
                         }
@@ -310,8 +328,35 @@ public class MockableSelector {
         return invocation.getExecutable().getParameters().stream().allMatch(CtTypeInformation::isPrimitive);
     }
 
+    /**
+     * Check if a method is defined within an anonymous or private class
+     */
+    private static boolean isMUTParentAnonymousOrPrivate(CtMethod<?> method) {
+        CtType<?> parentType = method.getDeclaringType();
+        return parentType.getModifiers().contains(ModifierKind.PRIVATE) ||
+                parentType.isAnonymous();
+    }
+
+    private static boolean isMockableParentPrivateOrStatic(CtInvocation<?> invocation) {
+        CtTypeReference<?> mockableDeclaringType = getDeclaringType(getExecutable(invocation));
+        Set<ModifierKind> modifiers = mockableDeclaringType.getModifiers();
+        return modifiers.contains(ModifierKind.STATIC) || modifiers.contains(ModifierKind.PRIVATE);
+    }
+
+    private static boolean isMockablePrivate(CtInvocation<?> invocation) {
+        try {
+            int modifiers = getExecutable(invocation).getActualMethod().getModifiers();
+            return Modifier.toString(modifiers).contains("private");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private static boolean isNestedInvocationOnFieldMockable(final CtMethod<?> method,
                                                              final CtInvocation<?> invocation) {
+        if (isMUTParentAnonymousOrPrivate(method) || isMockableParentPrivateOrStatic(invocation) ||
+                isMockablePrivate(invocation))
+            return false;
         CtExecutableReference<?> executable = getExecutable(invocation);
         CtTypeReference<?> executableDeclaringType = getDeclaringType(executable);
         if (executableDeclaringType == null || executable.getType() == null)
@@ -319,7 +364,7 @@ public class MockableSelector {
         if (isExecutableDeclaringTypeStringOrCollection(executableDeclaringType))
             return false;
         CtType<?> methodDeclaringType = method.getDeclaringType();
-        if (!isExecutableEqualsOrHashCodeOrToString(executable) &
+        if (!isExecutableNonInstrumentableOrNonMockable(executable) &
                 !isMethodDeclaringTypeSameAsExecutableDeclaringType(methodDeclaringType, executableDeclaringType)) {
             return isInvocationTargetAField(method, invocation);
         }
@@ -333,7 +378,7 @@ public class MockableSelector {
             if (invocation.getTarget() != null) {
                 if (invocation.getTarget().toString().equals(parameter.getSimpleName()) &
                         !parameter.getType().getQualifiedName().equals(method.getDeclaringType().getQualifiedName()) &
-                        !isExecutableEqualsOrHashCodeOrToString(invocation.getExecutable()))
+                        !isExecutableNonInstrumentableOrNonMockable(invocation.getExecutable()))
                     return true;
             }
         }
@@ -352,7 +397,10 @@ public class MockableSelector {
                 .getField(target)
                 .getModifiers();
 
-        return modifiers.contains(ModifierKind.PRIVATE) ?
+        // Mocks for private, protected, and final fields are injected through reflection
+        return (modifiers.contains(ModifierKind.PRIVATE) ||
+                modifiers.contains(ModifierKind.PROTECTED) ||
+                modifiers.contains(ModifierKind.FINAL)) ?
                 ModifierKind.PRIVATE.toString() :
                 "default";
     }

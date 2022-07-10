@@ -109,7 +109,7 @@ public class MockGenerator {
      * @throws ClassNotFoundException
      */
     public CtMethod<?> generateTestByCategory(int testMethodCounter,
-                                              String testCategory,
+                                              MockOracle testCategory,
                                               CtMethod<?> baseMethod,
                                               SerializedObject serializedObjectMUT,
                                               CtClass<?> generatedTestClass,
@@ -209,7 +209,7 @@ public class MockGenerator {
                     }
 
                     // Generate verification statements for PO and CO
-                    if (!testCategory.equals("OO")) {
+                    if (!testCategory.equals(MockOracle.OO)) {
                         CtStatement verificationStatement = createMockitoVerifyInvocation(nestedInvocation,
                                 mockVariableName, paramTypes, nestedParams, nestedSerializedObject);
                         if (verificationStatementsPO.stream().noneMatch(v ->
@@ -256,14 +256,14 @@ public class MockGenerator {
                     targetMUT.getParamList(), mockedParamIndices.get(i), mockParameterNames.get(i));
         }
 
-        if (testCategory.equals("OO")) {
+        if (testCategory.equals(MockOracle.OO)) {
             List<CtStatement> actAndAssertStatements = MockGeneratorUtil.refactorAssertionStatementIntoActAndAssertion(
                     targetMUT.getReturnType(), mutCallStatement);
             actAndAssertStatements.forEach(s -> generatedTest.getBody().addStatement(s));
         }
 
         // remove assertion on MUT output for PO and CO tests
-        if (!testCategory.equals("OO")) {
+        if (!testCategory.equals(MockOracle.OO)) {
             mutCallStatement = factory.createCodeSnippetStatement(mutCallStatement.toString()
                     .replaceAll(".+\\(.+,\\s(receivingObject.+\\))\\)",
                             "$1"));
@@ -271,7 +271,7 @@ public class MockGenerator {
         }
 
         // For PO tests, add verification statements with concrete parameters
-        if (testCategory.equals("PO")) {
+        if (testCategory.equals(MockOracle.PO)) {
             for (CtStatement statement : verificationStatementsPO) {
                 generatedTest.getBody().addStatement(statement);
             }

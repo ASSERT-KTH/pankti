@@ -1,6 +1,7 @@
 package se.kth.castor.pankti.generate.util;
 
 import se.kth.castor.pankti.generate.data.SerializedObject;
+import se.kth.castor.pankti.generate.generators.MockOracle;
 import spoon.reflect.code.*;
 import spoon.reflect.declaration.*;
 import spoon.reflect.factory.Factory;
@@ -590,14 +591,14 @@ public class MockGeneratorUtil {
     }
 
     public static CtAnnotation<?> generateDisplayName(int testMethodCounter,
-                                                      String category, String mutName,
+                                                      MockOracle category, String mutName,
                                                       String mockables)
             throws ClassNotFoundException {
         CtAnnotation<?> displayNameAnnotation = factory.createAnnotation(
                 factory.createCtTypeReference(Class.forName(JUNIT_JUPITER_DISPLAYNAME_REFERENCE)));
         CtLiteral<String> annotationLiteral = factory.createLiteral();
         annotationLiteral.setValue(String.format("%s-%s with %s, mocking %s",
-                mutName, testMethodCounter, category, mockables));
+                mutName, testMethodCounter, category.getFullName(category), mockables));
         displayNameAnnotation.addValue("value", annotationLiteral);
         return displayNameAnnotation;
     }

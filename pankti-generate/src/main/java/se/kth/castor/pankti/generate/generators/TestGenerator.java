@@ -524,14 +524,14 @@ public class TestGenerator {
             // Test - OO
             if (!instrumentedMethod.getReturnType().equals("void") &
                     MockGeneratorUtil.arePrimitiveOrString(List.of(instrumentedMethod.getReturnType()))) {
-                CtMethod<?> testOO = mockGenerator.generateTestByCategory(testMethodCounter, "OO", mockMethod, serializedObject, generatedClass, instrumentedMethod);
+                CtMethod<?> testOO = mockGenerator.generateTestByCategory(testMethodCounter, MockOracle.OO, mockMethod, serializedObject, generatedClass, instrumentedMethod);
                 generatedClass.addMethod(testOO);
                 generatedTestsWithMocks.add(testOO);
                 System.out.println("Generated 1 OO test for " + instrumentedMethod.getFullMethodPath());
             }
 
             // Test - PO
-            CtMethod<?> testPO = mockGenerator.generateTestByCategory(testMethodCounter, "PO", mockMethod, serializedObject, generatedClass, instrumentedMethod);
+            CtMethod<?> testPO = mockGenerator.generateTestByCategory(testMethodCounter, MockOracle.PO, mockMethod, serializedObject, generatedClass, instrumentedMethod);
             generatedClass.addMethod(testPO);
             generatedTestsWithMocks.add(testPO);
             System.out.println("Generated 1 PO test for " + instrumentedMethod.getFullMethodPath());
@@ -552,7 +552,7 @@ public class TestGenerator {
                 CtMethod<?> testCO = sequenceGenerator.generateTestToVerifyMethodSequence(Set.of(testPO), serializedObject);
                 testCO.setSimpleName(methodNameCO);
                 testCO.addAnnotation(testAnnotation);
-                testCO.addAnnotation(MockGeneratorUtil.generateDisplayName(testMethodCounter, "CO", instrumentedMethod.getMethodName(),
+                testCO.addAnnotation(MockGeneratorUtil.generateDisplayName(testMethodCounter, MockOracle.CO, instrumentedMethod.getMethodName(),
                         instrumentedMethod.getNestedInvocations().stream().map(NestedInvocation::getInvocation).collect(Collectors.toList()).toString()));
                 generatedClass.addMethod(testCO);
                 generatedTestsWithMocks.add(testCO);
