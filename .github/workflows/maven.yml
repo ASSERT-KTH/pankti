@@ -13,7 +13,7 @@ jobs:
           java-version: 11
           maven-version: 3.6.0
       - name: "Cache local Maven"
-        uses: actions/cache
+        uses: actions/cache@4
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
