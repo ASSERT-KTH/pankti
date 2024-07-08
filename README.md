@@ -1,5 +1,3 @@
-![Build](https://github.com/castor-software/pankti//workflows/build-on-push/badge.svg)
-
 # About
 
 This repository contains code for the following research tools:
