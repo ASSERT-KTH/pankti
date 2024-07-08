@@ -6,17 +6,25 @@ jobs:
   build_and_test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up JDK
-      uses: actions/setup-java@v4
-      with:
-        distribution: corretto
-        java-version: 11
-        cache: 'maven'
-    - name: Execute tests and compute coverage
-      run: mvn clean test
-    - name: Generate coverage report
-      run: mvn jacoco:report
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: 11
+      - name: "Cache local Maven"
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Execute tests and compute coverage
+        run: mvn clean test
+      - name: Generate coverage report
+        run: mvn jacoco:report
   publish-job:
       runs-on: ubuntu-latest
       needs: [build_and_test]
@@ -26,7 +34,6 @@ jobs:
           with:
             distribution: corretto
             java-version: 11
-            cache: 'maven'
         - run: mvn -B package --file pom.xml -DskipTests
         - run: mkdir staging && cp **/target/*jar-with-dependencies.jar staging
         - uses: actions/upload-artifact@v1
