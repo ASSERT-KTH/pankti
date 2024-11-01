@@ -5,7 +5,7 @@ This is the folder of
 * [Mimicking Production Behavior with Generated Mocks](http://arxiv.org/pdf/2208.01321) (Deepika Tiwari, Martin Monperrus and Benoit Baudry), IEEE Transactions on Software Engineering, DOI: [10.1109/tse.2024.3458448](https://doi.org/10.1109/tse.2024.3458448), 2024.
  
 
-```
+```bibtex
 @inproceedings{rickshort,
  title = {RICK: Generating Mocks from Production Data},
  booktitle = {Proceedings of ICST},
@@ -15,12 +15,11 @@ This is the folder of
  url = {http://arxiv.org/pdf/2302.04547},
 }
 
-@techreport{ricklong,
+@article{ricklong,
  title = {Mimicking Production Behavior with Generated Mocks},
- year = {2022},
- author = {Deepika Tiwari and Martin Monperrus and Benoit Baudry},
- url = {http://arxiv.org/pdf/2208.01321},
- number = {2208.01321},
- institution = {arXiv},
+ journal = {IEEE Transactions on Software Engineering},
+ year = {2024},
+ doi = {10.1109/tse.2024.3458448},
+ author = {Deepika Tiwari and Martin Monperrus and Benoit Baudry}
 }
 ```
